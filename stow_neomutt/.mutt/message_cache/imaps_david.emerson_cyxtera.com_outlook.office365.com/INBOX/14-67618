@@ -1,0 +1,217 @@
+Received: from MN2PR14MB2654.namprd14.prod.outlook.com (2603:10b6:406:a8::26)
+ by BN8PR14MB3106.namprd14.prod.outlook.com with HTTPS via
+ BN7PR11CA0013.NAMPRD11.PROD.OUTLOOK.COM; Thu, 14 Mar 2019 14:53:33 +0000
+Received: from MN2PR14MB3150.namprd14.prod.outlook.com (20.179.145.218) by
+ MN2PR14MB2654.namprd14.prod.outlook.com (20.178.244.154) with Microsoft SMTP
+ Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.20.1709.14; Thu, 14 Mar 2019 14:53:32 +0000
+Received: from MN2PR14MB3150.namprd14.prod.outlook.com
+ ([fe80::90b0:e40:e0d7:2fbf]) by MN2PR14MB3150.namprd14.prod.outlook.com
+ ([fe80::90b0:e40:e0d7:2fbf%2]) with mapi id 15.20.1686.021; Thu, 14 Mar 2019
+ 14:53:32 +0000
+From: Elias Osi <elias.osi@cyxtera.com>
+To: David Emerson <david.emerson@cyxtera.com>
+Subject: IP & Port Assignment Request
+Thread-Topic: IP & Port Assignment Request
+Thread-Index: AdTadZ98A0WX7nUqRLiTF22Tryxq0w==
+Date: Thu, 14 Mar 2019 10:53:32 -0400
+Message-ID:
+	<MN2PR14MB31501CFF4085CA3B26FD585BFC4B0@MN2PR14MB3150.namprd14.prod.outlook.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Exchange-Organization-AuthAs: Internal
+X-MS-Exchange-Organization-AuthMechanism: 04
+X-MS-Exchange-Organization-AuthSource: MN2PR14MB3150.namprd14.prod.outlook.com
+X-MS-Has-Attach: yes
+X-MS-Exchange-Organization-Network-Message-Id:
+	6c297483-16db-4f40-d6c3-08d6a88cd41b
+X-MS-Exchange-Organization-SCL: -1
+X-MS-TNEF-Correlator:
+X-MS-Exchange-Organization-RecordReviewCfmType: 0
+x-ms-publictraffictype: Email
+X-Microsoft-Antispam-Mailbox-Delivery:
+	ucf:0;jmr:0;ex:0;auth:0;dest:I;ENG:(750119)(520011016)(706158)(944506303)(944626516);
+X-Microsoft-Antispam-Message-Info:
+	XtOxLIUnYjFM3NqThL8SbUgdDySHCDD6L1prmzaReZttozIkQph3GwNu9I15hP1vd+7HdTXuNrt+Ph8eSKCJDdDts6hznCU9ZjJ02BFP20Q09SJecXr+Jb3Rnq0lDVcKTiIORrs5wzZF0t/ODPGuMOT7OUtwYDu0+PL5o7nPSUs5dr66ORXhYxcLZB8CgFQpQG9AsdwtPoKlL6chq0wS8bBCkxQhKyyrWhD1KmcetT1iHrj2XRHCM/fkIi5FiPASZDGXr+ljightr7LgBLjEdUusIsIHS6BMuMNVkj10nVUQM2HJnPU2wuYLXA1pR5TBiaCC8HgT+IrZnU4YH8nvIQR42PDnXF9ZNAWHr7ZixqbgXUBab6naDMcEOAOB0TcQne5Mrsi+R/D0Kli1SpIl4d1elDAuxEGK8TVI8iAB83dnTz68ejV4N+nj3/Svex5p
+Content-Type: multipart/related;
+	boundary="_002_MN2PR14MB31501CFF4085CA3B26FD585BFC4B0MN2PR14MB3150namp_";
+	type="text/html"
+MIME-Version: 1.0
+
+--_002_MN2PR14MB31501CFF4085CA3B26FD585BFC4B0MN2PR14MB3150namp_
+Content-Type: text/html; charset="us-ascii"
+
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns:m="http://schemas.microsoft.com/office/2004/12/omml" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta name="Generator" content="Microsoft Word 15 (filtered medium)">
+<!--[if !mso]><style>v\:* {behavior:url(#default#VML);}
+o\:* {behavior:url(#default#VML);}
+w\:* {behavior:url(#default#VML);}
+.shape {behavior:url(#default#VML);}
+</style><![endif]--><style><!--
+/* Font Definitions */
+@font-face
+	{font-family:"Cambria Math";
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+/* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif;}
+a:link, span.MsoHyperlink
+	{mso-style-priority:99;
+	color:#0563C1;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{mso-style-priority:99;
+	color:#954F72;
+	text-decoration:underline;}
+span.EmailStyle17
+	{mso-style-type:personal-compose;
+	font-family:"Calibri",sans-serif;
+	color:windowtext;}
+span.sn-widget-textblock-body
+	{mso-style-name:sn-widget-textblock-body;}
+.MsoChpDefault
+	{mso-style-type:export-only;
+	font-family:"Calibri",sans-serif;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;}
+div.WordSection1
+	{page:WordSection1;}
+--></style><!--[if gte mso 9]><xml>
+<o:shapedefaults v:ext="edit" spidmax="1026" />
+</xml><![endif]--><!--[if gte mso 9]><xml>
+<o:shapelayout v:ext="edit">
+<o:idmap v:ext="edit" data="1" />
+</o:shapelayout></xml><![endif]-->
+</head>
+<body lang="EN-US" link="#0563C1" vlink="#954F72">
+<div class="WordSection1">
+<p class="MsoNormal"><span class="sn-widget-textblock-body">Hi David, </span><br>
+<br>
+<span class="sn-widget-textblock-body">Kindly see assigned IP's and switch ports below. I think the AppGate team may need to add entitlements. Please let me know if you need me to add the IP's to the Network Auditor request Kia has for AppGate entitlements
+ with Kevin Parlee. </span><br>
+<br>
+<span class="sn-widget-textblock-body">10.235.71.212 IAD2AVA_ASW02 port Ge-0/0/20 Jumpbox
+</span><br>
+<span class="sn-widget-textblock-body">10.235.71.213 IAD2AVA_ASW02 port Ge-0/0/21 Hashfile server
+</span><br>
+<br>
+<span class="sn-widget-textblock-body">Subnet: 255.255.252.0 </span><br>
+<span class="sn-widget-textblock-body">GW: 10.235.71.254<o:p></o:p></span></p>
+<p class="MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class="MsoNormal">Thanks,<o:p></o:p></p>
+<p class="MsoNormal"><o:p>&nbsp;</o:p></p>
+<p class="MsoNormal"><b><span lang="es-419" style="font-family:&quot;Arial&quot;,sans-serif;color:black">Elias Osi<o:p></o:p></span></b></p>
+<p class="MsoNormal"><b><span lang="es-419" style="font-family:&quot;Arial&quot;,sans-serif;color:black"><o:p>&nbsp;</o:p></span></b></p>
+<p class="MsoNormal" style="text-autospace:none"><b><span style="font-size:10.0pt;font-family:&quot;Arial&quot;,sans-serif;color:#767171">Cyxtera
+</span></b><span style="font-size:10.0pt;font-family:&quot;Arial&quot;,sans-serif;color:#767171"><o:p></o:p></span></p>
+<p class="MsoNormal"><span style="font-size:9.0pt;font-family:&quot;Arial&quot;,sans-serif;color:#A6A6A6">855-699-8372<b> Ext 7131</b></span><span style="font-size:10.0pt;color:#AEAAAA">
+<o:p></o:p></span></p>
+<p class="MsoNormal"><span style="font-family:&quot;Arial&quot;,sans-serif;color:#942786">___________________________________</span><span style="font-size:10.0pt;color:#AEAAAA"><o:p></o:p></span></p>
+<p class="MsoNormal"><span style="font-size:5.5pt;font-family:&quot;Arial&quot;,sans-serif;color:black">&nbsp;&nbsp;
+</span><span style="font-family:&quot;Arial&quot;,sans-serif;color:black"><br>
+<img width="149" height="25" style="width:1.55in;height:.2583in" id="Picture_x0020_1" src="cid:image001.png@01D4DA4B.C7CF21F0" alt="cid:image001.png@01D357CA.6D51BD00"><o:p></o:p></span></p>
+<p class="MsoNormal"><o:p>&nbsp;</o:p></p>
+</div>
+</body>
+</html>
+
+--_002_MN2PR14MB31501CFF4085CA3B26FD585BFC4B0MN2PR14MB3150namp_
+Content-Type: image/png; name="image001.png"
+Content-Description: image001.png
+Content-Disposition: inline; filename="image001.png"; size=4829;
+	creation-date="Thu, 14 Mar 2019 14:53:32 GMT";
+	modification-date="Thu, 14 Mar 2019 14:53:32 GMT"
+Content-ID: <image001.png@01D4DA4B.C7CF21F0>
+Content-Transfer-Encoding: base64
+
+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
+
+--_002_MN2PR14MB31501CFF4085CA3B26FD585BFC4B0MN2PR14MB3150namp_--

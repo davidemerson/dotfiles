@@ -1,0 +1,445 @@
+Received: from DM6PR14MB2123.namprd14.prod.outlook.com (2603:10b6:400::26) by
+ BN8PR14MB3106.namprd14.prod.outlook.com with HTTPS via
+ BN3PR05CA0016.NAMPRD05.PROD.OUTLOOK.COM; Tue, 21 May 2019 20:04:04 +0000
+Received: from DM6PR14MB2347.namprd14.prod.outlook.com (20.176.91.12) by
+ DM6PR14MB2123.namprd14.prod.outlook.com (20.176.89.156) with Microsoft SMTP
+ Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.20.1900.17; Tue, 21 May 2019 20:04:02 +0000
+Received: from DM6PR14MB2347.namprd14.prod.outlook.com
+ ([fe80::846f:c643:9501:2f3b]) by DM6PR14MB2347.namprd14.prod.outlook.com
+ ([fe80::846f:c643:9501:2f3b%5]) with mapi id 15.20.1900.020; Tue, 21 May 2019
+ 20:04:02 +0000
+From: Nakia Matthews <nakia.matthews@cyxtera.com>
+To: Ori Nahir <onahir@paloaltonetworks.com>, Kristin Amirault
+	<kamirault@paloaltonetworks.com>, Ariany Mizrahi
+	<ariany.mizrahi@cyxtera.com>, David Emerson <david.emerson@cyxtera.com>,
+	Diego Vargas <diego.vargas@cyxtera.com>, Omer Cohen
+	<omcohen@paloaltonetworks.com>
+Subject: Re: Demisto - Cyxtera - Sync
+Thread-Topic: Demisto - Cyxtera - Sync
+Thread-Index: AQHVDAU/C6UpTQ/zukScms4WcjdR96Z2CGxC
+Date: Tue, 21 May 2019 16:04:02 -0400
+Message-ID:
+	<DM6PR14MB2347142103B740F85ECB826D92070@DM6PR14MB2347.namprd14.prod.outlook.com>
+References: <B15A00E1-D95D-49B4-A630-648BFF1BD9C4@paloaltonetworks.com>
+In-Reply-To: <B15A00E1-D95D-49B4-A630-648BFF1BD9C4@paloaltonetworks.com>
+Accept-Language: en-GB, en-US
+Content-Language: en-US
+X-MS-Exchange-Organization-AuthAs: Internal
+X-MS-Exchange-Organization-AuthMechanism: 04
+X-MS-Exchange-Organization-AuthSource: DM6PR14MB2347.namprd14.prod.outlook.com
+X-MS-Has-Attach:
+X-MS-Exchange-Organization-Network-Message-Id:
+	382b704c-1506-4a6e-d6a4-08d6de277897
+X-MS-Exchange-Organization-SCL: -1
+X-MS-TNEF-Correlator:
+X-MS-Exchange-Organization-RecordReviewCfmType: 0
+x-ms-publictraffictype: Email
+X-Microsoft-Antispam-Mailbox-Delivery:
+	ucf:0;jmr:0;ex:0;auth:0;dest:I;ENG:(750119)(520011016)(706158)(944506303)(944626516);
+X-Microsoft-Antispam-Message-Info:
+	kZigZCJm6gcFriOBbsg3iZditP68cVQ3lVtWgo2/QPTUgguv8gU4WIBzyFD9jsub1CKJG7UjptjLxtgCz5xUGwHQFyGijyvQ/AVpu2Ipf3fpcUjOFln/MajM9Ll0RWgkkqCq6UTOBHsovGFUdItKjghAaIz1Fu7orvzOiqZecpG3NLXS6KgHHX8N8fuHj3+Yd7ZYulA1FBHd3zAsAeZoeghutt+FWMAc+o+0qkGiiE2hf+zvy3yjVvEIcN96QZ0T3l4NPt2xTbQAHBrjs7CidNJWH1Y0Bm6GnP90ZKxU6Ensc82Iaq21PNYcM5tkOZyMwDsWt9ocD141ZoQ6qBzoGxPP9W0Ww1teyz3kdELfKkBnxSg+6Je2lB7Kf0MlCLOygc5ttB0r4xNArX6oQnaLfo3uQdsyoY5zgut2ACE91pgoPND577iO1Ax2+s3Sku28
+Content-Type: text/html; charset="Windows-1252"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html>
+<head>
+<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3DWindows-1=
+252">
+</head>
+<body>
+<div>
+<div>
+<div>
+<div style=3D"direction: ltr;">Hello Omer. Is there anything that you need =
+from us in order to schedule a call?</div>
+</div>
+<div><br>
+</div>
+<div class=3D"ms-outlook-ios-signature">Get <a href=3D"https://aka.ms/o0uke=
+f">Outlook for iOS</a></div>
+</div>
+<div>&nbsp;</div>
+<hr style=3D"display:inline-block;width:98%" tabindex=3D"-1">
+<div id=3D"divRplyFwdMsg" dir=3D"dir=3D&quot;ltr&quot;"><font face=3D"Calib=
+ri, sans-serif" style=3D"font-size:11pt" color=3D"#000000"><b>From:</b> Ori=
+ Nahir &lt;onahir@paloaltonetworks.com&gt;<br>
+<b>Sent:</b> Thursday, May 16, 2019 12:34 PM<br>
+<b>To:</b> Kristin Amirault; Ori Nahir; Nakia Matthews; Ariany Mizrahi; Dav=
+id Emerson; Diego Vargas; Omer Cohen<br>
+<b>Subject:</b> Re: Demisto - Cyxtera - Sync
+<div>&nbsp;</div>
+</font></div>
+<meta content=3D"text/html; charset=3Dutf-8">
+<meta name=3D"Generator" content=3D"Microsoft Word 15 (filtered medium)">
+<style>
+<!--
+@font-face
+	{font-family:"Cambria Math"}
+@font-face
+	{font-family:Calibri}
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Calibri",sans-serif}
+p.MsoHeader, li.MsoHeader, div.MsoHeader
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Calibri",sans-serif}
+p.MsoFooter, li.MsoFooter, div.MsoFooter
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Calibri",sans-serif}
+a:link, span.MsoHyperlink
+	{color:#0563C1;
+	text-decoration:underline}
+a:visited, span.MsoHyperlinkFollowed
+	{color:#954F72;
+	text-decoration:underline}
+p.msonormal0, li.msonormal0, div.msonormal0
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif}
+span.HeaderChar
+	{font-family:"Calibri",sans-serif}
+span.FooterChar
+	{font-family:"Calibri",sans-serif}
+p.msonormal00, li.msonormal00, div.msonormal00
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif}
+p.msonormal000, li.msonormal000, div.msonormal000
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:11.0pt;
+	font-family:"Calibri",sans-serif}
+p.msochpdefault, li.msochpdefault, div.msochpdefault
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:10.0pt;
+	font-family:"Calibri",sans-serif}
+span.headerchar0
+	{font-family:"Calibri",sans-serif}
+span.footerchar0
+	{font-family:"Calibri",sans-serif}
+span.emailstyle18
+	{font-family:"Calibri",sans-serif;
+	color:windowtext}
+span.headerchar00
+	{font-family:"Calibri",sans-serif}
+span.footerchar00
+	{font-family:"Calibri",sans-serif}
+span.emailstyle27
+	{font-family:"Calibri",sans-serif;
+	color:windowtext}
+span.EmailStyle31
+	{font-family:"Calibri",sans-serif;
+	color:windowtext}
+.MsoChpDefault
+	{font-size:10.0pt}
+@page WordSection1
+	{margin:1.0in 1.0in 1.0in 1.0in}
+div.WordSection1
+	{}
+-->
+</style>
+<div class=3D"WordSection1">
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">Folks, thanks for t=
+he time today</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">As discussed, <a id=
+=3D"OWAAMBF5A6632DE25314AAD9AFD80DF51B444" href=3D"mailto:omcohen@paloalton=
+etworks.com">
+<span style=3D"font-family:&quot;Calibri&quot;,sans-serif; text-decoration:=
+none">@Omer Cohen</span></a> and will take responsibility from the Demisto =
+Customer Success to support you going forward.</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">I am attaching here=
+ the use case definition for everyone awareness</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">&nbsp;</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">Omer will reach out=
+ to schedule time to get introduced and start working on the development of=
+ the playbooks</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">&nbsp;</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">I=92m still around,=
+ feel free to reach out as needed</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">&nbsp;</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">Thanks</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">Ori</span></p>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">&nbsp;</span></p>
+<div>
+<div style=3D"border:none; border-top:solid #B5C4DF 1.0pt; padding:3.0pt 0i=
+n 0in 0in">
+<p class=3D"MsoNormal"><b><span style=3D"color:black">From: </span></b><spa=
+n style=3D"color:black">onahir@paloaltonetworks.com<br>
+<b>When: </b>9:00 AM - 10:00 AM May 16, 2019 <br>
+<b>Subject: </b>Demisto - Cyxtera - Sync<br>
+<b>Location: </b>https://paloaltonetworks.zoom.us/j/567500971</span></p>
+</div>
+<div>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">&nbsp;</span></p>
+</div>
+<div>
+<p class=3D"MsoNormal">&nbsp;</p>
+</div>
+<div>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">Wanted to have some=
+thing scheduled to touch base and review progress</span></p>
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%" style=3D"width:100.0%; background:#F4F5F9">
+<tbody>
+<tr>
+<td valign=3D"top" style=3D"padding:0in 0in 0in 0in">
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"592" style=3D"width:444.0pt">
+<tbody>
+<tr>
+<td valign=3D"top" style=3D"padding:0in 0in 0in 0in">
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%" style=3D"width:100.0%; background:white">
+<tbody>
+<tr>
+<td style=3D"background:#F4F5F9; padding:22.5pt 0in 7.5pt 0in">
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%" style=3D"width:100.0%; background:#F4F5F9">
+<tbody>
+<tr>
+<td valign=3D"top" style=3D"padding:0in 0in 7.5pt 0in">
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"592" style=3D"width:444.0pt">
+<tbody>
+<tr>
+<td style=3D"padding:0in 0in 0in 0in">
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%" style=3D"width:100.0%; background:white">
+<tbody>
+<tr>
+<td style=3D"background:#F4F5F9; padding:22.5pt 0in 7.5pt 0in">
+<p class=3D"MsoNormal"><a name=3D"MacZmBookmarkBegin"></a><span style=3D"fo=
+nt-size:11.0pt"><a href=3D"http://zoom.us/"><span style=3D"color:windowtext=
+; text-decoration:none"><span style=3D"color:#0563C1; border:solid windowte=
+xt 1.0pt; padding:0in"><img border=3D"0" width=3D"110" height=3D"25" id=3D"=
+_x0000_i1025" alt=3D"Image removed by sender." style=3D"width:1.1458in; hei=
+ght:.2604in" src=3D"cid:~WRD000.jpg"></span></span></a></span></p>
+</td>
+</tr>
+<tr>
+<td style=3D"padding:0in 21.0pt 27.75pt 21.0pt">
+<div align=3D"center">
+<table class=3D"MsoNormalTable" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%" style=3D"width:100.0%">
+<tbody>
+<tr>
+<td colspan=3D"2" valign=3D"top" style=3D"padding:42.75pt 0in 7.5pt 0in">
+<p class=3D"MsoNormal"><span style=3D"font-size:10.0pt; font-family:&quot;A=
+rial&quot;,sans-serif; color:#39394D">Hi there,</span></p>
+</td>
+</tr>
+<tr>
+<td colspan=3D"2" valign=3D"top" style=3D"padding:0in 0in 0in 0in">
+<p class=3D"MsoNormal" style=3D"line-height:18.75pt"><span style=3D"font-si=
+ze:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">Ori Nah=
+ir is inviting you to a scheduled Zoom meeting.
+</span></p>
+</td>
+</tr>
+<tr>
+<td colspan=3D"2" style=3D"background:white; padding:15.0pt 0in 6.0pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:25.5pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D"><a href=
+=3D"https://paloaltonetworks.zoom.us/j/567500971" target=3D"_blank"><span s=
+tyle=3D"font-size:19.0pt; color:#2D8CFF">Join Zoom Meeting</span></a>
+</span></p>
+</td>
+</tr>
+<tr style=3D"height:13.5pt">
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in; height:13.5pt">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">Phone on=
+e-tap:</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 3.75pt 0in; height:13.5pt">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">US:
+<a href=3D"tel:&#43;16699006833,,567500971">&#43;16699006833,,567500971#</a=
+> or <a href=3D"tel:&#43;16468769923,,567500971">
+&#43;16468769923,,567500971#</a> </span></p>
+</td>
+</tr>
+<tr style=3D"height:13.5pt">
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in; height:13.5pt">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">Meeting =
+URL:
+</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 0in 0in; height:13.5pt">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D"><a href=
+=3D"https://paloaltonetworks.zoom.us/j/567500971" target=3D"_blank"><span s=
+tyle=3D"color:#39394D">https://paloaltonetworks.zoom.us/j/567500971</span><=
+/a></span></p>
+</td>
+</tr>
+<tr>
+<td colspan=3D"2" style=3D"padding:15.0pt 0in 6.75pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:18.75pt"><b><span style=3D"font=
+-family:&quot;Arial&quot;,sans-serif; color:#39394D">Join by Telephone
+</span></b></p>
+</td>
+</tr>
+<tr>
+<td colspan=3D"2" valign=3D"top" style=3D"padding:0in 0in 0in 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">For high=
+er quality, dial a number based on your current location.
+</span></p>
+</td>
+</tr>
+<tr>
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">Dial:
+</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 7.5pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D"><br>
+US: &#43;1 669 900 6833 or &#43;1 646 876 9923 or 855 880 1246 (Toll Free) =
+</span></p>
+</td>
+</tr>
+<tr>
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">Meeting =
+ID:
+</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 7.5pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">567 500 =
+971</span></p>
+</td>
+</tr>
+<tr>
+<td colspan=3D"2" valign=3D"top" style=3D"padding:0in 0in 0in 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D"><a href=
+=3D"https://zoom.us/u/aemaRHxxUA" target=3D"_blank"><span style=3D"color:#3=
+9394D">International numbers</span></a></span></p>
+</td>
+</tr>
+<tr>
+<td colspan=3D"2" style=3D"padding:15.0pt 0in 6.75pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:18.75pt"><b><span style=3D"font=
+-family:&quot;Arial&quot;,sans-serif; color:#39394D">Join from an H.323/SIP=
+ room system
+</span></b></p>
+</td>
+</tr>
+<tr>
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">H.323:
+</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 3.75pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">162.255.=
+37.11 (US West)<br>
+162.255.36.11 (US East)<br>
+221.122.88.195 (China)<br>
+115.114.131.7 (India)<br>
+213.19.144.110 (EMEA)<br>
+202.177.207.158 (Australia)<br>
+209.9.211.110 (Hong Kong)<br>
+64.211.144.160 (Brazil)<br>
+69.174.57.160 (Canada)</span></p>
+</td>
+</tr>
+<tr>
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">Meeting =
+ID:
+</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 3.75pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">567 500 =
+971</span></p>
+</td>
+</tr>
+<tr>
+<td width=3D"22%" valign=3D"top" style=3D"width:22.0%; padding:0in 0in 0in =
+0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">SIP:
+</span></p>
+</td>
+<td valign=3D"top" style=3D"padding:0in 0in 3.75pt 0in">
+<p class=3D"MsoNormal" style=3D"line-height:15.0pt"><span style=3D"font-siz=
+e:10.0pt; font-family:&quot;Arial&quot;,sans-serif; color:#39394D">56750097=
+1@zoomcrc.com
+</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class=3D"MsoNormal"><a name=3D"MacZmBookmarkEnd"></a><span style=3D"font=
+-size:11.0pt">&nbsp;</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class=3D"MsoNormal"><span style=3D"font-size:11.0pt">&nbsp;</span></p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
