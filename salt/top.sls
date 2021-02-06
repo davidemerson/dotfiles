@@ -2,6 +2,6 @@ base:
   '*':
     - base
     - dotfiles
-    - clean.apt
+    - cleanapt
     - users
     - sudoers
