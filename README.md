@@ -13,9 +13,9 @@ This was tested last in Debian 10.8.
 
 2. Log in as root.
 
-3. Install curl, git, and nano.
+3. Install curl, git, sudo, and nano.
 ```
-apt install -y curl nano git
+apt install -y curl nano git sudo
 ```
 
 4. Install salt-minion
@@ -29,10 +29,15 @@ sh install_salt.sh
 
 *NOTE: When running Salt in masterless mode, do not run the salt-minion daemon. Otherwise, it will attempt to connect to a master and fail. The salt-call command stands on its own and does not need the salt-minion daemon.*
 
+6. Add you user to sudoers.
+```
+visudo
+youruser ALL=(ALL:ALL) NOPASSWD:ALL
+```
+
 6. Clone your repo.
 ```
-curl -L https://bootstrap.saltstack.com -o install_salt.sh
-sh install_salt.sh
+git clone https://github.com/davidemerson/dotfiles.git
 ```
 
 ### Apply State
@@ -47,10 +52,8 @@ salt-call --local state.sls base -l debug
 ```
 
 
-# apt-get install nano sudo git bash gcc i3 i3lock xdm screen openssh-server suckless-tools clang curl wget apt-transport-https dirmngr xorg make lxterminal xfonts-terminus python-pip python-dev python3-gnupg pcmanfm zip unzip unrar-free xarchiver wicd-curses scrot dunst python3-dbus dnsmasq-base libatk-adaptor python3-distutils python3-lib2to3 libnotify4 gconf2 compton ntp neomutt awscli lsd nmap stow
+# apt-get install bash gcc i3 i3lock xdm screen openssh-server suckless-tools clang curl wget apt-transport-https dirmngr xorg make lxterminal xfonts-terminus python-pip python-dev python3-gnupg pcmanfm zip unzip unrar-free xarchiver wicd-curses scrot dunst python3-dbus dnsmasq-base libatk-adaptor python3-distutils python3-lib2to3 libnotify4 gconf2 compton ntp neomutt awscli lsd nmap stow
 
-visudo
-	david	ALL=(ALL:ALL) NOPASSWD:ALL
 
 log out as root and use 'david' account from here on out.
 
