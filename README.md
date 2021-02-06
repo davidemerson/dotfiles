@@ -89,12 +89,8 @@ Keys to install (as root)
 	wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
 	wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | apt-key add -
 
-sudo apt-get update
-sudo apt-get dist-upgrade
-
 sudo pip install py3status #docs: https://github.com/ultrabug/py3status
 
-sudo apt-get install sublime-text google-chrome-stable
 
 grab lsd tool from here:
 	(https://github.com/Peltoche/lsd) and dpkg -i it.
