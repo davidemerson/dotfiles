@@ -65,26 +65,15 @@ install keybase
 
 git clone keybase://private/syzygetic/config.workstation
 sudo cp ~/config.workstation/d3e_etc_files/ntp.conf /etc/ntp.conf
-
 sudo systemctl start ntp
 sudo systemctl enable ntp
-
 cd config.workstation
 ./refresh_stow.sh
-
 sudo update-alternatives --config editor
 	select nano
-
-<<<<<<< HEAD
-nano /etc/passwd and change your default shell to /bin/dash
-
-visudo
-	david	ALL=(ALL:ALL) NOPASSWD:ALL
 =======
 sudo update-alternatives --config x-terminal-emulator
 	select lxterminal
->>>>>>> e58c47b173401b9db2a65f5598674d6d3f02e080
-
 ## get this into stow and add cp line
 /etc/X11/xdm/Xresources ### guide https://wiki.archlinux.org/index.php/XDM
 	- use xfontsel to tell it terminus
@@ -93,7 +82,6 @@ sudo update-alternatives --config x-terminal-emulator
 	- change namePrompt to user
 	- change passwdPrompt to pass:
 	- change fail to wrong
-
 ## if the one in config.workstation/d3e_etc_files doesn't work, generate an appropriate sources.list: https://debgen.simplylinux.ch/
 sudo cp ~/config.workstation/d3e_etc_files/sources.list /etc/apt/sources.list
 Keys to install (as root)
@@ -148,14 +136,8 @@ sudo nano /etc/pam.d/i3lock
 	add "auth	required	pam_u2f.so" at eof
 
 ###download and install yubico management tools
-sudo apt-get install yubikey-manager
 	test with: ykman oath code
 	(should generate codes for all your tokens)
-
-download and install the appgate client: https://www.cryptzone.com/downloadcenter/appgate-sdp
-
-log in to appgate
-https://cyxsdp.cyxtera.com/eyJzcGEiOnsibW9kZSI6IlRDUCIsIm5hbWUiOiJDWVhTRFAiLCJrZXkiOiIwZWRiMzk4MGQ1ZGI1NWYyOWU5YzlmNmRhNWZiMzQ5NGRhMmM1Nzg2ZGJiM2Y5YzE2OTM3MzNkYjI4ZjkxOTRhIn19
 
 files to commit:
 /etc/X11/xdm/Xresources 

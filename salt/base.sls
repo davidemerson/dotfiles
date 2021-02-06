@@ -54,3 +54,6 @@ pkg.latest:
       - coreutils
       - grep
       - gzip
+      - yubikey-manager
+      - google-chrome-stable
+      - sublime-text

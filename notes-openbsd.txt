@@ -1,5 +1,0 @@
-# you need to edit /etc/X11/xenodm/Xsetup_0 and remove the reference to xconsole. replace it with xsetroot -solid black so you have a black login.
-
-# you need to activate fonts after installing them, it's not enough to just install them. There's a script in your .xinitrc which will accomplish the addition if you copy them to a folder in /usr/local/share/fonts
-
-# Hack Font is in the dotfiles for use when you need it. Your terminal and i3 are in Hack
