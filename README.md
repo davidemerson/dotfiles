@@ -63,7 +63,6 @@ install keybase
 	sudo apt-get install -f
 	run_keybase
 
-git clone keybase://private/syzygetic/config.workstation
 sudo cp ~/config.workstation/d3e_etc_files/ntp.conf /etc/ntp.conf
 sudo systemctl start ntp
 sudo systemctl enable ntp
