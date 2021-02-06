@@ -35,7 +35,9 @@ visudo
 youruser ALL=(ALL:ALL) NOPASSWD:ALL
 ```
 
-6. Clone your repo.
+7. Log out of root. Log in as your user.
+
+8. Clone your repo.
 ```
 git clone https://github.com/davidemerson/dotfiles.git
 ```
@@ -51,11 +53,6 @@ salt-call --local state.highstate -l debug
 salt-call --local state.sls base -l debug
 ```
 
-
-# apt-get install bash gcc i3 i3lock xdm screen openssh-server suckless-tools clang curl wget apt-transport-https dirmngr xorg make lxterminal xfonts-terminus python-pip python-dev python3-gnupg pcmanfm zip unzip unrar-free xarchiver wicd-curses scrot dunst python3-dbus dnsmasq-base libatk-adaptor python3-distutils python3-lib2to3 libnotify4 gconf2 compton ntp neomutt awscli lsd nmap stow
-
-
-log out as root and use 'david' account from here on out.
 
 install keybase
 	curl -O https://prerelease.keybase.io/keybase_amd64.deb
