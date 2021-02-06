@@ -5,23 +5,47 @@ https://github.com/jacksoncage/salt-workstation
 
 This was tested last in Debian 10.8.
 
-## Bootstrap
+## Use
+
+### Bootstrap
 
 1. Run through standard install. Add your user, and partition whole disk (all in one) with encrypted LVM. Install only "Standard System Utilities".
 
 2. Log in as root.
 
-3. Install curl.
+3. Install curl, git, and nano.
 ```
-apt install curl
+apt install -y curl nano git
 ```
 
 4. Install salt-minion
 
 ```
 curl -L https://bootstrap.saltstack.com -o install_salt.sh
-sudo sh install_salt.sh
+sh install_salt.sh
 ```
+
+5. Set salt to run masterless. To instruct the minion to not look for a master, the file_client configuration option needs to be set in the minion configuration file. In `/etc/salt/minion` set `file_client: local`
+
+*NOTE: When running Salt in masterless mode, do not run the salt-minion daemon. Otherwise, it will attempt to connect to a master and fail. The salt-call command stands on its own and does not need the salt-minion daemon.*
+
+6. Clone your repo.
+```
+curl -L https://bootstrap.saltstack.com -o install_salt.sh
+sh install_salt.sh
+```
+
+### Apply State
+
+- All of them at once:
+```
+salt-call --local state.highstate -l debug
+```
+- Individually:
+```
+salt-call --local state.sls base -l debug
+```
+
 
 # apt-get install nano sudo git bash gcc i3 i3lock xdm screen openssh-server suckless-tools clang curl wget apt-transport-https dirmngr xorg make lxterminal xfonts-terminus python-pip python-dev python3-gnupg pcmanfm zip unzip unrar-free xarchiver wicd-curses scrot dunst python3-dbus dnsmasq-base libatk-adaptor python3-distutils python3-lib2to3 libnotify4 gconf2 compton ntp neomutt awscli lsd nmap stow
 
