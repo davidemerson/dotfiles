@@ -1,4 +1,5 @@
-pkg.latest:
+base:
+  pkg.latest:
     - install_recommends: False
     - pkgs:
       - nano
