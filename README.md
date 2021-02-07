@@ -42,6 +42,11 @@ youruser ALL=(ALL:ALL) NOPASSWD:ALL
 git clone https://github.com/davidemerson/dotfiles.git
 ```
 
+9. Copy salt files
+```
+sudo cp -R dotfiles/salt /srv/salt
+```
+
 ### Apply State
 
 - All of them at once:
