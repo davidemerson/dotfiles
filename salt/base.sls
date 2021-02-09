@@ -56,3 +56,4 @@ base:
       - grep
       - gzip
       - yubikey-manager
+      - open-vm-tools-desktop
