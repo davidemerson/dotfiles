@@ -8,6 +8,7 @@ base:
       - bash
       - gcc
       - i3
+      - i3status
       - i3lock
       - xdm
       - screen
