@@ -40,7 +40,6 @@ base:
       - compton
       - ntp
       - awscli
-      - lsd
       - nmap
       - htop
       - wget
@@ -56,5 +55,3 @@ base:
       - grep
       - gzip
       - yubikey-manager
-      - google-chrome-stable
-      - sublime-text
