@@ -42,20 +42,11 @@ youruser ALL=(ALL:ALL) NOPASSWD:ALL
 git clone https://github.com/davidemerson/dotfiles.git
 ```
 
-9. Copy salt files
+9. Execute the execute.sh script, which refreshes the /srv/salt/ directory and applies highstate.
 ```
-sudo cp -R dotfiles/salt /srv/salt
-```
-
-### Apply State
-
-- All of them at once (why not):
-```
-salt-call --local state.highstate -l debug
-```
-- Individually:
-```
-salt-call --local state.sls base -l debug
+cd dotfiles
+chmod 755 execute.sh
+sudo ./execute.sh
 ```
 
 
@@ -71,80 +62,11 @@ install keybase
 ## Stuff To Work On
 - There's some great alias ideas here: https://github.com/jessfraz/dotfiles/blob/master/.aliases
 - Install your fonts (make a state for copying them to the appropriate place)
-
-sudo cp ~/config.workstation/d3e_etc_files/ntp.conf /etc/ntp.conf
-sudo systemctl start ntp
-sudo systemctl enable ntp
-cd config.workstation
-./refresh_stow.sh
-sudo update-alternatives --config editor
-	select nano
-=======
-sudo update-alternatives --config x-terminal-emulator
-	select lxterminal
-## get this into stow and add cp line
-/etc/X11/xdm/Xresources ### guide https://wiki.archlinux.org/index.php/XDM
-	- use xfontsel to tell it terminus
-	- comment out logo items
-	- change greeting to purefoy
-	- change namePrompt to user
-	- change passwdPrompt to pass:
-	- change fail to wrong
-## if the one in config.workstation/d3e_etc_files doesn't work, generate an appropriate sources.list: https://debgen.simplylinux.ch/
-sudo cp ~/config.workstation/d3e_etc_files/sources.list /etc/apt/sources.list
-Keys to install (as root)
-	wget http://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2016.8.1_all.deb && dpkg -i deb-multimedia-keyring_2016.8.1_all.deb
-	wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-	wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | apt-key add -
-
-sudo pip install py3status #docs: https://github.com/ultrabug/py3status
-
-
-grab lsd tool from here:
-	(https://github.com/Peltoche/lsd) and dpkg -i it.
-
-add license to subl
-
------ BEGIN LICENSE -----
-Platform Operations
-4 User License
-EA7E-908542
-B147E7D5 826E76E5 67D2CFCA 6DFC9F0B
-3BACA731 658059B2 A06C4F03 0F0D15B5
-522F0F78 8BAE6492 C75A0C7B B176A062
-23FA7654 4D9CEE16 35D80DD4 2EE179ED
-DD96E051 6DDDDC25 6791F6A2 2A0FD151
-04D77266 EFA61F57 2CF6EB11 55CE150C
-9E21AFE2 B5F5CF8D 88EABCBA 7AC4183D
-A4205474 231324E5 FFDF42B8 19F69543
------- END LICENSE ------
-
-install package control on sublime
-
-install package:colorsublime
-
-install theme:flatland black
-
-change default font to terminus 9
-
-### Configure Yubikey (guide https://support.yubico.com/support/solutions/articles/15000011356-ubuntu-linux-login-guide-u2f)
-sudo apt-get install libpam-u2f
-insert the key
-mkdir ~/.config/Yubico
-pamu2fcfg > ~/.config/Yubico/u2f_keys
-sudo nano /etc/pam.d/sudo
-	add "auth	required	pam_u2f.so" at eof
-sudo nano /etc/pam.d/xdm
-	add "auth	required	pam_u2f.so" at eof
-sudo nano /etc/pam.d/i3lock
-	add "auth	required	pam_u2f.so" at eof
-
-###download and install yubico management tools
-	test with: ykman oath code
-	(should generate codes for all your tokens)
-
-files to commit:
-/etc/X11/xdm/Xresources 
-/etc/apt/sources.list
-sublime text user preferences
-/etc/pam.d/sudo
+- set nano as the update-alternatives text editor (I think this is a profile thing?)
+- set lxterminal as the update-alternatives x-terminal-emulator (I think this is a profile thing?)
+- generate an appropriate sources.list and add that to etc state https://debgen.simplylinux.ch/
+- download latest sublime text and apply license. Also apply Sublime Text preferences.
+- install package control on sublime (Sublime Pref)
+- install package:colorsublime (Sublime Pref)
+- install theme:flatland black (Sublime Pref)
+- change default font to terminus 9 (Sublime Pref)
