@@ -59,5 +59,7 @@ base:
       - open-vm-tools-desktop
       - hsetroot
       - chromium
+      - golang
+      - docker
   service.enabled:
     - name: ntp
