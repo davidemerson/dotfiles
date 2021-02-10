@@ -53,6 +53,7 @@ sudo ./execute.sh
 
 
 ## Stuff To Work On
+- make your damn background black, just xsetroot or something in the i3 config exec section
 - There's some great alias ideas here: https://github.com/jessfraz/dotfiles/blob/master/.aliases
 - Install your fonts (make a state for copying them to the appropriate place)
 - set nano as the update-alternatives text editor (I think this is a profile thing?)
