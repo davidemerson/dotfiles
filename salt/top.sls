@@ -4,3 +4,4 @@ base:
     - cleanapt
     - users
     - dotfiles
+    - etc
