@@ -49,7 +49,7 @@ sudo cp -R dotfiles/salt /srv/salt
 
 ### Apply State
 
-- All of them at once:
+- All of them at once (why not):
 ```
 salt-call --local state.highstate -l debug
 ```
@@ -67,6 +67,10 @@ install keybase
 	sudo dpkg -i keybase_amd64.deb
 	sudo apt-get install -f
 	run_keybase
+
+## Stuff To Work On
+- There's some great alias ideas here: https://github.com/jessfraz/dotfiles/blob/master/.aliases
+- Install your fonts (make a state for copying them to the appropriate place)
 
 sudo cp ~/config.workstation/d3e_etc_files/ntp.conf /etc/ntp.conf
 sudo systemctl start ntp
