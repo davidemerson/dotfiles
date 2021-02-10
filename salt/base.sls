@@ -58,5 +58,6 @@ base:
       - yubikey-manager
       - open-vm-tools-desktop
       - hsetroot
+      - chromium
   service.enabled:
     - name: ntp

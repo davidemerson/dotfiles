@@ -46,9 +46,6 @@ chmod 755 execute.sh
 sudo ./execute.sh
 ```
 
-
-
-
 ## Stuff To Work On
 - There's some great alias ideas here: https://github.com/jessfraz/dotfiles/blob/master/.aliases
 - Install your fonts (make a state for copying them to the appropriate place)
