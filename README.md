@@ -1,8 +1,5 @@
 # Workstation Configuration
 
-Get it in to this format:
-https://github.com/jacksoncage/salt-workstation
-
 This was tested last in Debian 10.8.
 
 ## Use
