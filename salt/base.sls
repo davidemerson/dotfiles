@@ -57,3 +57,5 @@ base:
       - gzip
       - yubikey-manager
       - open-vm-tools-desktop
+  service.enabled:
+    - name: ntp
