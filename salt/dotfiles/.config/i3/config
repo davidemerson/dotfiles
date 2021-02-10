@@ -2,6 +2,11 @@ set $mod Mod4
 font pango:terminus 10
 floating_modifier $mod
 
+# Make the resolution 4k... you need to change this to appropriate display device
+xrandr --newmode "3840x2160_60.00" 712.75 3840 4160 4576 5312 2160 2163 2168 2237 -hsync +vsync
+xrandr --addmode Virtual1 3840x2160_60.00
+xrandr --output Virtual1 3840x2160_60.00
+
 # launch some stuff
 exec gnome-settings-daemon
 exec --no-startup-id xautolock -time 10 -locker 'i3lock -f -c 303030'
