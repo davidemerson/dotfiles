@@ -8,7 +8,7 @@ exec xrandr --addmode Virtual1 3840x2160_60.00
 exec xrandr --output Virtual1 --mode 3840x2160_60.00
 
 # background black
-exec xsetroot -solid black
+exec hsetroot -solid "#000000"
 
 # launch some stuff
 exec gnome-settings-daemon

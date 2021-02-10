@@ -57,5 +57,6 @@ base:
       - gzip
       - yubikey-manager
       - open-vm-tools-desktop
+      - hsetroot
   service.enabled:
     - name: ntp
