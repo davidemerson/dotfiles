@@ -50,14 +50,7 @@ sudo ./execute.sh
 ```
 
 
-install keybase
-	curl -O https://prerelease.keybase.io/keybase_amd64.deb
-	# if you see an error about missing `libappindicator1`
-	# from the next command, you can ignore it, as the
-	# subsequent command corrects it
-	sudo dpkg -i keybase_amd64.deb
-	sudo apt-get install -f
-	run_keybase
+
 
 ## Stuff To Work On
 - There's some great alias ideas here: https://github.com/jessfraz/dotfiles/blob/master/.aliases
@@ -70,3 +63,13 @@ install keybase
 - install package:colorsublime (Sublime Pref)
 - install theme:flatland black (Sublime Pref)
 - change default font to terminus 9 (Sublime Pref)
+- install keybase
+```
+	curl -O https://prerelease.keybase.io/keybase_amd64.deb
+	# if you see an error about missing `libappindicator1`
+	# from the next command, you can ignore it, as the
+	# subsequent command corrects it
+	sudo dpkg -i keybase_amd64.deb
+	sudo apt-get install -f
+	run_keybase
+```
