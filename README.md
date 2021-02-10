@@ -29,7 +29,7 @@ sh install_salt.sh
 
 *NOTE: When running Salt in masterless mode, do not run the salt-minion daemon. Otherwise, it will attempt to connect to a master and fail. The salt-call command stands on its own and does not need the salt-minion daemon.*
 
-6. Add you user to sudoers.
+6. Add your user to sudoers.
 ```
 visudo
 youruser ALL=(ALL:ALL) NOPASSWD:ALL
