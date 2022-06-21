@@ -10,7 +10,6 @@ base:
       - screen
       - curl
       - wget
-      - lxterminal
       - nmap
       - htop
       - chromium
