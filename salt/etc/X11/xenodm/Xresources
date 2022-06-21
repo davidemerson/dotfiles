@@ -74,7 +74,7 @@ xlogin*shdColor: #445566
 xlogin*greetColor: #ded866
 #if defined(bpp4) || defined(bpp8) || defined(bpp15)
 ! flood fill
-xlogin*background: #000000
+xlogin*background: #596a79
 xlogin*inpColor: #798a99
 #endif
 xlogin*failColor: #ff4d29
