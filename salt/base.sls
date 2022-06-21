@@ -1,6 +1,5 @@
 base:
   pkg.latest:
-    - install_recommends: False
     - pkgs:
       - nano
       - git
@@ -14,6 +13,5 @@ base:
       - htop
       - chromium
       - unzip
-      - vmwh
       - hermit-font
       - colorls

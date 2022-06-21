@@ -1,6 +1,3 @@
-# load Xresources file
-xrdb -merge $HOME/.Xresources &
-
 # no more bells
 xset b off &
 
