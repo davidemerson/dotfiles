@@ -2,7 +2,7 @@ prefix="/usr/X11R6"
 exec_prefix="${prefix}"
 
 # black X11 blackground
-${exec_prefix}/bin/xsetroot -solid black
+${exec_prefix}/bin/xsetroot -solid \#000000
 
 # turn the damn beeps off
 ${exec_prefix}/bin/xset b off
