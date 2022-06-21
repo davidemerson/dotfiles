@@ -1,5 +1,5 @@
 set $mod Mod4
-font pango:Hermit 10
+font pango:Hermit 12
 floating_modifier $mod
 
 # black background
