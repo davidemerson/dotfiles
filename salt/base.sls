@@ -16,3 +16,5 @@ base:
       - chromium
       - unzip
       - vmwh
+      - hermit-font
+      - colorls

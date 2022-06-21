@@ -2,9 +2,7 @@
 
 This was last tested in OpenBSD 7.1
 
-## Use
-
-### Bootstrap
+## Build Procedure
 
 1. Run through standard install. You do want to use X, and you do want to allow xenodm to manage X. Make yourself a user.
 
@@ -32,7 +30,7 @@ sh install_salt.sh
 exit
 ```
 
-7. Grab this repo.
+7. Grab this repo. If you're going to fork this and make your own dotfiles, you might want to make a step before the cloning bit where you scp your ssh key to the workstation you're building so you can read/write the repo, and then push your changes back live. If you're just getting a system running, though, read alone is enough here.
 ```
 git clone https://github.com/davidemerson/dotfiles.git
 ```
@@ -54,4 +52,14 @@ rm ~/install_salt.sh
 doas reboot
 ```
 
-Note: Of course, if you're going to fork this and make your own dotfiles, you might want to make a step before the cloning bit where you upload your ssh key so you can read/write the repo, and then push your changes back live. If you're just getting a system running, though, read alone is enough here.
+## Notes
+I've always hopped between Debian and OpenBSD for my personal workstation, with the majority of my time spent in Debian for practical reasons. I prefer OpenBSD philosophically, though, and at release 7.1, its warts have never been fewer, so it's what I'm running at the moment.
+
+
+
+## Additional References
+Check out how others have done this kind of thing, for inspiration and documentation:
+* https://sohcahtoa.org.uk/openbsd.html
+* https://jcs.org/2021/07/19/desktop
+* https://daulton.ca/2018/08/openbsd-workstation/
+* http://eradman.com/posts/openbsd-workstation.html

@@ -1,15 +1,6 @@
 set $mod Mod4
-font pango:terminus 10
+font pango:Hermit 10
 floating_modifier $mod
-
-# Make the resolution 4k... you need to change this to appropriate display device if you have a different monitor setup
-exec xrandr --output default --mode 3840x2160
-
-# background black
-exec xsetroot -solid black
-
-# launch some stuff
-exec --no-startup-id xautolock -time 10 -locker 'i3lock -f -c 303030'
 
 # hotkeys for terminal, menu, and kill
 bindsym $mod+Return exec lxterminal
