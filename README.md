@@ -44,7 +44,14 @@ chmod 755 execute.sh
 doas sh execute.sh
 ```
 
+9. Clean things up
+```
+rm ~/install_salt.sh
+```
+
 9. Reboot
 ```
 doas reboot
 ```
+
+Note: Of course, if you're going to fork this and make your own dotfiles, you might want to make a step before the cloning bit where you upload your ssh key so you can read/write the repo, and then push your changes back live. If you're just getting a system running, though, read alone is enough here.
