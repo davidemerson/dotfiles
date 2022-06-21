@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# Let's get the latest dotfiles from github, clean out the old states, and run salt.
+# runs salt after copying some files to the right places.
 
-git pull
 cp minion /etc/salt/minion
 rm -rf /srv/salt/
 mkdir -p /srv/salt
