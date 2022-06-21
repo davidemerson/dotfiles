@@ -5,7 +5,6 @@
 git pull
 cp minion /etc/salt/minion
 rm -rf /srv/salt/
-mkdir /srv/
-mkdir /srv/salt
+mkdir -p /srv/salt
 cp -R salt/* /srv/salt/
 salt-call --local state.highstate
