@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ksh
 
 # runs salt after copying some files to the right places.
 
