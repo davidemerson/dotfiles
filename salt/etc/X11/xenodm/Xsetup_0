@@ -1,3 +1,6 @@
+prefix="/usr/X11R6"
+exec_prefix="${prefix}"
+
 # black X11 blackground
 ${exec_prefix}/bin/xsetroot -solid black
 
