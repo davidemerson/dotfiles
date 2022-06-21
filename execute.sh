@@ -2,7 +2,8 @@
 
 # Let's get the latest dotfiles from github, clean out the old states, and run salt.
 
-# git pull
+git pull
+cp minion /etc/salt/minion
 rm -rf /srv/salt/
 mkdir /srv/
 mkdir /srv/salt
