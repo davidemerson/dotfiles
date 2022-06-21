@@ -43,3 +43,8 @@ cd dotfiles
 chmod 755 execute.sh
 doas sh execute.sh
 ```
+
+9. Reboot
+```
+doas reboot
+```
