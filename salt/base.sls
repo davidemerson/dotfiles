@@ -15,3 +15,4 @@ base:
       - htop
       - chromium
       - unzip
+      - vmwh
