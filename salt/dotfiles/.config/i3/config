@@ -9,7 +9,7 @@ exec xsetroot -solid black
 exec xrandr --output default --mode 3840x2160
 
 # hotkeys for terminal, menu, and kill
-bindsym $mod+Return exec xterm -bg black -fg white -fa Hermit-10 +sg
+bindsym $mod+Return exec xterm -bg black -fg white -fa Hermit-10
 bindsym $mod+Shift+q kill
 bindsym $mod+d exec dmenu_run
 bindsym $mod+Shift+c reload
