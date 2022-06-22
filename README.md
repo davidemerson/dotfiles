@@ -47,7 +47,9 @@ doas sh execute.sh
 rm ~/install_salt.sh
 ```
 
-9. Reboot
+10. Keep salt-minion from starting (unnecessary since we're using salt-check). Use your editor of choice to comment out the pkg_scripts=salt_minion line in /etc/rc.conf.local.
+
+11. Reboot
 ```
 doas reboot
 ```
