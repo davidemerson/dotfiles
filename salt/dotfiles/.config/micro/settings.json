@@ -1,5 +1,7 @@
 {
-	"autoclose": true,
-	"autoindent": true,
-	"wordwrap": true
+    "autosu": true,
+    "colorscheme": "solarized-tc",
+    "softwrap": true,
+    "sucmd": "doas",
+    "wordwrap": true
 }
