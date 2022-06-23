@@ -15,3 +15,4 @@ base:
       - unzip
       - hermit-font
       - colorls
+      - neomutt
