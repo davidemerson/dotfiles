@@ -3,9 +3,11 @@ set imap_user="d@nnix.com"
 set imap_pass=`cat ~/.secrets/mailpass`
 set spoolfile="imaps://imap.fastmail.com"
 set folder="imaps://imap.fastmail.com/INBOX"
-set record="+Sent Items"
+set record="+Sent"
 set postponed="+Drafts"
 set read_inc=1000
 set write_inc=1000
 set mbox="+Archive"
 set mail_check=5
+
+set editor=micro
