@@ -8,6 +8,11 @@ exec xsetroot -solid black
 # Make the resolution 4k... you need to change this to appropriate display device if you have a different monitor setup
 exec xrandr --output default --mode 3840x2160
 
+# set horizontal width
+gaps inner 0
+gaps horizontal 1250
+smart_gaps inverse_outer
+
 # hotkeys for terminal, menu, and kill
 bindsym $mod+Return exec xterm -bg black -fg white -fa Hermit-12
 bindsym $mod+Shift+q kill

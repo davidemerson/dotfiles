@@ -3,7 +3,7 @@ base:
     - pkgs:
       - nano
       - git
-      - i3
+      - i3-gaps
       - i3status
       - i3lock
       - screen
