@@ -57,7 +57,7 @@ doas reboot
 ```
 
 ## Notes
-* You'll note that my .muttrc and .msmtprc refer to "~/.secrets/mailpass" for credentials. This is a one liner file containing my mail app password, keeping it out of this repo, and allowing me to do thing like encrypt it on disk. You can substitute any form of password management here, to accommodate your personal preferences.
+* You'll note that my .muttrc and .msmtprc refer to "~/.secrets/mailpass" for credentials. This is a one liner file containing my mail app password, keeping it out of this repo, and allowing me to do things like encrypt it on disk. You can substitute any form of password management here, to accommodate your personal preferences.
 * I use i3-gaps, so if you try using my i3 config on standard i3, there's some funky gaps stuff which will break.
 * I've always hopped between Debian and OpenBSD for my personal workstation, with the majority of my time spent in Debian for practical reasons. I prefer OpenBSD philosophically, though, and at release 7.1, its warts have never been fewer, so it's what I'm running at the moment. If you used a previous version of this repo, it used to be Debian-centric until recently, and the current iteration will break some of that.
 
