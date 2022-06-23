@@ -6,6 +6,11 @@ set realname = "David Emerson"
 set imap_user="d@nnix.com"
 set imap_pass=`cat ~/.secrets/mailpass`
 
+# SMTP
+set sendmail="/usr/local/bin/msmtp"
+set use_from=yes
+set envelope_from=yes
+
 # Folders
 set folder="imaps://imap.fastmail.com"
 set spoolfile="+INBOX"
@@ -30,7 +35,7 @@ set editor=micro
 
 # Colors
 color normal     	default        	default
-color indicator  	brightyellow   	red    
+color indicator  	black 		cyan
 color tree       	default  	default 
 color status     	brightgreen    	blue    
 color error      	brightred      	default 

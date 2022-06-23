@@ -49,7 +49,9 @@ rm ~/install_salt.sh
 
 10. Keep salt-minion from starting (unnecessary since we're using salt-check). Use your editor of choice to comment out the pkg_scripts=salt_minion line in /etc/rc.conf.local.
 
-11. Reboot
+11. Make your hostname appropriate by editing /etc/myname with the editor of your choice.
+
+12. Reboot
 ```
 doas reboot
 ```
