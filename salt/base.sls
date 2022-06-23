@@ -16,3 +16,4 @@ base:
       - hermit-font
       - colorls
       - neomutt
+      - msmtp

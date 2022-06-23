@@ -9,9 +9,9 @@ exec xsetroot -solid black
 exec xrandr --output default --mode 3840x2160
 
 # hotkeys for terminal, menu, and kill
-bindsym $mod+Return exec xterm -bg black -fg white -fa Hermit-10
+bindsym $mod+Return exec xterm -bg black -fg white -fa Hermit-12
 bindsym $mod+Shift+q kill
-bindsym $mod+d exec dmenu_run
+bindsym $mod+d exec dmenu_run -fn 'Hermit-12'
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'Confirm exit, please.' -B 'EXIT' 'i3-msg exit'"
