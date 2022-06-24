@@ -9,7 +9,7 @@ exec xsetroot -solid black
 exec xrandr --output default --mode 3840x2160
 
 # set horizontal width
-gaps inner 0
+gaps inner 100
 gaps horizontal 1250
 smart_gaps inverse_outer
 

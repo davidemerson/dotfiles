@@ -1,3 +1,10 @@
+# Macros
+macro index p "<save-message>+Spam<Enter>"
+macro pager p "<save-message>+Spam<Enter>"
+
+macro index y "<save-message>+Archive<Enter>"
+macro pager y "<save-message>+Archive<Enter>"
+
 # Identity
 set from = "David Emerson <d@nnix.com>"
 set realname = "David Emerson"
