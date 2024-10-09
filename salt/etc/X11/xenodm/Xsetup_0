@@ -1,0 +1,11 @@
+prefix="/usr/X11R6"
+exec_prefix="${prefix}"
+
+# black X11 blackground
+${exec_prefix}/bin/xsetroot -solid \#000000
+
+# turn the damn beeps off
+${exec_prefix}/bin/xset b off
+${exec_prefix}/bin/xset b 0 0 0
+
+# behold, the field where where I launch the default console window, you can see it is barren
