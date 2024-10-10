@@ -18,14 +18,14 @@ gaps horizontal 1250
 smart_gaps inverse_outer
 
 # hotkeys for terminal, menu, and kill
-bindsym $mod+Return exec lxterminal
+bindsym $mod+Return exec --no-startup-id lxterminal
 bindsym $mod+Shift+q kill
-bindsym $mod+d exec dmenu_run -fn 'Berkeley Mono Variable:size=16'
+bindsym $mod+d exec --no-startup-id dmenu_run -fn 'Berkeley Mono Variable:size=16'
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
-bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'Confirm exit, please.' -B 'EXIT' 'i3-msg exit'"
+bindsym $mod+Shift+e exec --no-startup-id "i3-nagbar -t warning -m 'Confirm exit, please.' -B 'EXIT' 'i3-msg exit'"
 bindsym $mod+r mode "resize"
-bindsym $mod+z exec i3lock -f -c 222222
+bindsym $mod+z exec --no-startup-id i3lock -f -c 222222
 
 # change focus
 bindsym $mod+j focus left
