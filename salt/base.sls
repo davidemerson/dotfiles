@@ -16,3 +16,5 @@ base:
       - neomutt
       - msmtp
       - lxterminal
+      - lxappearance
+      - gnome-tweaks
