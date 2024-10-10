@@ -3,14 +3,14 @@ font pango:Berkeley Mono Variable 16
 floating_modifier $mod
 
 # black background
-exec xsetroot -solid black
+exec --no-startup-id xsetroot -solid black
 
 # Make the resolution 4k... you need to change this to appropriate display device if you have a different monitor setup
 # this should work most of the time, if the mode is there
-exec xrandr --output default --mode 3840x2160
+exec --no-startup-id xrandr --output default --mode 3840x2160
 
 # sometimes debian in virtual doesn't have the mode, and this'll make it
-# exec xrandr --newmode "3840x2160_60.00"  712.75  3840 4160 4576 5312  2160 2163 2168 2237 -hsync +vsync && xrandr --addmode Virtual1 3840x2160_60.00 && xrandr --output Virtual1 --mode 3840x2160_60.00
+# exec --no-startup-id xrandr --newmode "3840x2160_60.00"  712.75  3840 4160 4576 5312  2160 2163 2168 2237 -hsync +vsync && xrandr --addmode Virtual1 3840x2160_60.00 && xrandr --output Virtual1 --mode 3840x2160_60.00
 
 # set horizontal width
 gaps inner 100
