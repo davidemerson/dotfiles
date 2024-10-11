@@ -18,3 +18,4 @@ base:
       - lxterminal
       - lxappearance
       - gnome-tweaks
+      - micro
