@@ -12,10 +12,17 @@ exec --no-startup-id xrandr --output default --mode 3840x2160
 # sometimes debian in virtual doesn't have the mode, and this'll make it
 # exec --no-startup-id xrandr --newmode "3840x2160_60.00"  712.75  3840 4160 4576 5312  2160 2163 2168 2237 -hsync +vsync && xrandr --addmode Virtual1 3840x2160_60.00 && xrandr --output Virtual1 --mode 3840x2160_60.00
 
-# set horizontal width
+# set horizontal width & gaps
+default_orientation auto
 gaps inner 100
 gaps horizontal 1250
 smart_gaps inverse_outer
+
+# colors			        border     background  text     indicator    child_border
+client.focused              #f2f2f2    #000000     #f2f2f2	#ffffff		 #f2f2f2
+client.unfocused            #666666    #000000     #f2f2f2	#ffffff		 #666666
+client.focused_inactive     #666666    #000000     #f2f2f2	#ffffff		 #666666
+client.urgent               #e89393    #e89393     #1a1a1a	#ffffff		 #e89393
 
 # hotkeys for terminal, menu, and kill
 bindsym $mod+Return exec --no-startup-id lxterminal
@@ -84,12 +91,6 @@ bindsym $mod+Shift+7 move container to workspace $ws7
 bindsym $mod+Shift+8 move container to workspace $ws8
 bindsym $mod+Shift+9 move container to workspace $ws9
 bindsym $mod+Shift+0 move container to workspace $ws10
-
-# set some nice colors      border     background  text
-client.focused              #f2f2f2    #000000     #f2f2f2
-client.unfocused            #000000    #000000     #f2f2f2
-client.focused_inactive     #000000    #000000     #f2f2f2
-client.urgent               #e89393    #e89393     #1a1a1a
 
 # resize window (you can also use the mouse for that)
 mode "resize" {
