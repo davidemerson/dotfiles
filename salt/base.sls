@@ -2,10 +2,12 @@ base:
   pkg.latest:
     - pkgs:
       - nano
+      - micro
       - git
-      - i3
-      - i3status
-      - i3lock
+      - sway
+      - waybar
+      - swaylock
+      - lightdm
       - screen
       - curl
       - wget
@@ -18,4 +20,4 @@ base:
       - lxterminal
       - lxappearance
       - gnome-tweaks
-      - micro
+      - build-essential
