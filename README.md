@@ -2,4 +2,4 @@
 
 Guide lives here:
 
-https://nnix.com/projects/2023-12-dotfiles/
+https://nnix.com/projects/dotfiles
