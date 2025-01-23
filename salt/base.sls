@@ -10,7 +10,6 @@ base:
       - waybar
       - wofi
       - swaylock
-      - lightdm
       - screen
       - curl
       - wget
@@ -20,7 +19,4 @@ base:
       - unzip
       - neomutt
       - msmtp
-      - lxterminal
-      - lxappearance
-      - gnome-tweaks
       - build-essential
