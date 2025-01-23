@@ -1,3 +1,6 @@
+// Settings in here override those in "Default/Preferences.sublime-settings",
+// and are overridden in turn by syntax-specific settings.
+
 {
     "find_selected_text": true,
     "highlight_line": true,
@@ -15,8 +18,7 @@
    	"line_padding_bottom": 1,
     "line_padding_top": 1,
     "auto_hide_menu": true,
-    "theme": "Flatland Dark.sublime-theme",
-	"color_scheme": "Packages/Theme - Flatland/Flatland Dark.tmTheme",
+	"color_scheme": "Packages/Colorsublime - Themes/Flatland_Black.tmTheme",
 	"font_face": "Berkeley Mono Variable NNIX",
 	"font_size": 12,
 	"font_options":
