@@ -19,5 +19,10 @@
 	"color_scheme": "Packages/Theme - Flatland/Flatland Dark.tmTheme",
 	"font_face": "Berkeley Mono Variable NNIX",
 	"font_size": 12,
+	"font_options":
+	[
+		"dlig",
+		"Bold",
+	],
 	"index_files": true,
 }
