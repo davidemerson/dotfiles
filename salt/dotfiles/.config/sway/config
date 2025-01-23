@@ -2,7 +2,7 @@ include /etc/sway/config.d/*
 
 ### GENERAL SETTINGS ###
 set $mod Mod4
-font pango:Berkeley Mono Variable NNIX 16
+font pango:Berkeley Mono Variable NNIX ExtraBold 16
 floating_modifier $mod
 
 # Gaps and Layout
@@ -19,7 +19,7 @@ client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e893
 
 ### LAUNCHERS ###
 # Terminal, Launcher, Lock, and Exit Commands
-bindsym $mod+Return exec --no-startup-id lxterminal
+bindsym $mod+Return exec --no-startup-id foot
 bindsym $mod+d exec --no-startup-id wofi --show drun
 bindsym $mod+z exec --no-startup-id swaylock -c 222222
 bindsym $mod+Shift+e exec --no-startup-id zenity --question --text='Confirm exit?' && swaymsg exit
