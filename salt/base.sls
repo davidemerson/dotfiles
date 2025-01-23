@@ -8,6 +8,7 @@ base:
       - swaybg
       - xwayland
       - waybar
+      - wofi
       - swaylock
       - lightdm
       - screen
