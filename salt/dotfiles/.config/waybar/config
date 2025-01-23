@@ -1,0 +1,41 @@
+
+{
+    "position": "top", // Waybar position (top|bottom|left|right)
+    "modules-left": [
+    	"sway/workspaces",
+    	"sway/mode",
+    	],
+    "modules-center": [
+    	"sway/window",
+    	],
+    "modules-right": [
+    	"network",
+    	"cpu",
+    	"memory",
+    	"clock",
+    	"tray",
+    	],
+    "sway/mode": {
+        "format": "<span style=\"italic\">{}</span>",
+    },
+    "tray": {
+        "spacing": 10,
+    },
+    "clock": {
+    	"interval": 8,
+        "format": "{:%Y-%m-%d | %H:%M:%S }",
+    },
+    "cpu": {
+        "format": "CPU: {usage}% ",
+    },
+    "memory": {
+        "format": "RAM: {}% ",
+    },
+    "network": {
+        "format-wifi": "{essid} ({signalStrength}%) ",
+        "format-ethernet": "{ifname}: {ipaddr}/{cidr} ",
+        "format-linked": "{ifname} (No IP) ",
+        "format-disconnected": "Disconnected ",
+        "format-alt": "{ifname}: {ipaddr}/{cidr}",
+    },
+}
