@@ -4,8 +4,6 @@ base:
       - nano
       - micro
       - git
-      - seatd
-      - weston
       - sway
       - swaybg
       - xwayland
