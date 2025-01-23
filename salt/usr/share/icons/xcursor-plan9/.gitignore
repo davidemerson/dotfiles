@@ -1,7 +1,0 @@
-# Ignore the Nix build output
-result
-
-# Ignore Nix build logs
-*.drv
-.*.build
-
