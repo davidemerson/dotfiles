@@ -5,3 +5,4 @@ rm -rf /srv/salt/
 mkdir -p /srv/salt
 cp -R salt/* /srv/salt/
 salt-call --local state.highstate
+fc-cache
