@@ -5,6 +5,8 @@ base:
       - micro
       - git
       - sway
+      - swaybg
+      - xwayland
       - waybar
       - swaylock
       - lightdm
