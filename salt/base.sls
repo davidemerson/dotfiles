@@ -19,4 +19,5 @@ base:
       - unzip
       - neomutt
       - msmtp
+      - open-vm-tools-desktop
       - build-essential
