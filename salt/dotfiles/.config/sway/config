@@ -22,10 +22,10 @@ client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e893
 
 ### LAUNCHERS ###
 # Terminal, Launcher, Lock, and Exit Commands
-bindsym $mod+Return exec --no-startup-id foot
-bindsym $mod+d exec --no-startup-id wofi --show drun
-bindsym $mod+z exec --no-startup-id swaylock -c 222222
-bindsym $mod+Shift+e exec --no-startup-id zenity --question --text='Confirm exit?' && swaymsg exit
+bindsym $mod+Return exec foot
+bindsym $mod+d exec wofi --show drun
+bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
+bindsym $mod+Shift+e exec zenity --question --text='Confirm exit?' && swaymsg exit
 
 ### WINDOW MANAGEMENT ###
 bindsym $mod+Shift+q kill
