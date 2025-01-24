@@ -1,5 +1,8 @@
 include /etc/sway/config.d/*
 
+### SET BACKGROUND ###
+exec swaybg --output "*" --color "#000000"
+
 ### GENERAL SETTINGS ###
 set $mod Mod4
 font pango:Berkeley Mono Variable NNIX ExtraBold 16
