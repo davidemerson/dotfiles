@@ -22,10 +22,10 @@ for package in curl micro git sudo; do
 done
 
 # Add users to sudoers
-echo -e "\033[1;33mIdentified users on the system:\033[0m"
+echo -e "\033[1;33mI see these users on the system:\033[0m"
 users=$(awk -F: '{ print $1 }' /etc/passwd)
 echo -e "\033[1;33m$users\033[0m"
-echo -e "\033[1;33mEnter the usernames to add to sudoers (separate by space):\033[0m"
+echo -e "\033[1;33mEnter the usernames to add to sudoers, separated by space; (enter) to add none:\033[0m"
 read -ra sudo_users
 for user in "${sudo_users[@]}"; do
     if id -u "$user" >/dev/null 2>&1; then
@@ -42,7 +42,7 @@ ensure_installed salt-minion
 # Set hostname
 current_hostname=$(hostname)
 echo -e "\033[1;33mThe current hostname is: $current_hostname\033[0m"
-echo -e "\033[1;33mPress Enter to keep the current hostname, or specify a new hostname:\033[0m"
+echo -e "\033[1;33mPress (enter) to keep the current hostname, or specify a new hostname:\033[0m"
 read new_hostname
 if [ -z "$new_hostname" ]; then
     echo -e "\033[1;33mHostname unchanged.\033[0m"
