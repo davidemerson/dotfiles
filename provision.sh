@@ -40,10 +40,16 @@ done
 ensure_installed salt-minion
 
 # Set hostname
-echo -e "\033[1;33mEnter the desired hostname for this computer:\033[0m"
+current_hostname=$(hostname)
+echo -e "\033[1;33mThe current hostname is: $current_hostname\033[0m"
+echo -e "\033[1;33mPress Enter to keep the current hostname, or specify a new hostname:\033[0m"
 read new_hostname
-hostnamectl set-hostname "$new_hostname"
-echo -e "\033[1;33mHostname set to $new_hostname.\033[0m"
+if [ -z "$new_hostname" ]; then
+    echo -e "\033[1;33mHostname unchanged.\033[0m"
+else
+    hostnamectl set-hostname "$new_hostname"
+    echo -e "\033[1;33mHostname set to $new_hostname.\033[0m"
+fi
 
 # Disable gdm from starting by default
 if systemctl is-enabled gdm >/dev/null 2>&1; then
