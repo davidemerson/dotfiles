@@ -1,7 +1,3 @@
 [user]
 	name = David Emerson
 	email = d@nnix.com
-
-Host github.com
-	user git
-	IdentityFile ~/.ssh/id_d_nnix
