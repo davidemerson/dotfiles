@@ -1,60 +1,61 @@
 include /etc/sway/config.d/*
 
-### SET BACKGROUND ###
+# set a background
 exec swaybg --output "*" --color "#000000"
 
-### GENERAL SETTINGS ###
+# blank Screen after N seconds
+# soon you will need to change this to "power" instead of "dpms" but Debian Stable is behind the times for now
+exec swayidle -w timeout 300 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"'
+
+# modifier definition
 set $mod Mod4
-font pango:Berkeley Mono Variable NNIX ExtraBold 16
 floating_modifier $mod
 
-# Volume Control
-bindsym $mod+m exec pamixer -i 5 && pamixer --get-volume > $WOBSOCK
-bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
+# fonts
+font pango:Berkeley Mono Variable NNIX ExtraBold 16
 
-# Gaps and Layout
+# gaps and layout
 default_orientation auto
 gaps inner 100
 gaps horizontal 1250
 smart_gaps inverse_outer
 
-### COLORS ###
+# colors
 client.focused              #f2f2f2    #000000     #f2f2f2    #ffffff      #f2f2f2
 client.unfocused            #666666    #000000     #f2f2f2    #ffffff      #666666
 client.focused_inactive     #666666    #000000     #f2f2f2    #ffffff      #666666
 client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e89393
 
-### LAUNCHERS ###
-# Terminal, Launcher, Lock, and Exit Commands
+# launch, lock, volume controls and other bindings
 bindsym $mod+Return exec foot
 bindsym $mod+d exec wofi --show drun
 bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
 bindsym $mod+Shift+e exec zenity --question --text='Confirm exit?' && swaymsg exit
 bindsym $mod+Shift+s exec zenity --question --text='Confirm shutdown?' && systemctl poweroff
+bindsym $mod+m exec pamixer -i 5 && pamixer --get-volume > $WOBSOCK
+bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
 
-### WINDOW MANAGEMENT ###
+# window management bindings
 bindsym $mod+Shift+q kill
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
-
-# Focus Management
-bindsym $mod+j focus left
-bindsym $mod+k focus down
-bindsym $mod+i focus up
-bindsym $mod+l focus right
-
-# Move Windows
 bindsym $mod+Shift+j move left
 bindsym $mod+Shift+k move down
 bindsym $mod+Shift+i move up
 bindsym $mod+Shift+l move right
 
-# Tiling & Floating
+# focus management bindings
+bindsym $mod+j focus left
+bindsym $mod+k focus down
+bindsym $mod+i focus up
+bindsym $mod+l focus right
+
+# tiling, floating
 bindsym $mod+h split h
 bindsym $mod+v split v
 bindsym $mod+Shift+space floating toggle
 
-### WORKSPACES ###
+# workspaces
 set $ws1 "1"
 set $ws2 "2"
 set $ws3 "3"
@@ -88,7 +89,7 @@ bindsym $mod+Shift+8 move container to workspace $ws8
 bindsym $mod+Shift+9 move container to workspace $ws9
 bindsym $mod+Shift+0 move container to workspace $ws10
 
-### RESIZING ###
+# resizing
 mode "resize" {
     bindsym j resize shrink width 10 px or 10 ppt
     bindsym k resize grow height 10 px or 10 ppt
@@ -101,5 +102,5 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
-### STATUS BAR ###
+# waybar launch
 exec waybar

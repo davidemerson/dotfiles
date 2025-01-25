@@ -10,6 +10,7 @@ base:
       - waybar
       - wofi
       - swaylock
+      - swayidle
       - screen
       - curl
       - wget
