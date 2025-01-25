@@ -11,7 +11,6 @@ floating_modifier $mod
 # Volume Control
 bindsym $mod+m exec pamixer -i 5 && pamixer --get-volume > $WOBSOCK
 bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
-bindsym $mod+. exec pamixer --toggle-mute # no graphical output here
 
 # Gaps and Layout
 default_orientation auto
