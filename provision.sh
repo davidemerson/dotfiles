@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Check if salt-minion is already installed
+if ! command -v salt-minion &> /dev/null; then
+    echo "salt-minion not found. Installing via Salt Bootstrap script..."
+    curl -L https://github.com/saltstack/salt-bootstrap/releases/latest/download/bootstrap-salt.sh -o bootstrap-salt.sh
+    chmod +x bootstrap-salt.sh
+    sudo ./bootstrap-salt.sh
+else
+    echo "salt-minion is already installed."
+fi
+
+# Original script content follows
+#!/bin/bash
+
 # Ensure the script is run as root
 if [[ $EUID -ne 0 ]]; then
    echo -e "\033[1;33mThis script must be run as root.\033[0m"
@@ -80,3 +93,4 @@ else
 fi
 
 echo -e "\033[1;33mProvisioning completed successfully.\033[0m"
+
