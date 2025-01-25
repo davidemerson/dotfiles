@@ -26,6 +26,7 @@ bindsym $mod+Return exec foot
 bindsym $mod+d exec wofi --show drun
 bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
 bindsym $mod+Shift+e exec zenity --question --text='Confirm exit?' && swaymsg exit
+bindsym $mod+Shift+s exec zenity --question --text='Confirm shutdown?' && systemctl poweroff
 
 ### WINDOW MANAGEMENT ###
 bindsym $mod+Shift+q kill
