@@ -6,16 +6,6 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Check if salt-minion is installed
-if ! command -v salt-minion &> /dev/null; then
-    echo "salt-minion not found. Installing via Salt Bootstrap script..."
-    curl -L https://github.com/saltstack/salt-bootstrap/releases/latest/download/bootstrap-salt.sh -o bootstrap-salt.sh
-    chmod +x bootstrap-salt.sh
-    sudo ./bootstrap-salt.sh
-else
-    echo "salt-minion is already installed."
-fi
-
 # Function to check if a package is installed
 ensure_installed() {
     if ! dpkg -l | grep -qw "$1"; then
@@ -27,9 +17,40 @@ ensure_installed() {
 }
 
 # Install necessary packages
-for package in curl micro git sudo; do
+for package in curl micro git sudo ntpdate; do
     ensure_installed "$package"
 done
+
+# Check if salt-minion is installed
+if ! command -v salt-minion &> /dev/null; then
+    echo "salt-minion not found. Installing via Salt Bootstrap script..."
+    curl -L https://github.com/saltstack/salt-bootstrap/releases/latest/download/bootstrap-salt.sh -o bootstrap-salt.sh
+    chmod +x bootstrap-salt.sh
+
+    # Run the bootstrap script
+    if ./bootstrap-salt.sh; then
+        echo "Bootstrap script executed successfully. Waiting for salt-minion to be available..."
+
+        # Wait for salt-minion to be installed and available
+        timeout=60  # Maximum wait time in seconds
+        elapsed=0
+        while ! command -v salt-minion &> /dev/null; do
+            sleep 1
+            elapsed=$((elapsed + 1))
+            if [ $elapsed -ge $timeout ]; then
+                echo "Timeout waiting for salt-minion installation. Exiting..."
+                exit 1
+            fi
+        done
+
+        echo "salt-minion is now available."
+    else
+        echo "Bootstrap script failed. Exiting..."
+        exit 1
+    fi
+else
+    echo "salt-minion is already installed."
+fi
 
 # Prompt for a username to provision dotfiles
 echo -e "\033[1;33mEnter the username for provisioning (sudoers, dotfiles):\033[0m"
