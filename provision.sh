@@ -107,7 +107,7 @@ fc-cache
 echo -e "\033[1;33mFont cache updated.\033[0m"
 
 # Set the time and configure daily ntpdate cron job
-ntpdate 0.pool.ntp.org
+/usr/sbin/ntpdate 0.pool.ntp.org
 if ! crontab -l | grep -q "ntpdate 0.pool.ntp.org"; then
     (crontab -l 2>/dev/null; echo "0 0 * * * /usr/sbin/ntpdate 0.pool.ntp.org") | crontab -
     echo -e "\033[1;33mDaily ntpdate synchronization job added to cron.\033[0m"
