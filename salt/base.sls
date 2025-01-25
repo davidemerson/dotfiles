@@ -21,3 +21,5 @@ base:
       - msmtp
       - open-vm-tools-desktop
       - build-essential
+      - wob
+      - pamixer
