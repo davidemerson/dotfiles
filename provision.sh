@@ -32,7 +32,7 @@ for package in curl micro git sudo; do
 done
 
 # Prompt for a username to provision dotfiles
-echo -e "\033[1;33mEnter the username for which to provision dotfiles:\033[0m"
+echo -e "\033[1;33mEnter the username for provisioning (sudoers, dotfiles):\033[0m"
 read USERNAME
 if id -u "$USERNAME" >/dev/null 2>&1; then
     usermod -aG sudo "$USERNAME"
@@ -45,7 +45,7 @@ fi
 # Set hostname
 current_hostname=$(hostname)
 echo -e "\033[1;33mThe current hostname is: $current_hostname\033[0m"
-echo -e "\033[1;33mPress (enter) to keep the current hostname, or specify a new hostname:\033[0m"
+echo -e "\033[1;33m[enter] to keep current hostname, or type a new hostname:\033[0m"
 read new_hostname
 if [ -z "$new_hostname" ]; then
     echo -e "\033[1;33mHostname unchanged.\033[0m"
