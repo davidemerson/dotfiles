@@ -1,0 +1,39 @@
+# Backup directories
+backups/
+*.backup
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Salt temporary files
+/tmp/salt_*
+bootstrap-salt.sh
+
+# SSH keys (never commit these!)
+salt/dotfiles/.ssh/id_*
+salt/dotfiles/.ssh/*.pem
+salt/dotfiles/.ssh/authorized_keys
+
+# Personal email configurations (may contain sensitive data)
+salt/dotfiles/.msmtprc
+salt/dotfiles/.muttrc
+
+# Sublime Text session files (these are personal workspace state)
+salt/dotfiles/.config/sublime-text-3/Local/
+salt/dotfiles/.config/sublime-text-3/Packages/User/Package Control.cache/
+salt/dotfiles/.config/sublime-text-3/Packages/User/*.sublime-session
+salt/dotfiles/.config/sublime-text-3/Packages/User/*.sublime-workspace
+
+# Log files
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

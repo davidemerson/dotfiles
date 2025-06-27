@@ -1,26 +1,4 @@
-base:
-  pkg.latest:
-    - pkgs:
-      - nano
-      - micro
-      - git
-      - sway
-      - swaybg
-      - xwayland
-      - waybar
-      - wofi
-      - swaylock
-      - swayidle
-      - screen
-      - curl
-      - wget
-      - nmap
-      - htop
-      - firefox-esr
-      - unzip
-      - neomutt
-      - msmtp
-      - open-vm-tools-desktop
-      - build-essential
-      - wob
-      - pamixer
+# Include package management
+include:
+  - packages
+  - services
