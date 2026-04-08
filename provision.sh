@@ -144,6 +144,12 @@ get_username() {
 
     if id "$username" >/dev/null 2>&1; then
         log_info "User $username exists."
+        # Ensure user is in the right privilege group
+        if [ "$OS_TYPE" = "openbsd" ]; then
+            usermod -G wheel "$username" 2>/dev/null || true
+        else
+            usermod -aG sudo "$username" 2>/dev/null || true
+        fi
     else
         log_warn "User $username does not exist."
         printf "${GREEN}[INFO]${NC} Create this user? (y/N) "
