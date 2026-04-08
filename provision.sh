@@ -51,7 +51,7 @@ install_packages() {
         openbsd)
             pkg_add -U \
                 bash curl wget git unzip-- \
-                nano htop nmap screen-- lsd \
+                nano htop btop nmap screen-- lsd \
                 i3 i3lock i3status dmenu xautolock st-- \
                 firefox-esr neomutt-- msmtp
             ;;
@@ -59,7 +59,7 @@ install_packages() {
             apt-get update -qq
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
-                nano micro htop nmap screen lsd \
+                nano micro htop btop nmap screen lsd \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
                 firefox-esr neomutt msmtp
 
@@ -86,7 +86,7 @@ install_packages() {
             fi
 
             brew install \
-                bash git nano micro htop nmap lsd neomutt msmtp || true
+                bash git nano micro htop btop nmap lsd neomutt msmtp || true
             brew install --cask wezterm || true
             ;;
     esac

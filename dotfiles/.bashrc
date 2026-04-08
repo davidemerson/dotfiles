@@ -68,6 +68,7 @@ shopt -s globstar 2>/dev/null
 alias ls='lsd -laF'
 alias ll='lsd -laF'
 alias la='lsd -la'
+alias top='btop'
 
 # ---------- Env ----------
 # @@IF_OPENBSD@@
