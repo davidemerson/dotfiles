@@ -1,0 +1,8 @@
+* { font-family: "Berkeley Mono Variable NNIX",sans-serif; font-weight: 800; font-size: 20px; }
+window { margin: 0px; border: 4px solid #000000; background-color: #111111; }
+#input { margin: 5px; border: none; color: #ffffff; background-color: #111111; }
+#inner-box { margin: 5px; border: none; background-color: #111111; }
+#outer-box { margin: 5px; border: none; background-color: #111111; }
+#scroll { margin: 0px; border: none; }
+#text { margin: 5px; border: none; color: #cccccc; }
+#entry:selected { background-color: #000000; }

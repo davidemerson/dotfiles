@@ -1,88 +1,88 @@
 # Workstation Configuration
 
-Personal dotfiles managed with SaltStack for automated workstation setup on **Debian Linux** and **OpenBSD**.
+Personal dotfiles with automated provisioning for **Debian Linux**, **OpenBSD**, and **macOS**.
+
+No configuration management tools required — just a POSIX shell script.
 
 ## Quick Start
 
 ### Linux (Debian)
 
-```bash
-apt install -y git
+```
+su -
+apt update && apt install git
 git clone https://github.com/davidemerson/dotfiles.git /tmp/dotfiles
 cd /tmp/dotfiles
-sudo sh provision.sh
+sh provision.sh
 ```
 
 ### OpenBSD
 
-```bash
+```
 pkg_add git
 git clone https://github.com/davidemerson/dotfiles.git /tmp/dotfiles
 cd /tmp/dotfiles
-sh provision.sh    # run as root
+sh provision.sh    # as root
 ```
 
-The provisioning script detects the OS and installs the appropriate packages, configures services, and deploys dotfiles.
+### macOS
+
+```
+git clone https://github.com/davidemerson/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+sh provision.sh    # as your normal user
+```
+
+The script detects the OS and installs the appropriate packages, configures services, and deploys dotfiles.
 
 ## What Gets Installed
 
-| Component | Linux | OpenBSD |
-|-----------|-------|---------|
-| Desktop | Sway + waybar | Sway + swaybar/i3status |
-| Terminal | foot | foot |
-| Editors | micro, nano, Sublime Text | nano |
-| Launcher | wofi | wofi |
-| Lock screen | swaylock | swaylock |
-| Browser | Firefox ESR | Firefox ESR |
-| Email | neomutt + msmtp | neomutt + msmtp |
-| Volume | pamixer + wob | sndioctl |
-| Privilege | sudo | doas |
-| Shell | bash | bash (installed via pkg_add) |
-| Tools | htop, nmap, screen, lsd, curl, wget, git | htop, nmap, screen, lsd, curl, wget, git |
-
-See [DEPENDENCIES.md](DEPENDENCIES.md) for the complete list.
+| Component | Linux | OpenBSD | macOS |
+|-----------|-------|---------|-------|
+| Desktop | Sway + waybar | Sway + swaybar/i3status | — |
+| Terminal | foot | foot | WezTerm |
+| Editors | micro, nano, Sublime Text | nano | micro, nano |
+| Launcher | wofi | wofi | — |
+| Lock screen | swaylock | swaylock | — |
+| Browser | Firefox ESR | Firefox ESR | — |
+| Email | neomutt + msmtp | neomutt + msmtp | neomutt + msmtp |
+| Volume | pamixer + wob | sndioctl | — |
+| Privilege | sudo | doas | sudo (built-in) |
+| Shell | bash | bash (pkg_add) | bash (brew) |
+| Tools | htop, nmap, screen, lsd | htop, nmap, screen, lsd | htop, nmap, lsd |
 
 ## Configuration Structure
 
 ```
-salt/
-├── top.sls           # State orchestration
-├── base.sls          # Core system setup
-├── packages.sls      # Package management (OS-aware)
-├── services.sls      # System services (OS-aware)
-├── dotfiles.sls      # User configuration (OS-aware)
-└── dotfiles/         # Actual dotfiles (Jinja-templated)
-    ├── .bashrc
-    ├── .gitconfig
-    ├── .config/
-    │   ├── sway/       # Sway config (OS-aware volume/bar)
-    │   ├── waybar/     # Waybar (Linux)
-    │   ├── i3status/   # i3status for swaybar (OpenBSD)
-    │   ├── foot/
-    │   ├── swaylock/
-    │   ├── wofi/
-    │   ├── micro/
-    │   └── sublime-text-3/
-    └── .ssh/
+dotfiles/                  # Deployed to ~/
+├── .bashrc                # OS-aware (@@IF_LINUX@@, @@IF_OPENBSD@@, @@IF_MACOS@@)
+├── .gitconfig
+├── .wezterm.lua           # macOS terminal config
+├── .config/
+│   ├── sway/config        # OS-aware volume/bar (Linux + OpenBSD only)
+│   ├── waybar/            # Linux only
+│   ├── i3status/          # OpenBSD only
+│   ├── foot/
+│   ├── swaylock/
+│   ├── wofi/
+│   ├── micro/
+│   └── sublime-text-3/
+└── .ssh/config
 ```
 
-Config files use Jinja2 templates with Salt grains to adapt per OS. The sway config automatically uses waybar on Linux and swaybar+i3status on OpenBSD, with appropriate volume controls.
-
-## Customization
-
-1. Edit files in `salt/dotfiles/` to customize configurations
-2. Modify `salt/packages.sls` to add/remove software
-3. Re-run `salt-call --local state.highstate` to apply changes
+Files with `@@IF_LINUX@@` / `@@IF_OPENBSD@@` / `@@IF_MACOS@@` / `@@END_IF@@` markers are filtered at deploy time — the script strips blocks for other OSes and keeps the current one.
 
 ## Re-applying Changes
 
-After updating the repo, re-deploy as root:
+Pull the latest dotfiles and re-run:
 
-```bash
-cd /path/to/dotfiles
-cp -R salt/* /srv/salt/
-salt-call --local state.highstate
 ```
+cd /path/to/dotfiles
+git pull
+sh provision.sh       # root on Linux/OpenBSD, normal user on macOS
+```
+
+Package installs and file deploys are idempotent.
 
 ## Manual Steps After Installation
 
@@ -92,8 +92,8 @@ salt-call --local state.highstate
 
 ## Troubleshooting
 
-- **Salt errors**: Check `/var/log/salt/minion` for details
-- **Permission issues**: Ensure the script runs as root
-- **OpenBSD packages**: Ensure `/etc/installurl` is set correctly
+- **OpenBSD disk space**: Ensure `/usr/local` has at least 2GB free
+- **OpenBSD package errors**: Verify `/etc/installurl` is set
+- **macOS Homebrew**: Script installs Homebrew automatically if missing
 
 For more details: https://nnix.com/projects/dotfiles

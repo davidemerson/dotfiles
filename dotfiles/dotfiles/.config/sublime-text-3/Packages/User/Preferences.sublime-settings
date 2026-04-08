@@ -1,0 +1,30 @@
+// Settings in here override those in "Default/Preferences.sublime-settings",
+// and are overridden in turn by syntax-specific settings.
+
+{
+    "find_selected_text": true,
+    "highlight_line": true,
+    "hot_exit": false,
+    "mini_diff": true,
+    "show_git_status": true,
+    "show_definitions": false,
+    "trim_trailing_white_space_on_save": "all",
+    "trim_only_modified_white_space": false,
+    "word_wrap": true,
+    "ignored_packages": [
+        "Markdown",
+        "Vintage",
+    ],
+   	"line_padding_bottom": 1,
+    "line_padding_top": 1,
+    "auto_hide_menu": true,
+	"color_scheme": "Packages/Colorsublime - Themes/Flatland_Black.tmTheme",
+	"font_face": "Berkeley Mono Variable NNIX",
+	"font_size": 12,
+	"font_options":
+	[
+		"dlig",
+		"Bold",
+	],
+	"index_files": true,
+}

@@ -1,0 +1,8 @@
+show-failed-attempts
+color=#000000
+font=Berkeley Mono Variable NNIX
+font-size=64
+indicator-radius=256
+indicator-thickness=32
+text-color=#000000
+inside-color=#111111

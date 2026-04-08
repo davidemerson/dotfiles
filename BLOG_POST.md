@@ -2,7 +2,7 @@
 
 Updated scripts are maintained at [github.com/davidemerson/dotfiles](https://github.com/davidemerson/dotfiles.git).
 
-A good guide on sway for Debian is available [here](https://wiki.debian.org/sway). These dotfiles support both Debian Linux and OpenBSD, detected automatically at provision time.
+These dotfiles support Debian Linux, OpenBSD, and macOS. A single POSIX shell script handles OS detection, package installation, service configuration, and dotfile deployment. No Salt, Ansible, or other configuration management tools required.
 
 ### procedure
 
@@ -36,23 +36,32 @@ sh provision.sh
 reboot
 ```
 
-The provisioning script installs Salt via `pkg_add`, patches a known Salt URL handling bug, configures `doas` for the wheel group, and applies the full Salt highstate.
+The provisioning script configures `doas` for the wheel group and adds the hostname to `/etc/hosts`.
 
-### what gets installed
+#### macos
 
-Both platforms get Sway (Wayland compositor), foot (terminal), wofi (launcher), swaylock, Firefox ESR, neomutt + msmtp, and common tools (htop, nmap, screen, lsd, git, curl, wget).
+```
+git clone https://github.com/davidemerson/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+sh provision.sh
+```
 
-Key differences:
+Run as your normal user, not root. The script installs Homebrew if missing, then installs packages and deploys dotfiles. Sway and Wayland configs are skipped on macOS — only relevant dotfiles (.bashrc, .gitconfig, .wezterm.lua, .ssh/config) are deployed.
 
-| | Linux | OpenBSD |
-|---|---|---|
-| Status bar | waybar | swaybar + i3status |
-| Volume | pamixer + wob | sndioctl |
-| Privilege | sudo | doas |
-| Editors | micro, nano, Sublime Text | nano |
-| Shell | bash | bash (via pkg_add) |
+### os-specific configuration
 
-Config files (sway, .bashrc) are Jinja2 templates rendered by Salt with OS-appropriate values - volume keybindings, shutdown commands, bar configuration, tty paths, and default editor all adapt automatically.
+Config files use simple markers (`@@IF_LINUX@@`, `@@IF_OPENBSD@@`, `@@IF_MACOS@@`, `@@END_IF@@`) for OS-specific blocks. At deploy time, the provision script strips blocks for other OSes and keeps the current one. This replaces the Jinja2/Salt templating from the earlier version.
+
+Key differences by OS:
+
+| | Linux | OpenBSD | macOS |
+|---|---|---|---|
+| Status bar | waybar | swaybar + i3status | — |
+| Volume | pamixer + wob | sndioctl | — |
+| Shutdown | systemctl poweroff | doas shutdown -p now | — |
+| Privilege | sudo | doas | sudo |
+| Editor | Sublime Text | nano | nano |
+| Sway TTY | /dev/tty1 | /dev/ttyC0 | — |
 
 ### notes
 
@@ -72,11 +81,11 @@ If running VMWare on a Windows host, disable Win+L via registry:
 
 #### autolaunch sway
 
-The `.bashrc` conditionally launches sway on first login to the console - `/dev/tty1` on Linux, `/dev/ttyC0` on OpenBSD.
+The `.bashrc` conditionally launches sway on first login to the console — `/dev/tty1` on Linux, `/dev/ttyC0` on OpenBSD. On macOS, no sway block is present.
 
-#### salt on openbsd
+#### idempotency
 
-Salt 3007.x has a bug in `salt.utils.url.create()` that corrupts relative `salt://` paths. The provision script patches this automatically. Salt is also very slow on OpenBSD arm64 (~5 minutes per `salt-call` invocation due to Python startup and grains collection). Ensure the machine's hostname resolves locally (`/etc/hosts`) or grains collection will hang on DNS.
+The script is safe to re-run. Package managers skip already-installed packages. Files are overwritten with the current version. Services are enabled idempotently. Pull the latest dotfiles and re-run `sh provision.sh` to apply updates.
 
 ### additional references
 
