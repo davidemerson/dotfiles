@@ -1,0 +1,119 @@
+# i3 config for OpenBSD (X11)
+# Derived from sway config — same keybindings, colors, gaps.
+
+# background
+exec --no-startup-id xsetroot -solid "#000000"
+
+# auto-lock after 5 minutes
+exec --no-startup-id xautolock -time 5 -locker "i3lock -c 000000"
+
+# modifier
+set $mod Mod4
+floating_modifier $mod
+
+# font
+font pango:Berkeley Mono Variable NNIX ExtraBold 16
+
+# gaps and layout
+default_orientation auto
+gaps inner 100
+gaps horizontal 1250
+smart_gaps inverse_outer
+
+# colors
+client.focused              #f2f2f2    #000000     #f2f2f2    #ffffff      #f2f2f2
+client.unfocused            #666666    #000000     #f2f2f2    #ffffff      #666666
+client.focused_inactive     #666666    #000000     #f2f2f2    #ffffff      #666666
+client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e89393
+
+# launch, lock, and volume bindings
+bindsym $mod+Return exec xterm
+bindsym $mod+d exec dmenu_run
+bindsym $mod+z exec i3lock -c 000000
+bindsym $mod+Shift+e exec i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'
+bindsym $mod+Shift+s exec i3-nagbar -t warning -m 'Shut down?' -B 'Yes' 'doas shutdown -p now'
+bindsym $mod+m exec sndioctl output.level=+0.05
+bindsym $mod+n exec sndioctl output.level=-0.05
+
+# window management bindings
+bindsym $mod+Shift+q kill
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+r restart
+bindsym $mod+Shift+j move left
+bindsym $mod+Shift+k move down
+bindsym $mod+Shift+i move up
+bindsym $mod+Shift+l move right
+
+# focus management bindings
+bindsym $mod+j focus left
+bindsym $mod+k focus down
+bindsym $mod+i focus up
+bindsym $mod+l focus right
+
+# tiling, floating
+bindsym $mod+h split h
+bindsym $mod+v split v
+bindsym $mod+Shift+space floating toggle
+
+# workspaces
+set $ws1 "1"
+set $ws2 "2"
+set $ws3 "3"
+set $ws4 "4"
+set $ws5 "5"
+set $ws6 "6"
+set $ws7 "7"
+set $ws8 "8"
+set $ws9 "9"
+set $ws10 "10"
+
+bindsym $mod+1 workspace $ws1
+bindsym $mod+2 workspace $ws2
+bindsym $mod+3 workspace $ws3
+bindsym $mod+4 workspace $ws4
+bindsym $mod+5 workspace $ws5
+bindsym $mod+6 workspace $ws6
+bindsym $mod+7 workspace $ws7
+bindsym $mod+8 workspace $ws8
+bindsym $mod+9 workspace $ws9
+bindsym $mod+0 workspace $ws10
+
+bindsym $mod+Shift+1 move container to workspace $ws1
+bindsym $mod+Shift+2 move container to workspace $ws2
+bindsym $mod+Shift+3 move container to workspace $ws3
+bindsym $mod+Shift+4 move container to workspace $ws4
+bindsym $mod+Shift+5 move container to workspace $ws5
+bindsym $mod+Shift+6 move container to workspace $ws6
+bindsym $mod+Shift+7 move container to workspace $ws7
+bindsym $mod+Shift+8 move container to workspace $ws8
+bindsym $mod+Shift+9 move container to workspace $ws9
+bindsym $mod+Shift+0 move container to workspace $ws10
+
+# resizing
+mode "resize" {
+    bindsym j resize shrink width 10 px or 10 ppt
+    bindsym k resize grow height 10 px or 10 ppt
+    bindsym i resize shrink height 10 px or 10 ppt
+    bindsym l resize grow width 10 px or 10 ppt
+
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym $mod+r mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# bar
+bar {
+    position top
+    status_command i3status
+    font pango:Berkeley Mono Variable NNIX Bold 14
+    colors {
+        background #000000
+        statusline #cccccc
+        separator  #666666
+        focused_workspace  #64727D #64727D #ffffff
+        active_workspace   #333333 #333333 #cccccc
+        inactive_workspace #000000 #000000 #cccccc
+        urgent_workspace   #eb4d4b #eb4d4b #ffffff
+    }
+}

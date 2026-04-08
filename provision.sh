@@ -52,7 +52,7 @@ install_packages() {
             pkg_add -U \
                 bash curl wget git unzip-- \
                 nano htop nmap screen-- lsd \
-                sway swaybg swaylock swayidle xwayland wofi foot i3status \
+                i3 i3lock i3status dmenu xautolock \
                 firefox-esr neomutt-- msmtp
             ;;
         linux)
@@ -217,8 +217,9 @@ DOAS
 # all other OS blocks are stripped. Files without markers are
 # copied as-is.
 #
-# On macOS, sway/waybar/foot/swaylock/wofi/i3status configs are
-# skipped since there is no Wayland compositor.
+# Configs are skipped per-OS: OpenBSD skips sway/waybar/foot
+# (uses i3/X11), Linux skips i3 (uses sway/Wayland), macOS
+# skips all window manager configs.
 # -------------------------------------------------------------------
 deploy_dotfiles() {
     if [ "$OS_TYPE" = "macos" ]; then
@@ -236,21 +237,27 @@ deploy_dotfiles() {
         macos)   KEEP="MACOS" ;;
     esac
 
-    # Directories to skip on macOS (no Wayland)
-    SKIP_MACOS="sway swaylock waybar wofi foot i3status"
+    # Directories to skip per OS
+    case "$OS_TYPE" in
+        openbsd) SKIP_DIRS="sway swaylock waybar wofi foot" ;;
+        linux)   SKIP_DIRS="i3" ;;
+        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status" ;;
+    esac
 
     cd "$SCRIPT_DIR/dotfiles"
     find . -type f | while read -r rel; do
-        # Skip Wayland configs on macOS
-        if [ "$OS_TYPE" = "macos" ]; then
-            skip=false
-            for d in $SKIP_MACOS; do
-                case "$rel" in
-                    *.config/$d/*) skip=true ;;
-                esac
-            done
-            if [ "$skip" = "true" ]; then continue; fi
-        fi
+        # Skip configs not relevant to this OS
+        skip=false
+        for d in $SKIP_DIRS; do
+            case "$rel" in
+                *.config/$d/*) skip=true ;;
+            esac
+        done
+        # .xinitrc is only for OpenBSD (startx/i3)
+        case "$rel" in
+            *.xinitrc) [ "$OS_TYPE" != "openbsd" ] && skip=true ;;
+        esac
+        if [ "$skip" = "true" ]; then continue; fi
 
         src="$SCRIPT_DIR/dotfiles/$rel"
         dst="$home_dir/$rel"

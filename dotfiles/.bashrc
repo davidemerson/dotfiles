@@ -1,11 +1,6 @@
 # @@IF_OPENBSD@@
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-	export XDG_RUNTIME_DIR="/tmp/run-$(id -u)"
-	mkdir -p "$XDG_RUNTIME_DIR"
-	chmod 700 "$XDG_RUNTIME_DIR"
-fi
 if [ "$(tty)" = "/dev/ttyC0" ]; then
-	WLR_NO_HARDWARE_CURSORS=1 WLR_RENDERER=pixman sway
+	startx
 fi
 # @@END_IF@@
 # @@IF_LINUX@@
