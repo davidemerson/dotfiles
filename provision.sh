@@ -293,6 +293,9 @@ deploy_dotfiles() {
         chmod 600 "$home_dir/.ssh/config" 2>/dev/null || true
     fi
 
+    # .xinitrc must be executable or xinit falls back to launching xterm
+    chmod +x "$home_dir/.xinitrc" 2>/dev/null || true
+
     log_info "Dotfiles deployed."
 }
 
