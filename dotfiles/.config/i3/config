@@ -18,7 +18,7 @@ font pango:Berkeley Mono Variable NNIX ExtraBold 16
 default_orientation auto
 gaps inner 10
 gaps horizontal 20
-smart_gaps inverse_outer
+smart_gaps on
 
 # colors
 client.focused              #f2f2f2    #000000     #f2f2f2    #ffffff      #f2f2f2
