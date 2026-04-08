@@ -8,7 +8,7 @@ Personal dotfiles managed with SaltStack for automated workstation setup on **De
 
 ```bash
 apt install -y git
-git clone https://github.com/demerson/dotfiles.git /tmp/dotfiles
+git clone https://github.com/davidemerson/dotfiles.git /tmp/dotfiles
 cd /tmp/dotfiles
 sudo sh provision.sh
 ```
@@ -17,7 +17,7 @@ sudo sh provision.sh
 
 ```bash
 pkg_add git
-git clone https://github.com/demerson/dotfiles.git /tmp/dotfiles
+git clone https://github.com/davidemerson/dotfiles.git /tmp/dotfiles
 cd /tmp/dotfiles
 sh provision.sh    # run as root
 ```
