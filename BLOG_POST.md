@@ -26,7 +26,7 @@ systemctl reboot
 
 #### openbsd
 
-Standard OpenBSD installation. Allocate at least 4GB to `/usr` if using the auto-partition layout with a small disk, as the desktop packages (sway, firefox-esr, etc.) are large. Then:
+Standard OpenBSD installation. The default auto-partition layout works fine on disks 30GB+. On smaller disks, ensure `/usr/local` has at least 2GB (packages land there) and `/usr` has at least 4GB. The full desktop install (sway, firefox-esr, etc.) uses about 1.6GB in `/usr/local`. Then:
 
 ```
 pkg_add git

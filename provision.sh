@@ -229,7 +229,7 @@ apply_salt_states() {
 # Post-install
 post_install() {
     if command -v fc-cache >/dev/null 2>&1; then
-        fc-cache -f
+        fc-cache -f 2>/dev/null || true
         log_info "Font cache updated."
     fi
 }
