@@ -5,7 +5,7 @@ if [ -z "$XDG_RUNTIME_DIR" ]; then
 	chmod 700 "$XDG_RUNTIME_DIR"
 fi
 if [ "$(tty)" = "/dev/ttyC0" ]; then
-	WLR_NO_HARDWARE_CURSORS=1 sway
+	WLR_NO_HARDWARE_CURSORS=1 WLR_RENDERER=pixman sway
 fi
 # @@END_IF@@
 # @@IF_LINUX@@
