@@ -27,13 +27,13 @@ client.focused_inactive     #666666    #000000     #f2f2f2    #ffffff      #6666
 client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e89393
 
 # launch, lock, and volume bindings
-bindsym $mod+Return exec xterm
-bindsym $mod+d exec dmenu_run
-bindsym $mod+z exec i3lock -c 000000
+bindsym $mod+Return exec --no-startup-id /usr/X11R6/bin/xterm
+bindsym $mod+d exec --no-startup-id dmenu_run
+bindsym $mod+z exec --no-startup-id i3lock -c 000000
 bindsym $mod+Shift+e exec i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'
 bindsym $mod+Shift+s exec i3-nagbar -t warning -m 'Shut down?' -B 'Yes' 'doas shutdown -p now'
-bindsym $mod+m exec sndioctl output.level=+0.05
-bindsym $mod+n exec sndioctl output.level=-0.05
+bindsym $mod+m exec --no-startup-id sndioctl output.level=+0.05
+bindsym $mod+n exec --no-startup-id sndioctl output.level=-0.05
 
 # window management bindings
 bindsym $mod+Shift+q kill
