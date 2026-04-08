@@ -50,10 +50,10 @@ install_packages() {
     case "$OS_TYPE" in
         openbsd)
             pkg_add -U \
-                bash curl wget git unzip \
-                nano htop nmap screen lsd \
+                bash curl wget git unzip-- \
+                nano htop nmap screen-- lsd \
                 sway swaybg swaylock swayidle xwayland wofi foot i3status \
-                firefox-esr neomutt msmtp
+                firefox-esr neomutt-- msmtp
             ;;
         linux)
             apt-get update -qq
