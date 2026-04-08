@@ -52,7 +52,7 @@ install_packages() {
             pkg_add -U \
                 bash curl wget git unzip-- \
                 nano htop nmap screen-- lsd \
-                i3 i3lock i3status dmenu xautolock st \
+                i3 i3lock i3status dmenu xautolock st-- \
                 firefox-esr neomutt-- msmtp
             ;;
         linux)
