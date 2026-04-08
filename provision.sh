@@ -58,7 +58,7 @@ install_packages() {
         linux)
             apt-get update -qq
             apt-get install -y \
-                curl wget git sudo ntpdate build-essential unzip \
+                curl wget git sudo build-essential unzip \
                 nano micro htop nmap screen lsd \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
                 firefox-esr neomutt msmtp
