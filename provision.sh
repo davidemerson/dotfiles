@@ -109,6 +109,12 @@ configure_services() {
 
         # Remove default i3 config (conflicts with user config)
         rm -f /etc/i3/config
+
+        # Set console font to Spleen 8x16 (smaller than the default 12x24)
+        wsconsctl display.font=0 >/dev/null 2>&1 || true
+        if ! grep -q 'display.font' /etc/wsconsctl.conf 2>/dev/null; then
+            echo 'display.font=0' >> /etc/wsconsctl.conf
+        fi
     else
         timedatectl set-timezone UTC 2>/dev/null || true
         systemctl enable systemd-timesyncd 2>/dev/null || true
