@@ -120,6 +120,11 @@ configure_services() {
         systemctl enable systemd-timesyncd 2>/dev/null || true
         systemctl start systemd-timesyncd 2>/dev/null || true
         systemctl disable gdm 2>/dev/null || true
+
+        # Set console font to Terminus 14 (small, clean bitmap font)
+        sed -i 's/^FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
+        sed -i 's/^FONTSIZE=.*/FONTSIZE="14"/' /etc/default/console-setup
+        setupcon --force 2>/dev/null || true
     fi
 
     log_info "Services configured."
