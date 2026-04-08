@@ -27,7 +27,7 @@ client.focused_inactive     #666666    #000000     #f2f2f2    #ffffff      #6666
 client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e89393
 
 # launch, lock, and volume bindings
-bindsym $mod+Return exec --no-startup-id /bin/sh -c 'date >> /tmp/i3_launch.log; exec /usr/local/bin/st'
+bindsym $mod+Return exec --no-startup-id ~/.local/bin/launch-term
 bindsym $mod+d exec --no-startup-id dmenu_run
 bindsym $mod+z exec --no-startup-id i3lock -c 000000
 bindsym $mod+Shift+e exec i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'

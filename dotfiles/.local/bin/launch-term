@@ -1,0 +1,3 @@
+#!/bin/sh
+date >> /tmp/i3_launch.log
+exec /usr/local/bin/st
