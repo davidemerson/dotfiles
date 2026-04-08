@@ -254,6 +254,14 @@ main() {
         configure_doas
     fi
 
+    # Ensure hostname resolves locally (Salt grains hang on DNS otherwise)
+    h=$(hostname)
+    if ! grep -q "$h" /etc/hosts 2>/dev/null; then
+        printf "127.0.0.1 %s %s\n" "$h" "${h%%.*}" >> /etc/hosts
+        printf "::1 %s %s\n" "$h" "${h%%.*}" >> /etc/hosts
+        log_info "Added $h to /etc/hosts."
+    fi
+
     configure_pillar
     deploy_salt_states
     apply_salt_states

@@ -37,5 +37,5 @@ gdm_service:
 # Font cache (both OSes)
 font_cache:
   cmd.run:
-    - name: fc-cache -f
+    - name: fc-cache -f 2>/dev/null || true
     - onlyif: command -v fc-cache
