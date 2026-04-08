@@ -7,6 +7,7 @@ if [ "$(tty)" = "/dev/tty1" ]; then
 	WLR_NO_HARDWARE_CURSORS=1 sway
 fi
 
+{% raw %}
 ########################################
 #  David's bash prompt (ported from zshrc)
 ########################################
@@ -66,6 +67,7 @@ shopt -s globstar 2>/dev/null
 alias ls='lsd -laF'
 alias ll='lsd -laF'
 alias la='lsd -la'
+{% endraw %}
 
 # ---------- Env ----------
 {% if os == 'OpenBSD' -%}

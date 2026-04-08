@@ -38,6 +38,4 @@ gdm_service:
 font_cache:
   cmd.run:
     - name: fc-cache -f
-    - runas: root
-    - onchanges:
-      - file: /usr/share/fonts/*
+    - onlyif: command -v fc-cache

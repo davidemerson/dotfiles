@@ -81,6 +81,37 @@ install_openbsd() {
         exit 1
     fi
     log_info "Salt installed."
+
+    # Patch Salt URL handling bug on OpenBSD (salt.utils.url.create corrupts
+    # relative salt:// paths due to urlunparse producing "file:path" instead
+    # of "file:///path" for relative paths, then slicing off 8 characters).
+    patch_salt_url
+}
+
+# Patch Salt URL bug on OpenBSD (relative salt:// paths get mangled)
+patch_salt_url() {
+    log_info "Checking Salt URL module for known bug..."
+    python3 -c "
+import salt.utils.url, inspect, sys
+src = inspect.getsource(salt.utils.url.create)
+if 'urlunparse' not in src:
+    print('Already patched or different version.')
+    sys.exit(0)
+path = salt.utils.url.__file__
+with open(path) as f:
+    content = f.read()
+old = '''    url = salt.utils.data.decode(urlunparse((\"file\", \"\", path, \"\", query, \"\")))
+    return \"salt://{}\".format(url[len(\"file:///\") :])'''
+new = '''    if query:
+        return f\"salt://{path}?{query}\"
+    return f\"salt://{path}\"'''
+if old in content:
+    with open(path, 'w') as f:
+        f.write(content.replace(old, new))
+    print('Patched ' + path)
+else:
+    print('Pattern not found; may be a different Salt version.')
+" && log_info "Salt URL module check complete."
 }
 
 # Get username
