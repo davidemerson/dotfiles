@@ -1,4 +1,6 @@
 # @@IF_OPENBSD@@
+export LANG=en_US.UTF-8
+export LC_CTYPE=en_US.UTF-8
 if [ "$(tty)" = "/dev/ttyC0" ]; then
 	startx
 fi
