@@ -106,6 +106,9 @@ configure_services() {
         ln -sf /usr/share/zoneinfo/UTC /etc/localtime
         rcctl enable ntpd 2>/dev/null || true
         rcctl start ntpd 2>/dev/null || true
+
+        # Remove default i3 config (conflicts with user config)
+        rm -f /etc/i3/config
     else
         timedatectl set-timezone UTC 2>/dev/null || true
         systemctl enable systemd-timesyncd 2>/dev/null || true
