@@ -1,80 +1,72 @@
-#!/bin/bash
+#!/bin/sh
 
 # Dotfiles configuration validator
-# Run this script to check if your dotfiles are properly configured
+# Checks that required files exist in the repo
 
-# Color codes
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly NC='\033[0m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 check_passed=0
 check_failed=0
 
 log_pass() {
-    echo -e "${GREEN}✓${NC} $1"
-    ((check_passed++))
+    printf "${GREEN}✓${NC} %s\n" "$1"
+    check_passed=$((check_passed + 1))
 }
 
 log_fail() {
-    echo -e "${RED}✗${NC} $1"
-    ((check_failed++))
+    printf "${RED}✗${NC} %s\n" "$1"
+    check_failed=$((check_failed + 1))
 }
 
-log_warn() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
-
-echo "Validating dotfiles configuration..."
-echo
+printf "Validating dotfiles configuration...\n\n"
 
 # Check Salt files
-echo "Checking Salt configuration:"
+printf "Checking Salt configuration:\n"
 
-for file in "salt/top.sls" "salt/base.sls" "salt/dotfiles.sls" "minion"; do
-    if [[ -f "$SCRIPT_DIR/$file" ]]; then
+for file in "salt/top.sls" "salt/base.sls" "salt/packages.sls" "salt/services.sls" "salt/dotfiles.sls" "minion"; do
+    if [ -f "$SCRIPT_DIR/$file" ]; then
         log_pass "$file exists"
     else
         log_fail "$file missing"
     fi
 done
 
-echo
+printf "\n"
 
 # Check essential dotfiles
-echo "Checking essential dotfiles:"
+printf "Checking essential dotfiles:\n"
 
-required_files=(
-    "salt/dotfiles/.bashrc"
-    "salt/dotfiles/.gitconfig"
-    "salt/dotfiles/.config/sway/config"
-    "salt/dotfiles/.config/waybar/config"
-    "salt/dotfiles/.config/sublime-text-3/Packages/User/Preferences.sublime-settings"
-    "salt/dotfiles/.ssh/config"
-)
-
-for file in "${required_files[@]}"; do
-    if [[ -f "$SCRIPT_DIR/$file" ]]; then
+for file in \
+    "salt/dotfiles/.bashrc" \
+    "salt/dotfiles/.gitconfig" \
+    "salt/dotfiles/.config/sway/config" \
+    "salt/dotfiles/.config/foot/foot.ini" \
+    "salt/dotfiles/.config/swaylock/config" \
+    "salt/dotfiles/.config/i3status/config" \
+    "salt/dotfiles/.ssh/config"; do
+    if [ -f "$SCRIPT_DIR/$file" ]; then
         log_pass "$file exists"
     else
         log_fail "$file missing"
     fi
 done
 
-echo
+printf "\n"
 
 # Summary
-echo "Validation complete:"
-echo -e "  ${GREEN}Passed: $check_passed${NC}"
-echo -e "  ${RED}Failed: $check_failed${NC}"
+printf "Validation complete:\n"
+printf "  ${GREEN}Passed: %d${NC}\n" "$check_passed"
+printf "  ${RED}Failed: %d${NC}\n" "$check_failed"
 
-if [[ $check_failed -eq 0 ]]; then
-    echo -e "\n${GREEN}All checks passed! Configuration looks good.${NC}"
+if [ "$check_failed" -eq 0 ]; then
+    printf "\n${GREEN}All checks passed.${NC}\n"
     exit 0
 else
-    echo -e "\n${RED}Some checks failed. Please review the configuration.${NC}"
+    printf "\n${RED}Some checks failed.${NC}\n"
     exit 1
 fi

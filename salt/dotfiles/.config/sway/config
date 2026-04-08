@@ -1,11 +1,11 @@
+{%- set os = grains.get('os', 'Linux') -%}
 include /etc/sway/config.d/*
 
 # set a background
 exec swaybg --output "*" --color "#000000"
 
-# blank Screen after N seconds
-# soon you will need to change this to "power" instead of "dpms" but Debian Stable is behind the times for now
-exec swayidle -w timeout 300 'swaymsg "output * dpms off"' resume 'swaymsg "output * dpms on"'
+# blank screen after 300 seconds
+exec swayidle -w timeout 300 'swaymsg "output * power off"' resume 'swaymsg "output * power on"'
 
 # modifier definition
 set $mod Mod4
@@ -26,14 +26,20 @@ client.unfocused            #666666    #000000     #f2f2f2    #ffffff      #6666
 client.focused_inactive     #666666    #000000     #f2f2f2    #ffffff      #666666
 client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e89393
 
-# launch, lock, volume controls and other bindings
+# launch, lock, and volume bindings
 bindsym $mod+Return exec foot
 bindsym $mod+d exec wofi --show drun
 bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
-bindsym $mod+Shift+e exec zenity --question --text='Confirm exit?' && swaymsg exit
-bindsym $mod+Shift+s exec zenity --question --text='Confirm shutdown?' && systemctl poweroff
+bindsym $mod+Shift+e exec swaynag -t warning -m 'Exit sway?' -B 'Yes' 'swaymsg exit'
+{% if os == 'OpenBSD' %}
+bindsym $mod+Shift+s exec swaynag -t warning -m 'Shut down?' -B 'Yes' 'doas shutdown -p now'
+bindsym $mod+m exec sndioctl output.level=+0.05
+bindsym $mod+n exec sndioctl output.level=-0.05
+{% else %}
+bindsym $mod+Shift+s exec swaynag -t warning -m 'Shut down?' -B 'Yes' 'systemctl poweroff'
 bindsym $mod+m exec pamixer -i 5 && pamixer --get-volume > $WOBSOCK
 bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
+{% endif %}
 
 # window management bindings
 bindsym $mod+Shift+q kill
@@ -102,5 +108,22 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
-# waybar launch
+# bar
+{% if os == 'OpenBSD' %}
+bar {
+    position top
+    status_command i3status
+    font pango:Berkeley Mono Variable NNIX Bold 14
+    colors {
+        background #000000
+        statusline #cccccc
+        separator  #666666
+        focused_workspace  #64727D #64727D #ffffff
+        active_workspace   #333333 #333333 #cccccc
+        inactive_workspace #000000 #000000 #cccccc
+        urgent_workspace   #eb4d4b #eb4d4b #ffffff
+    }
+}
+{% else %}
 exec waybar
+{% endif %}

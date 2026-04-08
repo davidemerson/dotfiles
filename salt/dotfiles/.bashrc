@@ -1,4 +1,9 @@
+{%- set os = grains.get('os', 'Linux') -%}
+{% if os == 'OpenBSD' -%}
+if [ "$(tty)" = "/dev/ttyC0" ]; then
+{% else -%}
 if [ "$(tty)" = "/dev/tty1" ]; then
+{% endif -%}
 	WLR_NO_HARDWARE_CURSORS=1 sway
 fi
 
@@ -63,6 +68,10 @@ alias ll='lsd -laF'
 alias la='lsd -la'
 
 # ---------- Env ----------
+{% if os == 'OpenBSD' -%}
+export EDITOR="${EDITOR:-nano}"
+{% else -%}
 export EDITOR="${EDITOR:-subl}"
+{% endif -%}
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
