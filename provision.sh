@@ -262,9 +262,11 @@ deploy_dotfiles() {
                 *.config/$d/*) skip=true ;;
             esac
         done
-        # .xinitrc is only for OpenBSD (startx/i3)
+        # OS-specific file skips
         case "$rel" in
             *.xinitrc) [ "$OS_TYPE" != "openbsd" ] && skip=true ;;
+            *.bashrc|*.bash_profile) [ "$OS_TYPE" = "macos" ] && skip=true ;;
+            *.zshrc) [ "$OS_TYPE" != "macos" ] && skip=true ;;
         esac
         if [ "$skip" = "true" ]; then continue; fi
 
