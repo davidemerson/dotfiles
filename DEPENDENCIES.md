@@ -1,38 +1,42 @@
-# Dotfiles Dependencies
+# Dependencies
 
 ## Supported Platforms
-- Debian Linux (12+)
+- Debian Linux (13+)
 - OpenBSD (7.8+)
 - macOS (with Homebrew)
 
 ## Installed Software
 
 ### All Platforms
-- **Shell**: bash
+- **Shell**: bash (Linux/OpenBSD), zsh (macOS default)
 - **Email**: neomutt + msmtp
 - **Version Control**: git
-- **Tools**: nano, htop, nmap, lsd, curl, wget
+- **Tools**: nano, htop, btop, nmap, lsd, curl, wget
 
-### Linux + OpenBSD (Sway Desktop)
+### Linux (Sway Desktop)
 - **Compositor**: Sway, swaybg, swayidle, xwayland
 - **Terminal**: foot
-- **Launcher**: wofi
-- **Lock screen**: swaylock
-- **Browser**: Firefox ESR
-
-### Linux Only
 - **Status Bar**: waybar
-- **Editors**: micro, Sublime Text
+- **Launcher**: wofi
+- **Lock Screen**: swaylock
 - **Volume**: pamixer + wob
+- **Editors**: micro, Sublime Text
+- **Browser**: Firefox ESR
 - **VM Tools**: open-vm-tools-desktop (auto-detected)
 - **Build**: build-essential
+- **Console Font**: Terminus 14
 
-### OpenBSD Only
-- **Status Bar**: swaybar (built-in) + i3status
+### OpenBSD (i3 Desktop)
+- **Window Manager**: i3
+- **Terminal**: st (suckless terminal)
+- **Status Bar**: i3bar + i3status
+- **Launcher**: dmenu
+- **Lock Screen**: i3lock + xautolock
 - **Volume**: sndioctl (built-in)
 - **Privilege**: doas (configured for wheel group)
+- **Browser**: Firefox ESR
 
-### macOS Only
+### macOS
 - **Terminal**: WezTerm (via Homebrew cask)
-- **Editor**: micro
+- **Editors**: micro
 - **Package Manager**: Homebrew (installed automatically)

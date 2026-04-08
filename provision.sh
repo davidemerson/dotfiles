@@ -316,8 +316,6 @@ deploy_dotfiles() {
 
     # .xinitrc must be executable or xinit falls back to launching xterm
     chmod +x "$home_dir/.xinitrc" 2>/dev/null || true
-    # Make helper scripts executable
-    chmod +x "$home_dir/.local/bin/"* 2>/dev/null || true
 
     log_info "Dotfiles deployed."
 }

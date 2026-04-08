@@ -22,19 +22,30 @@ check() {
 
 printf "Validating dotfiles...\n\n"
 
-printf "Core files:\n"
+printf "Core:\n"
 check "provision.sh"
 
-printf "\nDotfiles:\n"
+printf "\nShell:\n"
 check "dotfiles/.bashrc"
+check "dotfiles/.bash_profile"
+check "dotfiles/.zshrc"
 check "dotfiles/.gitconfig"
+check "dotfiles/.ssh/config"
+
+printf "\nLinux (sway):\n"
 check "dotfiles/.config/sway/config"
-check "dotfiles/.config/foot/foot.ini"
-check "dotfiles/.config/swaylock/config"
-check "dotfiles/.config/i3status/config"
 check "dotfiles/.config/waybar/config"
 check "dotfiles/.config/waybar/style.css"
-check "dotfiles/.ssh/config"
+check "dotfiles/.config/foot/foot.ini"
+check "dotfiles/.config/swaylock/config"
+check "dotfiles/.config/wofi/style.css"
+
+printf "\nOpenBSD (i3):\n"
+check "dotfiles/.config/i3/config"
+check "dotfiles/.config/i3status/config"
+check "dotfiles/.xinitrc"
+
+printf "\nmacOS:\n"
 check "dotfiles/.wezterm.lua"
 
 printf "\nPassed: %d  Failed: %d\n" "$pass" "$fail"

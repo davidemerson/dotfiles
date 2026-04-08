@@ -79,8 +79,5 @@ export EDITOR="${EDITOR:-nano}"
 # @@IF_LINUX@@
 export EDITOR="${EDITOR:-subl}"
 # @@END_IF@@
-# @@IF_MACOS@@
-export EDITOR="${EDITOR:-subl}"
-# @@END_IF@@
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"

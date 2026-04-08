@@ -30,16 +30,9 @@ bindsym $mod+Return exec foot
 bindsym $mod+d exec wofi --show drun
 bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
 bindsym $mod+Shift+e exec swaynag -t warning -m 'Exit sway?' -B 'Yes' 'swaymsg exit'
-# @@IF_OPENBSD@@
-bindsym $mod+Shift+s exec swaynag -t warning -m 'Shut down?' -B 'Yes' 'doas shutdown -p now'
-bindsym $mod+m exec sndioctl output.level=+0.05
-bindsym $mod+n exec sndioctl output.level=-0.05
-# @@END_IF@@
-# @@IF_LINUX@@
 bindsym $mod+Shift+s exec swaynag -t warning -m 'Shut down?' -B 'Yes' 'systemctl poweroff'
 bindsym $mod+m exec pamixer -i 5 && pamixer --get-volume > $WOBSOCK
 bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
-# @@END_IF@@
 
 # window management bindings
 bindsym $mod+Shift+q kill
@@ -109,22 +102,4 @@ mode "resize" {
 bindsym $mod+r mode "resize"
 
 # bar
-# @@IF_OPENBSD@@
-bar {
-    position top
-    status_command i3status
-    font pango:Berkeley Mono Variable NNIX Bold 14
-    colors {
-        background #000000
-        statusline #cccccc
-        separator  #666666
-        focused_workspace  #64727D #64727D #ffffff
-        active_workspace   #333333 #333333 #cccccc
-        inactive_workspace #000000 #000000 #cccccc
-        urgent_workspace   #eb4d4b #eb4d4b #ffffff
-    }
-}
-# @@END_IF@@
-# @@IF_LINUX@@
 exec waybar
-# @@END_IF@@

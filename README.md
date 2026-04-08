@@ -1,8 +1,8 @@
-# Workstation Configuration
+# Workstation Dotfiles
 
-Personal dotfiles with automated provisioning for **Debian Linux**, **OpenBSD**, and **macOS**.
+Personal workstation configuration for **Debian Linux**, **OpenBSD**, and **macOS**.
 
-No configuration management tools required — just a POSIX shell script.
+A single POSIX shell script handles OS detection, package installation, service configuration, and dotfile deployment. No Salt, Ansible, or other configuration management tools required. The script is idempotent — safe to re-run after pulling updates.
 
 ## Quick Start
 
@@ -33,53 +33,65 @@ cd ~/dotfiles
 sh provision.sh    # as your normal user
 ```
 
-The script detects the OS and installs the appropriate packages, configures services, and deploys dotfiles.
-
 ## What Gets Installed
 
-| Component | Linux | OpenBSD | macOS |
-|-----------|-------|---------|-------|
-| Desktop | Sway + waybar | Sway + swaybar/i3status | — |
-| Terminal | foot | foot | WezTerm |
-| Editors | micro, nano, Sublime Text | nano | micro, nano |
-| Launcher | wofi | wofi | — |
-| Lock screen | swaylock | swaylock | — |
-| Browser | Firefox ESR | Firefox ESR | — |
-| Email | neomutt + msmtp | neomutt + msmtp | neomutt + msmtp |
+| Component | Linux (Debian) | OpenBSD | macOS |
+|-----------|---------------|---------|-------|
+| Window Manager | Sway (Wayland) | i3 (X11) | — |
+| Terminal | foot | st | WezTerm |
+| Status Bar | waybar | i3bar + i3status | — |
+| Launcher | wofi | dmenu | — |
+| Lock Screen | swaylock | i3lock + xautolock | — |
 | Volume | pamixer + wob | sndioctl | — |
 | Privilege | sudo | doas | sudo (built-in) |
-| Shell | bash | bash (pkg_add) | bash (brew) |
-| Tools | htop, nmap, screen, lsd | htop, nmap, screen, lsd | htop, nmap, lsd |
+| Browser | Firefox ESR | Firefox ESR | — |
+| Email | neomutt + msmtp | neomutt + msmtp | neomutt + msmtp |
+| Editor | micro, nano, Sublime Text | nano | micro, nano, Sublime Text |
+| Shell | bash | bash (pkg_add) | zsh (default) |
+| Tools | htop, btop, nmap, screen, lsd | htop, btop, nmap, screen, lsd | htop, btop, nmap, lsd |
 
-## Configuration Structure
+## How It Works
+
+### OS-Conditional Config Files
+
+Files that need OS-specific lines use simple markers:
 
 ```
-dotfiles/                  # Deployed to ~/
-├── .bashrc                # OS-aware (@@IF_LINUX@@, @@IF_OPENBSD@@, @@IF_MACOS@@)
-├── .gitconfig
-├── .wezterm.lua           # macOS terminal config
-├── .config/
-│   ├── sway/config        # OS-aware volume/bar (Linux + OpenBSD only)
-│   ├── waybar/            # Linux only
-│   ├── i3status/          # OpenBSD only
-│   ├── foot/
-│   ├── swaylock/
-│   ├── wofi/
-│   ├── micro/
-│   └── sublime-text-3/
-└── .ssh/config
+# @@IF_LINUX@@
+bindsym $mod+Shift+s exec systemctl poweroff
+# @@END_IF@@
+# @@IF_OPENBSD@@
+bindsym $mod+Shift+s exec doas shutdown -p now
+# @@END_IF@@
 ```
 
-Files with `@@IF_LINUX@@` / `@@IF_OPENBSD@@` / `@@IF_MACOS@@` / `@@END_IF@@` markers are filtered at deploy time — the script strips blocks for other OSes and keeps the current one.
+At deploy time, `provision.sh` strips blocks for other OSes via `sed`, keeping only the current OS's blocks. No template engine required.
+
+### File Routing
+
+Not every file deploys on every OS:
+
+| File | Linux | OpenBSD | macOS |
+|------|-------|---------|-------|
+| `.bashrc`, `.bash_profile` | yes | yes | — |
+| `.zshrc` | — | — | yes |
+| `.xinitrc` | — | yes | — |
+| `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*` | yes | — | — |
+| `.config/i3/*`, `i3status/*` | — | yes | — |
+| `.gitconfig`, `.ssh/config`, `.wezterm.lua`, `.fonts/*` | yes | yes | yes |
+
+### Desktop Flow
+
+- **Linux**: Login on tty1 → `.bashrc` auto-launches sway → foot terminal, waybar, wofi
+- **OpenBSD**: Login on ttyC0 → `.bashrc` runs `startx` → `.xinitrc` launches i3 → st terminal, dmenu, i3bar
+- **macOS**: Open WezTerm → `.zshrc` loads prompt, aliases, environment
 
 ## Re-applying Changes
-
-Pull the latest dotfiles and re-run:
 
 ```
 cd /path/to/dotfiles
 git pull
-sh provision.sh       # root on Linux/OpenBSD, normal user on macOS
+sh provision.sh
 ```
 
 Package installs and file deploys are idempotent.
@@ -90,10 +102,58 @@ Package installs and file deploys are idempotent.
 2. Set up email credentials: create `~/.secrets/mailpass`
 3. Install custom fonts to `~/.fonts/` and run `fc-cache -f`
 
+## Keybindings (Sway / i3)
+
+| Key | Action |
+|-----|--------|
+| Mod4 + Return | Terminal |
+| Mod4 + d | Launcher (wofi / dmenu) |
+| Mod4 + z | Lock screen |
+| Mod4 + Shift+q | Kill window |
+| Mod4 + Shift+e | Exit (with confirmation) |
+| Mod4 + Shift+s | Shutdown (with confirmation) |
+| Mod4 + j/k/i/l | Focus left/down/up/right |
+| Mod4 + Shift+j/k/i/l | Move window |
+| Mod4 + h/v | Split horizontal/vertical |
+| Mod4 + 1-0 | Switch workspace |
+| Mod4 + Shift+1-0 | Move to workspace |
+| Mod4 + m/n | Volume up/down |
+| Mod4 + r | Resize mode |
+
+## Repository Structure
+
+```
+provision.sh              # Single provisioning script (POSIX sh)
+validate.sh               # Check that all expected files exist
+Makefile                  # make validate / make provision / make backup
+dotfiles/
+├── .bashrc               # Bash config (Linux + OpenBSD, OS-conditional)
+├── .bash_profile          # Sources .profile then .bashrc
+├── .zshrc                # Zsh config (macOS)
+├── .xinitrc              # startx → i3 (OpenBSD)
+├── .gitconfig
+├── .wezterm.lua           # WezTerm config (macOS)
+├── .ssh/config
+├── .fonts/bmv.otf         # Berkeley Mono Variable
+├── .config/
+│   ├── sway/config        # Sway (Linux only)
+│   ├── waybar/            # Waybar (Linux only)
+│   ├── foot/foot.ini      # Foot terminal (Linux only)
+│   ├── swaylock/config    # Swaylock (Linux only)
+│   ├── wofi/style.css     # Wofi (Linux only)
+│   ├── i3/config          # i3 (OpenBSD only)
+│   ├── i3status/config    # i3status (OpenBSD only)
+│   ├── micro/             # micro editor settings
+│   └── sublime-text-3/    # Sublime Text settings
+└── .muttrc, .msmtprc      # Email (in .gitignore)
+```
+
 ## Troubleshooting
 
-- **OpenBSD disk space**: Ensure `/usr/local` has at least 2GB free
-- **OpenBSD package errors**: Verify `/etc/installurl` is set
-- **macOS Homebrew**: Script installs Homebrew automatically if missing
+- **OpenBSD disk space**: `/usr/local` needs at least 2GB for packages
+- **OpenBSD UTF-8**: The `.bashrc` sets `LANG=en_US.UTF-8` for st/btop
+- **OpenBSD console font**: Cannot be changed on VMware arm64 (simplefb limitation)
+- **Debian console font**: Set to Terminus 14 via console-setup
+- **macOS Homebrew**: Installed automatically if missing
 
 For more details: https://nnix.com/projects/dotfiles
