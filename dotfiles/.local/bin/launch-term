@@ -1,5 +1,2 @@
 #!/bin/sh
-echo "$(date) pid=$$ ppid=$(ps -o ppid= -p $$) tty=$(tty)" >> /tmp/i3_launch.log
-ps auxww >> /tmp/i3_launch.log
-echo "---" >> /tmp/i3_launch.log
 exec /usr/local/bin/st
