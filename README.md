@@ -46,7 +46,7 @@ sh provision.sh    # as your normal user
 | Privilege | sudo | doas | sudo (built-in) |
 | Browser | Firefox ESR | Firefox ESR | — |
 | Email | neomutt + msmtp | neomutt + msmtp | neomutt + msmtp |
-| Editor | micro, nano, Sublime Text | nano | micro, nano, Sublime Text |
+| Editor | issy (default), micro, nano, Sublime Text | issy (default), nano | issy (default), micro, nano, Sublime Text |
 | Shell | bash | bash (pkg_add) | zsh (default) |
 | Tools | htop, btop, nmap, screen, lsd | htop, btop, nmap, screen, lsd | htop, btop, nmap, lsd |
 
@@ -66,6 +66,10 @@ bindsym $mod+Shift+s exec doas shutdown -p now
 ```
 
 At deploy time, `provision.sh` strips blocks for other OSes via `sed`, keeping only the current OS's blocks. No template engine required.
+
+### issy (default editor)
+
+`provision.sh` builds [issy](https://github.com/davidemerson/issy) from source and installs it to `/usr/local/bin/issy`. Zig (0.15.2+) is installed first if not already present — via Homebrew on macOS, `pkg_add` on OpenBSD, or the official tarball on Linux. `.muttrc`, `.bashrc`, and `.zshrc` all set issy as `EDITOR`. The step is idempotent: if `issy` is already on PATH, it's skipped.
 
 ### File Routing
 

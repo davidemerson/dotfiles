@@ -95,6 +95,94 @@ install_packages() {
 }
 
 # -------------------------------------------------------------------
+# issy — clone the latest source from GitHub and build with Zig,
+# then install the resulting binary as /usr/local/bin/issy.
+# Building from source (rather than downloading a prebuilt binary)
+# keeps this portable across Linux, macOS, and OpenBSD without
+# depending on which release assets happen to be published.
+# Idempotent: skips if already installed.
+# -------------------------------------------------------------------
+ZIG_VERSION="0.15.2"
+
+ensure_zig() {
+    if command -v zig >/dev/null 2>&1; then
+        return 0
+    fi
+
+    case "$OS_TYPE" in
+        macos)
+            brew install zig >/dev/null 2>&1 || return 1
+            ;;
+        openbsd)
+            pkg_add -I zig >/dev/null 2>&1 || return 1
+            ;;
+        linux)
+            case "$(uname -m)" in
+                x86_64)  zig_arch="x86_64" ;;
+                aarch64) zig_arch="aarch64" ;;
+                *) log_warn "No Zig tarball for $(uname -m)."; return 1 ;;
+            esac
+            tarball="zig-${zig_arch}-linux-${ZIG_VERSION}.tar.xz"
+            url="https://ziglang.org/download/${ZIG_VERSION}/${tarball}"
+            tmp="/tmp/zig.tar.xz"
+            log_info "Downloading Zig ${ZIG_VERSION}..."
+            curl -fsSL -o "$tmp" "$url" || return 1
+            mkdir -p /opt/zig
+            tar xf "$tmp" -C /opt/zig --strip-components=1 || return 1
+            ln -sf /opt/zig/zig /usr/local/bin/zig
+            rm -f "$tmp"
+            ;;
+    esac
+
+    command -v zig >/dev/null 2>&1
+}
+
+install_issy() {
+    if command -v issy >/dev/null 2>&1; then
+        log_info "issy already installed at $(command -v issy)."
+        return
+    fi
+
+    log_info "Building issy from source..."
+
+    if ! ensure_zig; then
+        log_warn "Could not install Zig. Skipping issy build."
+        log_warn "Install Zig ${ZIG_VERSION}+ manually and re-run to get issy."
+        return
+    fi
+
+    src_dir="/tmp/issy-src.$$"
+    rm -rf "$src_dir"
+    if ! git clone --depth 1 https://github.com/davidemerson/issy.git "$src_dir" >/dev/null 2>&1; then
+        log_warn "Failed to clone issy repository. Skipping."
+        return
+    fi
+
+    if ! (cd "$src_dir" && zig build -Doptimize=ReleaseSafe); then
+        log_warn "zig build failed for issy. Skipping install."
+        rm -rf "$src_dir"
+        return
+    fi
+
+    bin="$src_dir/zig-out/bin/issy"
+    if [ ! -x "$bin" ]; then
+        log_warn "issy binary not produced at $bin. Skipping."
+        rm -rf "$src_dir"
+        return
+    fi
+
+    dest="/usr/local/bin/issy"
+    if [ "$OS_TYPE" = "macos" ]; then
+        sudo install -m 0755 "$bin" "$dest"
+    else
+        install -m 0755 "$bin" "$dest"
+    fi
+    rm -rf "$src_dir"
+
+    log_info "issy installed at $dest."
+}
+
+# -------------------------------------------------------------------
 # Services
 # -------------------------------------------------------------------
 configure_services() {
@@ -339,6 +427,7 @@ main() {
     detect_os
     check_root
     install_packages
+    install_issy
     get_username
     configure_hostname
     configure_doas

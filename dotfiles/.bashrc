@@ -73,11 +73,6 @@ alias la='lsd -la'
 alias top='btop'
 
 # ---------- Env ----------
-# @@IF_OPENBSD@@
-export EDITOR="${EDITOR:-nano}"
-# @@END_IF@@
-# @@IF_LINUX@@
-export EDITOR="${EDITOR:-subl}"
-# @@END_IF@@
+export EDITOR="${EDITOR:-issy}"
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"

@@ -89,6 +89,6 @@ alias top='btop'
 
 # ---------- Env ----------
 # @@IF_MACOS@@
-export EDITOR="${EDITOR:-subl}"
+export EDITOR="${EDITOR:-issy}"
 export PATH="/opt/homebrew/opt/ruby/bin:$HOME/.local/bin:$PATH"
 # @@END_IF@@

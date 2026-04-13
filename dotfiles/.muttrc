@@ -38,7 +38,7 @@ unignore Organization
 unignore List-Id
 
 # Editor
-set editor=micro
+set editor=issy
 
 # Colors
 color normal     	default        	default
