@@ -102,7 +102,7 @@ Package installs and file deploys are idempotent.
 
 ## Manual Steps After Installation
 
-1. Generate SSH keys: `ssh-keygen -t ed25519 -C "your-email@example.com"`
+1. Place the SSH key at `~/.ssh/id_d_nnix.pem` (plus matching `.pub`). Both `.ssh/config` and `.gitconfig` reference that path for auth and commit signing — copy the key from another machine, or generate a new one and register it on GitHub as both an authentication key and a signing key. If you use a different key, edit `dotfiles/.gitconfig`, `dotfiles/.ssh/config`, and `dotfiles/.config/git/allowed_signers` to match before running `provision.sh`.
 2. Set up email credentials: create `~/.secrets/mailpass`
 3. Install custom fonts to `~/.fonts/` and run `fc-cache -f`
 
