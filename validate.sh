@@ -31,6 +31,7 @@ check "dotfiles/.bash_profile"
 check "dotfiles/.zshrc"
 check "dotfiles/.gitconfig"
 check "dotfiles/.ssh/config"
+check "dotfiles/.config/git/allowed_signers"
 
 printf "\nLinux (sway):\n"
 check "dotfiles/.config/sway/config"
