@@ -49,5 +49,8 @@ check "dotfiles/.xinitrc"
 printf "\nmacOS:\n"
 check "dotfiles/.wezterm.lua"
 
+printf "\nEditor:\n"
+check "dotfiles/.issyrc"
+
 printf "\nPassed: %d  Failed: %d\n" "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -9,6 +9,7 @@
 
 ### All Platforms
 - **Shell**: bash (Linux/OpenBSD), zsh (macOS default)
+- **Editor**: [issy](https://github.com/davidemerson/issy) — built from source via Zig (0.15.2+) and installed to `/usr/local/bin/issy`. Set as `EDITOR` in `.bashrc`/`.zshrc`/`.muttrc`. Configured via `~/.issyrc`.
 - **Email**: neomutt + msmtp
 - **Version Control**: git
 - **Tools**: nano, htop, btop, nmap, lsd, curl, wget

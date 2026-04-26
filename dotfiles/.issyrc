@@ -1,0 +1,119 @@
+# issy configuration
+#
+# Place this file at ~/.issyrc. The installer seeds a commented default
+# if the file does not exist. Lines starting with # are comments;
+# unknown keys are ignored.
+
+# ── Editing ──
+
+# Number of spaces per tab stop
+# tab_width = 4
+
+# Insert spaces instead of tab characters
+# expand_tabs = true
+
+# Copy leading whitespace when pressing Enter
+# auto_indent = true
+
+# Automatically insert matching bracket/quote pairs
+# auto_close_brackets = false
+
+# Scan file on open to detect tabs vs spaces (overrides tab_width/expand_tabs per file)
+# auto_detect_indent = true
+
+# Minimum lines between cursor and screen edge before scrolling
+# scroll_margin = 5
+
+# ── Display ──
+
+# Show line numbers in the gutter
+# line_numbers = true
+
+# Spaces before line numbers
+# left_padding = 2
+
+# Spaces between line numbers and code
+# gutter_padding = 3
+
+# Soft-wrap long lines at the right margin. Continuation lines are indented.
+# word_wrap = true
+
+# Soft right margin — code stops here, rest is empty background. 0 = fill terminal.
+# right_margin = 100
+
+# Subtle full-width highlight on the current line
+# cursor_line_bg = true
+
+# Terminal cursor shape: bar, block, or underline
+cursor_style = underline
+
+# Faintly highlight trailing spaces/tabs on non-empty lines
+# trailing_whitespace = true
+
+# Faintly highlight leading indent that doesn't match the detected file style
+# indent_mismatch = true
+
+# ── Auto-update ──
+#
+# Release builds check the latest GitHub release on startup. Dev builds
+# (unreleased working trees) skip the check entirely. Both keys are
+# silent no-ops if the editor binary is not writable by the current user
+# (e.g. a .deb/.rpm install at /usr/bin/issy).
+
+# On startup, check for a newer release and show "update available: <sha>"
+# in the status bar. Set to false to disable the check and its background
+# network fetch entirely.
+# notify_updates = true
+
+# Opt into automatic download, Ed25519 signature verification, and
+# in-session re-exec when a newer release is available. When on, the
+# editor downloads the signed manifest, verifies it against the public
+# key embedded in src/update_key.zig, hashes the downloaded binary, and
+# stages it at ~/.cache/issy/issy.staged. It is then applied the next
+# time the buffer is clean and the editor has been idle for 60s.
+# Rollback the swap any time with: issy --rollback
+# autoupdate = false
+
+# ── PDF / Print ──
+
+# Path to a TTF or OTF font file. Required for Ctrl+P and --print.
+# @@HOME@@ is substituted with the target user's home directory by provision.sh.
+font_file = "@@HOME@@/.fonts/bmv.otf"
+
+# Font size in points
+# font_size = 10.0
+
+# Page margins in points (72 points = 1 inch)
+# print_margin_top = 72.0
+# print_margin_bottom = 72.0
+# print_margin_left = 108.0
+# print_margin_right = 72.0
+
+# ── Theme ──
+#
+# Uncomment one of the following to switch themes:
+#   [theme.default]    — black background (this is the default)
+#   [theme.paper]      — Solarized Light
+#
+# You can also override individual colors after the section header.
+# Colors use #rrggbb hex format.
+
+# [theme.paper]
+
+# Override individual colors (default theme values shown):
+# bg = "#000000"
+# fg = "#b0b8c8"
+# keyword = "#c4a0f7"
+# string_color = "#a0d06e"
+# comment = "#444c5e"
+# number_color = "#b0b8c8"
+# type_color = "#7dcfff"
+# function_color = "#b0b8c8"
+# operator_color = "#89ddff"
+# preprocessor_color = "#e0af68"
+# line_number_color = "#282c36"
+# line_number_active = "#505868"
+# cursor_line_color = "#0d0d14"
+# selection_color = "#1a2844"
+# trailing_ws_color = "#1a1010"
+# indent_mismatch_color = "#1a1010"

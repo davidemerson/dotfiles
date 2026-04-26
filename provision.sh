@@ -327,6 +327,10 @@ DOAS
 # all other OS blocks are stripped. Files without markers are
 # copied as-is.
 #
+# Files may also contain @@HOME@@, which is replaced with the
+# target user's home directory at deploy time (e.g. .issyrc
+# uses this for the absolute font_file path).
+#
 # Configs are skipped per-OS: OpenBSD skips sway/waybar/foot
 # (uses i3/X11), Linux skips i3 (uses sway/Wayland), macOS
 # skips all window manager configs.
@@ -375,7 +379,12 @@ deploy_dotfiles() {
         dst="$home_dir/$rel"
         mkdir -p "$(dirname "$dst")"
 
-        if grep -q '@@IF_' "$src" 2>/dev/null; then
+        has_os_markers=false
+        has_home_marker=false
+        grep -q '@@IF_'   "$src" 2>/dev/null && has_os_markers=true
+        grep -q '@@HOME@@' "$src" 2>/dev/null && has_home_marker=true
+
+        if [ "$has_os_markers" = "true" ]; then
             # Strip all OS blocks except the current one
             sed_expr=""
             for tag in OPENBSD LINUX MACOS; do
@@ -385,7 +394,13 @@ deploy_dotfiles() {
             done
             # Remove the kept OS's marker lines (but keep content between them)
             sed_expr="${sed_expr} -e '/# @@IF_${KEEP}@@/d' -e '/# @@END_IF@@/d'"
-            eval sed $sed_expr '"$src"' > "$dst"
+            if [ "$has_home_marker" = "true" ]; then
+                eval sed $sed_expr '"$src"' | sed "s|@@HOME@@|${home_dir}|g" > "$dst"
+            else
+                eval sed $sed_expr '"$src"' > "$dst"
+            fi
+        elif [ "$has_home_marker" = "true" ]; then
+            sed "s|@@HOME@@|${home_dir}|g" "$src" > "$dst"
         else
             cp "$src" "$dst"
         fi
