@@ -205,6 +205,53 @@ configure_services() {
                 echo 'display.font=Spleen 8x16' >> /etc/wsconsctl.conf
             log_info "Console font set to Spleen 8x16."
         fi
+
+        # Disable xconsole launched by xenodm Xsetup_0. xconsole is started
+        # before the user session; once i3 takes over it grabs xconsole as
+        # the only window and tiles it fullscreen.
+        xs=/etc/X11/xenodm/Xsetup_0
+        if [ -f "$xs" ] && grep -q '^[^#].*xconsole' "$xs"; then
+            sed 's|^\([^#].*xconsole.*\)$|# \1|' "$xs" > "${xs}.new" && \
+                mv "${xs}.new" "$xs" && \
+                log_info "Disabled xconsole in $xs."
+        fi
+
+        # Enable xenodm. The VMware SVGA II adapter has no DRM/KMS driver on
+        # OpenBSD (no /dev/drm*), so Xorg needs aperture access — which means
+        # running as root. xenodm provides that without making Xorg setuid.
+        rcctl enable xenodm 2>/dev/null || true
+
+        # On VMware, install an Xorg snippet that pins the vmware driver and
+        # sets a 4K default mode with a generous virtual size. open-vm-tools
+        # is not packaged for OpenBSD, so dynamic host-window resize isn't
+        # available; user can xrandr between the listed Modes.
+        if [ "$(sysctl -n hw.vendor 2>/dev/null)" = "VMware, Inc." ]; then
+            mkdir -p /etc/X11/xorg.conf.d
+            cat > /etc/X11/xorg.conf.d/10-vmware.conf <<'VMWARE_XORG'
+Section "Device"
+    Identifier "VMware SVGA II"
+    Driver     "vmware"
+EndSection
+
+Section "Monitor"
+    Identifier "Monitor0"
+    Option     "PreferredMode" "3840x2160"
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device     "VMware SVGA II"
+    Monitor    "Monitor0"
+    DefaultDepth 24
+    SubSection "Display"
+        Depth   24
+        Modes   "3840x2160" "2560x1440" "1920x1080" "1280x768"
+        Virtual 5120 2880
+    EndSubSection
+EndSection
+VMWARE_XORG
+            log_info "Installed VMware Xorg config (4K default)."
+        fi
     else
         timedatectl set-timezone UTC 2>/dev/null || true
         systemctl enable systemd-timesyncd 2>/dev/null || true
@@ -245,11 +292,23 @@ get_username() {
 
     if id "$username" >/dev/null 2>&1; then
         log_info "User $username exists."
-        # Ensure user is in the right privilege group
+        # Ensure user is in the right privilege group, and that bash is the
+        # login shell — the dotfiles' .bashrc/.bash_profile won't be sourced
+        # by ksh (OpenBSD's default) or sh.
         if [ "$OS_TYPE" = "openbsd" ]; then
             usermod -G wheel "$username" 2>/dev/null || true
+            current_shell=$(getent passwd "$username" | cut -d: -f7)
+            if [ "$current_shell" != "/usr/local/bin/bash" ] && [ -x /usr/local/bin/bash ]; then
+                usermod -s /usr/local/bin/bash "$username" 2>/dev/null || true
+                log_info "Login shell for $username changed to /usr/local/bin/bash."
+            fi
         else
             usermod -aG sudo "$username" 2>/dev/null || true
+            current_shell=$(getent passwd "$username" | cut -d: -f7)
+            if [ "$current_shell" != "/bin/bash" ] && [ -x /bin/bash ]; then
+                usermod -s /bin/bash "$username" 2>/dev/null || true
+                log_info "Login shell for $username changed to /bin/bash."
+            fi
         fi
     else
         log_warn "User $username does not exist."
@@ -419,6 +478,14 @@ deploy_dotfiles() {
 
     # .xinitrc must be executable or xinit falls back to launching xterm
     chmod +x "$home_dir/.xinitrc" 2>/dev/null || true
+
+    # On OpenBSD, xenodm reads ~/.xsession (not ~/.xinitrc). Mirror so the
+    # same window manager launches whether you use startx or xenodm.
+    if [ "$OS_TYPE" = "openbsd" ] && [ -f "$home_dir/.xinitrc" ]; then
+        cp "$home_dir/.xinitrc" "$home_dir/.xsession"
+        chmod +x "$home_dir/.xsession"
+        chown "${username}:${username}" "$home_dir/.xsession"
+    fi
 
     log_info "Dotfiles deployed."
 }
