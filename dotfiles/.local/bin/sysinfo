@@ -36,11 +36,21 @@ else
     _fl cpu "$cores cores, $sockets socket$plural"
 fi
 
-# Disk: one row per mounted physical device. Used/Size and capacity.
-df -h 2>/dev/null | awk '$1 ~ /^\/dev\//{print $NF, $3"/"$2, "("$5")"}' | {
+# Disk: totals per physical disk (sum of its mounted partitions).
+case "$(uname -s)" in
+    OpenBSD) psuf='[a-p]$' ;;          # wd0a   -> wd0
+    Darwin)  psuf='s[0-9][0-9]*$' ;;   # disk1s1 -> disk1
+    *)       psuf='p?[0-9][0-9]*$' ;;  # sda1 -> sda, nvme0n1p1 -> nvme0n1
+esac
+hum() { awk -v k="$1" 'BEGIN{split("K M G T P",x);i=1;v=k;while(v>=1024&&i<5){v/=1024;i++}printf "%.1f%s",v,x[i]}'; }
+df -k 2>/dev/null | awk -v p="$psuf" '
+    $1 ~ /^\/dev\// { d=$1; sub(/^\/dev\//,"",d); sub(p,"",d); u[d]+=$3; s[d]+=$2 }
+    END { for (k in u) printf "%s %d %d\n", k, u[k], s[k] }' | sort | {
     first=1
-    while read -r mnt usz cap; do
-        if [ "$first" = 1 ]; then _dk disk "$mnt" "$usz $cap"; first=0
-        else _dk "" "$mnt" "$usz $cap"; fi
+    while read -r disk usedk sizek; do
+        pct=$(awk -v u="$usedk" -v s="$sizek" 'BEGIN{printf "%d",(s>0)?u*100/s:0}')
+        val="$(hum "$usedk") / $(hum "$sizek") (${pct}%)"
+        if [ "$first" = 1 ]; then _dk disk "$disk" "$val"; first=0
+        else _dk "" "$disk" "$val"; fi
     done
 }
