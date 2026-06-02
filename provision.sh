@@ -140,13 +140,28 @@ ensure_zig() {
 
 install_issy() {
     if command -v issy >/dev/null 2>&1; then
+        issy_bin="$(command -v issy)"
         # On OpenBSD a sysupgrade bumps libc/base libs and breaks old
         # from-source binaries, so rebuild if issy no longer links.
-        if [ "$OS_TYPE" != "openbsd" ] || ldd "$(command -v issy)" >/dev/null 2>&1; then
-            log_info "issy already installed at $(command -v issy)."
-            return
+        if [ "$OS_TYPE" = "openbsd" ] && ! ldd "$issy_bin" >/dev/null 2>&1; then
+            log_warn "issy present but not linking (post-upgrade?); rebuilding."
+        else
+            # Otherwise rebuild only if upstream is newer than what's installed.
+            # `issy --version` prints e.g. "issy 1.0.0 (eab3e42 release)".
+            have=$(issy --version 2>&1 | sed -n 's/.*(\([0-9a-f][0-9a-f]*\).*/\1/p')
+            want=$(git ls-remote https://github.com/davidemerson/issy.git HEAD 2>/dev/null | awk '{print $1}')
+            if [ -z "$want" ]; then
+                log_info "issy installed; upstream unreachable, keeping current build."
+                return
+            fi
+            if [ -n "$have" ]; then
+                case "$want" in "$have"*)
+                    log_info "issy already at latest (${have})."
+                    return ;;
+                esac
+            fi
+            log_info "issy out of date (have ${have:-unknown}, latest $(echo "$want" | cut -c1-7)); rebuilding."
         fi
-        log_warn "issy present but not linking (post-upgrade?); rebuilding."
     fi
 
     log_info "Building issy from source..."

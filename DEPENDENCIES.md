@@ -11,7 +11,7 @@
 - **Font**: Berkeley Mono Variable NNIX (`~/.fonts/bmv.otf`) — set as the generic `monospace` family via `~/.config/fontconfig/fonts.conf`, so every fontconfig client inherits it.
 - **Cursor** (Linux/OpenBSD): [plan9 Xcursor theme](https://github.com/wintermute-cell/xcursor-plan9) vendored at `~/.icons/plan9`, set default via `~/.icons/default` + `Xcursor.theme` (X11) and `seat xcursor_theme` (sway/Wayland); `XCURSOR_THEME`/`SIZE` exported in the session.
 - **Shell**: bash (Linux/OpenBSD), zsh (macOS default)
-- **Editor**: [issy](https://github.com/davidemerson/issy) — built from source via Zig (0.15.2+) and installed to `/usr/local/bin/issy`. Set as `EDITOR` in `.bashrc`/`.zshrc`/`.muttrc`. Configured via `~/.issyrc`.
+- **Editor**: [issy](https://github.com/davidemerson/issy) — built from source via Zig (0.15.2+) and installed to `/usr/local/bin/issy`. Set as `EDITOR` in `.bashrc`/`.zshrc`/`.muttrc`. Configured via `~/.issyrc`. Re-running `provision.sh` compares the installed commit (`issy --version`) against upstream `HEAD` and rebuilds when a newer one exists (or when it stops linking after an OpenBSD upgrade).
 - **Email**: neomutt + msmtp
 - **Version Control**: git
 - **Multiplexer**: tmux (in base on OpenBSD; via apt/brew elsewhere) — config at `~/.tmux.conf`
