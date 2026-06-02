@@ -368,6 +368,10 @@ NTPD
                 log_info "Set xenodm login background to solid black."
         fi
 
+        # The sed > new && mv pattern above resets the file mode to 0644;
+        # xenodm execve()s the setup script, so it must stay executable.
+        [ -f "$xs" ] && chmod 755 "$xs"
+
         # Enable xenodm. The VMware SVGA II adapter has no DRM/KMS driver on
         # OpenBSD (no /dev/drm*), so Xorg needs aperture access — which means
         # running as root. xenodm provides that without making Xorg setuid.
