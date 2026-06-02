@@ -15,18 +15,17 @@ HISTFILE=~/.zsh_history
 autoload -Uz colors && colors
 autoload -Uz add-zsh-hook
 
-# ---------- Colors ----------
+# ---------- Colors (grayscale + navy/blue highlights) ----------
 C0='%f%k'
-FG_DIM='%F{240}'
-FG_HI='%F{255}'
+FG_DIM='%F{240}'   # separators
+FG_MUTE='%F{245}'  # host
+FG_FG='%F{252}'    # cwd / text
+FG_BLUE='%F{110}'  # accent: user + prompt symbol
+FG_HI='%F{255}'    # bright
+FG_BLK='%F{16}'    # black (text on light badge)
 
-FG_CYAN='%F{81}'
-FG_PURP='%F{141}'
-FG_GREEN='%F{120}'
-FG_PINK='%F{213}'
-
-BG_ERR='%K{160}'
-BG_OK='%K{235}'
+BG_NAVY='%K{17}'   # ok status badge (dark navy)
+BG_LITE='%K{252}'  # err status badge (light gray, inverted)
 
 # ---------- Exit status ----------
 __last_status=0
@@ -42,23 +41,23 @@ build_prompt() {
   local p=""
 
   # First line
-  p+="${FG_CYAN}${u}${FG_DIM}@${FG_PURP}${h}  "
+  p+="${FG_BLUE}${u}${FG_DIM}@${FG_MUTE}${h}  "
   p+="${FG_DIM}@  "
-  p+="${FG_GREEN}${cwd}${C0}"
+  p+="${FG_FG}${cwd}${C0}"
 
   # Newline (REAL newline, not '\n')
   p+=$'\n'
 
   # Prompt line
-  p+="${FG_CYAN}>>>${FG_HI} ${C0}"
+  p+="${FG_BLUE}>>>${FG_HI} ${C0}"
 
   PROMPT="$p"
 
   # Right prompt (status + time)
   if [[ $__last_status -eq 0 ]]; then
-    RPROMPT="${BG_OK}${FG_DIM} ▲ %* ${C0}"
+    RPROMPT="${BG_NAVY}${FG_HI} ▲ %* ${C0}"
   else
-    RPROMPT="${BG_ERR}${FG_HI} ▼ %* ■ $__last_status ${C0}"
+    RPROMPT="${BG_LITE}${FG_BLK} ▼ %* ■ $__last_status ${C0}"
   fi
 }
 
@@ -92,3 +91,14 @@ alias top='btop'
 export EDITOR="${EDITOR:-issy}"
 export PATH="/opt/homebrew/opt/ruby/bin:$HOME/.local/bin:$PATH"
 # @@END_IF@@
+
+# ---------- pfetch (minimal system fetch) ----------
+# ANSI slot 4 (blue) is light blue in our terminal palettes; 7 is light gray.
+export PF_INFO="ascii title os host kernel uptime pkgs memory shell"
+export PF_COL1=4   # labels / accents
+export PF_COL2=7   # values
+export PF_COL3=4   # user@host
+# Run only in interactive shells, and not inside tmux (avoids per-pane spam).
+if [[ -o interactive && -z "$TMUX" ]]; then
+  command -v pfetch >/dev/null 2>&1 && pfetch
+fi

@@ -1,15 +1,15 @@
 general {
     output_format = "i3bar"
     colors = true
-    color_good = "#50FA7B"
-    color_degraded = "#F1FA8C"
-    color_bad = "#FF5555"
+    color_good = "#8fb6e0"
+    color_degraded = "#999999"
+    color_bad = "#ffffff"
     interval = 5
 }
 
 order += "ethernet _first_"
 order += "cpu_usage"
-order += "memory"
+order += "load"
 order += "tztime local"
 
 ethernet _first_ {
@@ -21,9 +21,11 @@ cpu_usage {
     format = "CPU: %usage"
 }
 
-memory {
-    format = "RAM: %percentage_used"
-    threshold_degraded = "10%"
+# i3status' "memory" module is unsupported on OpenBSD's build
+# ("Memory status information is not supported on this system"),
+# so use loadavg, which getloadavg() backs on every platform.
+load {
+    format = "load: %1min"
 }
 
 tztime local {

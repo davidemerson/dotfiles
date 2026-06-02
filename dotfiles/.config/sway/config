@@ -20,10 +20,11 @@ gaps horizontal 0
 smart_gaps on
 
 # colors
-client.focused              #f2f2f2    #000000     #f2f2f2    #ffffff      #f2f2f2
-client.unfocused            #666666    #000000     #f2f2f2    #ffffff      #666666
-client.focused_inactive     #666666    #000000     #f2f2f2    #ffffff      #666666
-client.urgent               #e89393    #e89393     #1a1a1a    #ffffff      #e89393
+# grayscale base; light-blue border + navy frame marks the focused window
+client.focused              #8fb6e0    #000000     #f2f2f2    #8fb6e0      #1f2d4d
+client.unfocused            #666666    #000000     #999999    #666666      #1a1a1a
+client.focused_inactive     #666666    #000000     #cccccc    #666666      #1a1a1a
+client.urgent               #ffffff    #1f2d4d     #ffffff    #ffffff      #1f2d4d
 
 # launch, lock, and volume bindings
 bindsym $mod+Return exec foot

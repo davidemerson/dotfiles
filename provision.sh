@@ -59,7 +59,7 @@ install_packages() {
             apt-get update -qq
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
-                nano micro htop btop nmap screen lsd \
+                nano micro htop btop nmap screen lsd tmux \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
                 firefox-esr neomutt msmtp
 
@@ -86,7 +86,7 @@ install_packages() {
             fi
 
             brew install \
-                bash git nano micro htop btop nmap lsd neomutt msmtp || true
+                bash git nano micro htop btop nmap lsd tmux neomutt msmtp || true
             brew install --cask wezterm || true
             ;;
     esac
@@ -180,6 +180,34 @@ install_issy() {
     rm -rf "$src_dir"
 
     log_info "issy installed at $dest."
+}
+
+# -------------------------------------------------------------------
+# pfetch — minimal, dependency-free system fetch (single POSIX script).
+# Not packaged on OpenBSD/Debian, so fetch the script for those; macOS
+# has a Homebrew formula. Idempotent: skips if already on PATH.
+# -------------------------------------------------------------------
+install_pfetch() {
+    if command -v pfetch >/dev/null 2>&1; then
+        log_info "pfetch already installed."
+        return
+    fi
+
+    if [ "$OS_TYPE" = "macos" ]; then
+        brew install pfetch >/dev/null 2>&1 && log_info "pfetch installed." \
+            || log_warn "brew install pfetch failed."
+        return
+    fi
+
+    log_info "Installing pfetch..."
+    url="https://raw.githubusercontent.com/dylanaraps/pfetch/master/pfetch"
+    if curl -fsSL -o /tmp/pfetch.$$ "$url"; then
+        install -m 0755 /tmp/pfetch.$$ /usr/local/bin/pfetch && \
+            log_info "pfetch installed at /usr/local/bin/pfetch."
+        rm -f /tmp/pfetch.$$
+    else
+        log_warn "Could not download pfetch. Skipping."
+    fi
 }
 
 # -------------------------------------------------------------------
@@ -510,6 +538,7 @@ main() {
     check_root
     install_packages
     install_issy
+    install_pfetch
     get_username
     configure_hostname
     configure_doas

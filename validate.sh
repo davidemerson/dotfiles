@@ -32,6 +32,7 @@ check "dotfiles/.zshrc"
 check "dotfiles/.gitconfig"
 check "dotfiles/.ssh/config"
 check "dotfiles/.config/git/allowed_signers"
+check "dotfiles/.tmux.conf"
 
 printf "\nLinux (sway):\n"
 check "dotfiles/.config/sway/config"

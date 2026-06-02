@@ -15,17 +15,17 @@ fi
 #  David's bash prompt (ported from zshrc)
 ########################################
 
-# ---------- Colors ----------
+# ---------- Colors (grayscale + navy/blue highlights) ----------
 C0='\[\e[0m\]'
-FG_DIM='\[\e[38;5;240m\]'
-FG_HI='\[\e[38;5;255m\]'
+FG_DIM='\[\e[38;5;240m\]'   # separators
+FG_MUTE='\[\e[38;5;245m\]'  # host
+FG_FG='\[\e[38;5;252m\]'    # cwd / text
+FG_BLUE='\[\e[38;5;110m\]'  # accent: user + prompt symbol
+FG_HI='\[\e[38;5;255m\]'    # bright
+FG_BLK='\[\e[38;5;16m\]'    # black (text on light badge)
 
-FG_CYAN='\[\e[38;5;81m\]'
-FG_PURP='\[\e[38;5;141m\]'
-FG_GREEN='\[\e[38;5;120m\]'
-
-BG_ERR='\[\e[48;5;160m\]'
-BG_OK='\[\e[48;5;235m\]'
+BG_NAVY='\[\e[48;5;17m\]'   # ok status badge (dark navy)
+BG_LITE='\[\e[48;5;252m\]'  # err status badge (light gray, inverted)
 
 # ---------- Prompt ----------
 __build_prompt() {
@@ -37,10 +37,10 @@ __build_prompt() {
   local status_text status_styled status_len
   if [[ $exit_code -eq 0 ]]; then
     status_text=" ▲ ${time_now} "
-    status_styled="${BG_OK}${FG_DIM}${status_text}${C0}"
+    status_styled="${BG_NAVY}${FG_HI}${status_text}${C0}"
   else
     status_text=" ▼ ${time_now} ■ ${exit_code} "
-    status_styled="${BG_ERR}${FG_HI}${status_text}${C0}"
+    status_styled="${BG_LITE}${FG_BLK}${status_text}${C0}"
   fi
   status_len=${#status_text}
 
@@ -48,9 +48,9 @@ __build_prompt() {
   local col=$(( $(tput cols) - status_len + 1 ))
   local move_right="\[\e[${col}G\]"
 
-  local line1="${FG_CYAN}\u${FG_DIM}@${FG_PURP}\h  ${FG_DIM}@  ${FG_GREEN}\w${C0}"
+  local line1="${FG_BLUE}\u${FG_DIM}@${FG_MUTE}\h  ${FG_DIM}@  ${FG_FG}\w${C0}"
 
-  PS1="${line1}${move_right}${status_styled}\n${FG_CYAN}>>>${FG_HI} ${C0}"
+  PS1="${line1}${move_right}${status_styled}\n${FG_BLUE}>>>${FG_HI} ${C0}"
 }
 
 PROMPT_COMMAND=__build_prompt
@@ -76,3 +76,14 @@ alias top='btop'
 export EDITOR="${EDITOR:-issy}"
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+
+# ---------- pfetch (minimal system fetch) ----------
+# ANSI slot 4 (blue) is light blue in our terminal palettes; 7 is light gray.
+export PF_INFO="ascii title os host kernel uptime pkgs memory shell"
+export PF_COL1=4   # labels / accents
+export PF_COL2=7   # values
+export PF_COL3=4   # user@host
+# Run only in interactive shells, and not inside tmux (avoids per-pane spam).
+case $- in
+  *i*) [ -z "$TMUX" ] && command -v pfetch >/dev/null 2>&1 && pfetch ;;
+esac

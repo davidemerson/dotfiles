@@ -12,6 +12,8 @@
 - **Editor**: [issy](https://github.com/davidemerson/issy) — built from source via Zig (0.15.2+) and installed to `/usr/local/bin/issy`. Set as `EDITOR` in `.bashrc`/`.zshrc`/`.muttrc`. Configured via `~/.issyrc`.
 - **Email**: neomutt + msmtp
 - **Version Control**: git
+- **Multiplexer**: tmux (in base on OpenBSD; via apt/brew elsewhere) — config at `~/.tmux.conf`
+- **System fetch**: [pfetch](https://github.com/dylanaraps/pfetch) — minimal, dependency-free; runs on interactive shell login (outside tmux)
 - **Tools**: nano, htop, btop, nmap, lsd, curl, wget
 
 ### Linux (Sway Desktop)

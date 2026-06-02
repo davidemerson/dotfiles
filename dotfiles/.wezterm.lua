@@ -25,7 +25,7 @@ config.colors = {
   cursor_bg = '#d0d0d0',
   cursor_border = '#d0d0d0',
   cursor_fg = '#000000',
-  selection_bg = '#404040',
+  selection_bg = '#1f2d4d',  -- navy
   selection_fg = '#d0d0d0',
 
   ansi = {
@@ -33,7 +33,7 @@ config.colors = {
     '#808080',  -- red (gray)
     '#a0a0a0',  -- green (light gray)
     '#909090',  -- yellow (gray)
-    '#707070',  -- blue (gray)
+    '#8fb6e0',  -- blue -> light blue (accent)
     '#888888',  -- magenta (gray)
     '#959595',  -- cyan (light gray)
     '#d0d0d0',  -- white (light gray)
@@ -44,7 +44,7 @@ config.colors = {
     '#a0a0a0',  -- bright red (light gray)
     '#c0c0c0',  -- bright green (lighter gray)
     '#b0b0b0',  -- bright yellow (light gray)
-    '#909090',  -- bright blue (gray)
+    '#bcd6f2',  -- bright blue -> light blue (accent)
     '#a8a8a8',  -- bright magenta (light gray)
     '#b5b5b5',  -- bright cyan (light gray)
     '#e0e0e0',  -- bright white (almost white)
