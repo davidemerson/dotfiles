@@ -343,11 +343,18 @@ configure_services() {
         # NTP: pin the pool + cloudflare with HTTPS constraints. The -s flag
         # steps the clock at startup, so a suspended/cloned VM corrects a
         # large offset immediately instead of slewing for weeks.
+        #
+        # Deliberately NO "sensor *": the vmt0 VMware host-time sensor reports
+        # the hypervisor clock as an authoritative local source. When that host
+        # clock is wrong (it has been ~2h behind), the sensor agrees with the
+        # already-wrong guest clock at boot, so the -s step becomes a no-op and
+        # the real +offset from the network peers is left to slew (~17s/hr ->
+        # weeks to converge). Dropping the sensor lets the network peers drive
+        # the -s step every boot.
         cat > /etc/ntpd.conf <<'NTPD'
 servers 0.pool.ntp.org
 servers 1.pool.ntp.org
 server time.cloudflare.com
-sensor *
 constraints from "www.google.com"
 NTPD
         rcctl set ntpd flags -s
