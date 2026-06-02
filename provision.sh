@@ -53,6 +53,7 @@ install_packages() {
                 bash curl wget git unzip-- \
                 nano htop btop nmap screen-- lsd \
                 i3 i3lock i3status dmenu xautolock st-- \
+                dbus dunst scrot xclip xsel xdotool xss-lock ImageMagick clipmenu \
                 firefox-esr neomutt-- msmtp
             ;;
         linux)
@@ -252,6 +253,48 @@ install_st() {
     printf '%s\n' "$ST_FLEXIPATCH_COMMIT" > "$stamp"
     rm -rf "$src"
     log_info "Patched st installed to /usr/local/bin/st."
+}
+
+# -------------------------------------------------------------------
+# Patched dmenu (OpenBSD launcher). Built from bakkeby/dmenu-flexipatch
+# with our dmenu/config.h + dmenu/patches.h, which enable: fuzzy match +
+# highlight, case-insensitive, centered, line-height padding, and a
+# border. Font is Berkeley Mono Variable NNIX, palette grayscale+navy/blue.
+# OpenBSD keeps freetype headers under /usr/X11R6, so FREETYPEINC is
+# overridden. Packaged dmenu stays as a fallback. Idempotent via stamp.
+# -------------------------------------------------------------------
+DMENU_FLEXIPATCH_COMMIT="c59af646f2d8ccbc31f799111b0ff7a1282efa63"
+
+install_dmenu() {
+    [ "$OS_TYPE" = "openbsd" ] || return
+
+    stamp=/usr/local/share/dmenu-flexipatch.commit
+    if [ -x /usr/local/bin/dmenu ] && [ -f "$stamp" ] && \
+       [ "$(cat "$stamp" 2>/dev/null)" = "$DMENU_FLEXIPATCH_COMMIT" ]; then
+        log_info "Patched dmenu already installed (flexipatch ${DMENU_FLEXIPATCH_COMMIT}.)"
+        return
+    fi
+
+    log_info "Building patched dmenu (dmenu-flexipatch)..."
+    src="/tmp/dmenu-flexipatch.$$"
+    rm -rf "$src"
+    if ! git clone -q https://github.com/bakkeby/dmenu-flexipatch.git "$src"; then
+        log_warn "Failed to clone dmenu-flexipatch. Keeping packaged dmenu."
+        return
+    fi
+    ( cd "$src" && git checkout -q "$DMENU_FLEXIPATCH_COMMIT" ) 2>/dev/null || \
+        log_warn "Could not pin dmenu-flexipatch commit; building tip."
+    cp "$SCRIPT_DIR/dmenu/config.h"  "$src/config.h"
+    cp "$SCRIPT_DIR/dmenu/patches.h" "$src/patches.h"
+    if ! ( cd "$src" && make FREETYPEINC=/usr/X11R6/include/freetype2 >/dev/null 2>&1 ); then
+        log_warn "dmenu build failed. Keeping packaged dmenu."
+        rm -rf "$src"
+        return
+    fi
+    install -m 0755 "$src/dmenu" /usr/local/bin/dmenu
+    printf '%s\n' "$DMENU_FLEXIPATCH_COMMIT" > "$stamp"
+    rm -rf "$src"
+    log_info "Patched dmenu installed to /usr/local/bin/dmenu."
 }
 
 # -------------------------------------------------------------------
@@ -584,6 +627,7 @@ main() {
     install_issy
     install_pfetch
     install_st
+    install_dmenu
     get_username
     configure_hostname
     configure_doas

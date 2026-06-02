@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pixelated lock screen — no compositor needed. (OpenBSD i3 desktop.)
+# Grabs the screen, pixelates it with ImageMagick, locks with i3lock.
+# Runs i3lock in the foreground (-n) so xss-lock can track it.
+img="${TMPDIR:-/tmp}/.lock-$$.png"
+
+scrot -o "$img" 2>/dev/null && \
+    convert "$img" -scale 8% -scale 1250% "$img" 2>/dev/null
+
+if [ -f "$img" ]; then
+    i3lock -n -i "$img" -c 000000
+    rm -f "$img"
+else
+    i3lock -n -c 000000   # fallback to a plain black lock
+fi

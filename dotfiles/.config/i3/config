@@ -4,8 +4,16 @@
 # background
 exec --no-startup-id xsetroot -solid "#000000"
 
-# auto-lock after 5 minutes
-exec --no-startup-id xautolock -time 5 -locker "i3lock -c 000000"
+# autostart: notifications, clipboard-history daemon, scratchpad terminal
+exec --no-startup-id dunst
+exec --no-startup-id clipmenud
+exec --no-startup-id st -c scratchpad -n scratchpad
+
+# locking: xss-lock fires on X-screensaver idle, xautolock is a backup timer.
+# Both call ~/.local/bin/lock (pixelated i3lock); a second invocation while
+# already locked just fails to grab and exits.
+exec --no-startup-id xss-lock -- lock
+exec --no-startup-id xautolock -time 5 -locker lock
 
 # modifier
 set $mod Mod4
@@ -20,6 +28,17 @@ gaps inner 4
 gaps horizontal 0
 smart_gaps on
 
+# thin borders, no title bars
+default_border pixel 2
+default_floating_border pixel 2
+hide_edge_borders smart
+
+# scratchpad terminal + auto-float transient windows
+for_window [instance="scratchpad"] move scratchpad, border pixel 2
+for_window [window_role="pop-up"] floating enable
+for_window [window_role="dialog"] floating enable
+for_window [window_type="dialog"] floating enable
+
 # colors
 # grayscale base; light-blue border + navy frame marks the focused window
 client.focused              #8fb6e0    #000000     #f2f2f2    #8fb6e0      #1f2d4d
@@ -31,11 +50,22 @@ client.urgent               #ffffff    #1f2d4d     #ffffff    #ffffff      #1f2d
 bindsym $mod+Return exec --no-startup-id /usr/local/bin/st
 bindsym $mod+b exec --no-startup-id firefox-esr
 bindsym $mod+d exec --no-startup-id dmenu_run -fn 'Berkeley Mono Variable NNIX-18' -nb '#000000' -nf '#999999' -sb '#1f2d4d' -sf '#bcd6f2'
-bindsym $mod+z exec --no-startup-id i3lock -c 000000
+bindsym $mod+c exec --no-startup-id clipmenu
+bindsym $mod+grave [instance="scratchpad"] scratchpad show
+bindsym $mod+z exec --no-startup-id lock
 bindsym $mod+Shift+e exec i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'
 bindsym $mod+Shift+s exec i3-nagbar -t warning -m 'Shut down?' -B 'Yes' 'doas shutdown -p now'
-bindsym $mod+m exec --no-startup-id sndioctl output.level=+0.05
-bindsym $mod+n exec --no-startup-id sndioctl output.level=-0.05
+
+# screenshots (full / region) -> clipboard + ~/pictures/screenshots
+bindsym Print        exec --no-startup-id shot
+bindsym $mod+Print   exec --no-startup-id shot region
+bindsym $mod+p       exec --no-startup-id shot
+bindsym $mod+Shift+p exec --no-startup-id shot region
+
+# volume (with dunst OSD)
+bindsym $mod+m       exec --no-startup-id volnotify up
+bindsym $mod+n       exec --no-startup-id volnotify down
+bindsym $mod+Shift+m exec --no-startup-id volnotify mute
 
 # window management bindings
 bindsym $mod+Shift+q kill

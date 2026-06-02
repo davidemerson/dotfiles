@@ -1,0 +1,22 @@
+#!/bin/sh
+# Adjust sndio output volume and show a dunst OSD. (OpenBSD i3 desktop.)
+# Usage: volnotify up|down|mute
+case "$1" in
+    up)   sndioctl -q output.level=+0.05 ;;
+    down) sndioctl -q output.level=-0.05 ;;
+    mute) sndioctl -q output.mute=! ;;
+esac
+
+muted=$(sndioctl -n output.mute 2>/dev/null)
+lvl=$(sndioctl -n output.level 2>/dev/null | awk '{printf "%d", $1 * 100}')
+
+if [ "$muted" = "1" ]; then
+    body="muted"
+else
+    body="${lvl:-0}%"
+fi
+
+notify-send -t 1200 \
+    -h string:x-dunst-stack-tag:volume \
+    -h "int:value:${lvl:-0}" \
+    "volume" "$body"

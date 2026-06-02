@@ -1,0 +1,9 @@
+! X resources — crisp Xft rendering for Berkeley Mono.
+! Merged by ~/.xinitrc on OpenBSD (xrdb -merge). Harmless elsewhere.
+Xft.antialias: 1
+Xft.hinting:   1
+Xft.hintstyle: hintslight
+Xft.rgba:      rgb
+Xft.lcdfilter: lcddefault
+! 96 is the safe default; bump to 144 on a HiDPI panel.
+Xft.dpi:       96

@@ -34,8 +34,12 @@
 - **Window Manager**: i3
 - **Terminal**: st (suckless) — built from [st-flexipatch](https://github.com/bakkeby/st-flexipatch) (pinned) with `st/config.h` + `st/patches.h`. Patches: clipboard (selection auto-copies to system CLIPBOARD), keyboard-select (mouseless copy), scrollback + mouse wheel, anysize, bold-is-not-bright, boxdraw. Falls back to the packaged `st` (which also provides terminfo) if the build fails.
 - **Status Bar**: i3bar + i3status
-- **Launcher**: dmenu
-- **Lock Screen**: i3lock + xautolock
+- **Launcher**: dmenu — built from [dmenu-flexipatch](https://github.com/bakkeby/dmenu-flexipatch) (pinned) with `dmenu/config.h` + `dmenu/patches.h`: fuzzy match + highlight, case-insensitive, centered, line-height padding, border. Packaged `dmenu` is the fallback.
+- **Notifications**: dunst (`~/.config/dunst/dunstrc`, palette-themed); `$mod+m/n/Shift+m` volume changes show an OSD via `~/.local/bin/volnotify`
+- **Screenshots**: scrot + xclip via `~/.local/bin/shot` (`Print`/`$mod+p` full, `$mod+Shift+p` region) → saved to `~/pictures/screenshots` and copied to clipboard
+- **Clipboard history**: clipmenu (`clipmenud` daemon; `$mod+c` picks via dmenu)
+- **Lock Screen**: `~/.local/bin/lock` (scrot → ImageMagick pixelate → i3lock); triggered by xss-lock (X-screensaver idle) and xautolock; `$mod+z` manual
+- **X resources**: `~/.Xresources` (crisp Xft) merged in `.xinitrc`; Caps→Escape, key-repeat tuning
 - **Volume**: sndioctl (built-in)
 - **Privilege**: doas (configured for wheel group)
 - **Browser**: Firefox ESR (`firefox-esr`; `$mod+b`)

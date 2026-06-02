@@ -1,0 +1,16 @@
+#!/bin/sh
+# Screenshot to ~/pictures/screenshots and copy to the clipboard. (OpenBSD i3.)
+# Usage: shot            full screen
+#        shot region     interactive region select (scrot -s)
+dir="$HOME/pictures/screenshots"
+mkdir -p "$dir"
+f="$dir/$(date +%Y-%m-%d_%H%M%S).png"
+
+case "$1" in
+    region) scrot -s "$f" || exit 0 ;;   # cancelled selection -> quietly stop
+    *)      scrot "$f" ;;
+esac
+
+[ -f "$f" ] || exit 0
+xclip -selection clipboard -t image/png -i "$f" 2>/dev/null
+notify-send -t 1500 "screenshot" "$(basename "$f") → clipboard"
