@@ -6,6 +6,8 @@ if [ "$(tty)" = "/dev/ttyC0" ]; then
 fi
 # @@END_IF@@
 # @@IF_LINUX@@
+export XCURSOR_THEME=plan9
+export XCURSOR_SIZE=16
 if [ "$(tty)" = "/dev/tty1" ]; then
 	WLR_NO_HARDWARE_CURSORS=1 sway
 fi

@@ -7,3 +7,7 @@ Xft.rgba:      rgb
 Xft.lcdfilter: lcddefault
 ! 96 is the safe default; bump to 144 on a HiDPI panel.
 Xft.dpi:       96
+
+! plan9 cursor theme (native size 16; bump to 24 if you want it larger)
+Xcursor.theme: plan9
+Xcursor.size:  16

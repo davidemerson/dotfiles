@@ -3,6 +3,9 @@ include /etc/sway/config.d/*
 # set a background
 exec swaybg --output "*" --color "#000000"
 
+# plan9 cursor theme (installed to ~/.icons/plan9 by provision)
+seat * xcursor_theme plan9 16
+
 # blank screen after 300 seconds
 exec swayidle -w timeout 300 'swaymsg "output * power off"' resume 'swaymsg "output * power on"'
 

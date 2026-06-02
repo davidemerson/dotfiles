@@ -1,8 +1,9 @@
 # i3 config for OpenBSD (X11)
 # Derived from sway config — same keybindings, colors, gaps.
 
-# background
+# background + plan9 root cursor
 exec --no-startup-id xsetroot -solid "#000000"
+exec --no-startup-id xsetroot -cursor_name left_ptr
 
 # autostart: notifications, clipboard-history daemon, scratchpad terminal
 exec --no-startup-id dunst
