@@ -164,9 +164,13 @@ doas pkg_add -u                          # resync packages to the new release
 doas sh /path/to/dotfiles/provision.sh   # rebuilds st/dmenu/issy vs new libs
 ```
 
-`provision.sh` is idempotent and keys the st/dmenu build stamps on the OS
-release (`uname -r`) and verifies the binary still links (`ldd`), so a re-run
-after an upgrade rebuilds them automatically. Reboot if the network or X
+Note `pkg_add -u` also **reinstalls the stock `st`/`dmenu` packages over the
+patched builds** (symptom: the font reverts from Berkeley Mono and the
+clipboard/scrollback patches disappear) — so always run `provision.sh` *after*
+`pkg_add -u`, not before. `provision.sh` is idempotent and rebuilds st/dmenu
+when the build stamp's OS release (`uname -r`) changes, when the binary fails
+`ldd`, **or when the on-disk binary isn't our build** (it checks that Berkeley
+Mono is compiled in), so the re-run restores them. Reboot if the network or X
 session did not come back cleanly from the upgrade.
 
 ## Troubleshooting

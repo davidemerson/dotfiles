@@ -234,10 +234,14 @@ install_st() {
     # so the old binary stops loading even though the commit is unchanged;
     # the uname -r component (and the ldd link check) force a rebuild then.
     stamp=/usr/local/share/st-flexipatch.commit
+    # Also confirm the on-disk binary is OUR build (Berkeley Mono compiled
+    # in): `pkg_add -u` reinstalls the stock st package over it, which the
+    # stamp+ldd check alone would not notice (reverts font/patches).
     want="$ST_FLEXIPATCH_COMMIT $(uname -r)"
     if [ -x /usr/local/bin/st ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ] && \
-       ldd /usr/local/bin/st >/dev/null 2>&1; then
-        log_info "Patched st already installed and dynamically linking OK."
+       ldd /usr/local/bin/st >/dev/null 2>&1 && \
+       strings /usr/local/bin/st 2>/dev/null | grep -q "Berkeley Mono Variable NNIX"; then
+        log_info "Patched st already installed (Berkeley Mono, links OK)."
         return
     fi
 
@@ -282,8 +286,9 @@ install_dmenu() {
     stamp=/usr/local/share/dmenu-flexipatch.commit
     want="$DMENU_FLEXIPATCH_COMMIT $(uname -r)"
     if [ -x /usr/local/bin/dmenu ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ] && \
-       ldd /usr/local/bin/dmenu >/dev/null 2>&1; then
-        log_info "Patched dmenu already installed and dynamically linking OK."
+       ldd /usr/local/bin/dmenu >/dev/null 2>&1 && \
+       strings /usr/local/bin/dmenu 2>/dev/null | grep -q "Berkeley Mono Variable NNIX"; then
+        log_info "Patched dmenu already installed (Berkeley Mono, links OK)."
         return
     fi
 
