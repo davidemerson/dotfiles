@@ -140,8 +140,13 @@ ensure_zig() {
 
 install_issy() {
     if command -v issy >/dev/null 2>&1; then
-        log_info "issy already installed at $(command -v issy)."
-        return
+        # On OpenBSD a sysupgrade bumps libc/base libs and breaks old
+        # from-source binaries, so rebuild if issy no longer links.
+        if [ "$OS_TYPE" != "openbsd" ] || ldd "$(command -v issy)" >/dev/null 2>&1; then
+            log_info "issy already installed at $(command -v issy)."
+            return
+        fi
+        log_warn "issy present but not linking (post-upgrade?); rebuilding."
     fi
 
     log_info "Building issy from source..."
@@ -225,10 +230,14 @@ ST_FLEXIPATCH_COMMIT="1d3f20096c9b5cea0452343a97c644f5987da6d9"
 install_st() {
     [ "$OS_TYPE" = "openbsd" ] || return
 
+    # Stamp on commit + OS release. A sysupgrade bumps Xenocara/base libs,
+    # so the old binary stops loading even though the commit is unchanged;
+    # the uname -r component (and the ldd link check) force a rebuild then.
     stamp=/usr/local/share/st-flexipatch.commit
-    if [ -x /usr/local/bin/st ] && [ -f "$stamp" ] && \
-       [ "$(cat "$stamp" 2>/dev/null)" = "$ST_FLEXIPATCH_COMMIT" ]; then
-        log_info "Patched st already installed (flexipatch ${ST_FLEXIPATCH_COMMIT}.)"
+    want="$ST_FLEXIPATCH_COMMIT $(uname -r)"
+    if [ -x /usr/local/bin/st ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ] && \
+       ldd /usr/local/bin/st >/dev/null 2>&1; then
+        log_info "Patched st already installed and dynamically linking OK."
         return
     fi
 
@@ -250,7 +259,7 @@ install_st() {
     fi
     # Overwrites the pkg-owned binary; terminfo from the package stays.
     install -m 0755 "$src/st" /usr/local/bin/st
-    printf '%s\n' "$ST_FLEXIPATCH_COMMIT" > "$stamp"
+    printf '%s\n' "$want" > "$stamp"
     rm -rf "$src"
     log_info "Patched st installed to /usr/local/bin/st."
 }
@@ -268,10 +277,13 @@ DMENU_FLEXIPATCH_COMMIT="c59af646f2d8ccbc31f799111b0ff7a1282efa63"
 install_dmenu() {
     [ "$OS_TYPE" = "openbsd" ] || return
 
+    # Rebuild on commit OR OS-release change (sysupgrade bumps base libs) OR
+    # if the binary no longer links — see install_st() for the rationale.
     stamp=/usr/local/share/dmenu-flexipatch.commit
-    if [ -x /usr/local/bin/dmenu ] && [ -f "$stamp" ] && \
-       [ "$(cat "$stamp" 2>/dev/null)" = "$DMENU_FLEXIPATCH_COMMIT" ]; then
-        log_info "Patched dmenu already installed (flexipatch ${DMENU_FLEXIPATCH_COMMIT}.)"
+    want="$DMENU_FLEXIPATCH_COMMIT $(uname -r)"
+    if [ -x /usr/local/bin/dmenu ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ] && \
+       ldd /usr/local/bin/dmenu >/dev/null 2>&1; then
+        log_info "Patched dmenu already installed and dynamically linking OK."
         return
     fi
 
@@ -292,7 +304,7 @@ install_dmenu() {
         return
     fi
     install -m 0755 "$src/dmenu" /usr/local/bin/dmenu
-    printf '%s\n' "$DMENU_FLEXIPATCH_COMMIT" > "$stamp"
+    printf '%s\n' "$want" > "$stamp"
     rm -rf "$src"
     log_info "Patched dmenu installed to /usr/local/bin/dmenu."
 }

@@ -152,6 +152,23 @@ dotfiles/
 └── .muttrc, .msmtprc      # Email (in .gitignore)
 ```
 
+## After an OpenBSD `sysupgrade`
+
+OpenBSD has no cross-release binary compatibility — a `sysupgrade` bumps the
+base/Xenocara libraries, so binaries built from source (st, dmenu, issy) stop
+loading (`ld.so: ... can't load library ...`; symptom: st/dmenu won't launch).
+To recover:
+
+```
+doas pkg_add -u                          # resync packages to the new release
+doas sh /path/to/dotfiles/provision.sh   # rebuilds st/dmenu/issy vs new libs
+```
+
+`provision.sh` is idempotent and keys the st/dmenu build stamps on the OS
+release (`uname -r`) and verifies the binary still links (`ldd`), so a re-run
+after an upgrade rebuilds them automatically. Reboot if the network or X
+session did not come back cleanly from the upgrade.
+
 ## Troubleshooting
 
 - **OpenBSD disk space**: `/usr/local` needs at least 2GB for packages
