@@ -360,6 +360,14 @@ NTPD
                 log_info "Disabled xconsole in $xs."
         fi
 
+        # Paint the xenodm login background solid black (default Xsetup_0
+        # draws a gray root_weave bitmap).
+        if [ -f "$xs" ] && grep -q root_weave "$xs"; then
+            sed 's|.*root_weave.*|${exec_prefix}/bin/xsetroot -solid black|' "$xs" > "${xs}.new" && \
+                mv "${xs}.new" "$xs" && \
+                log_info "Set xenodm login background to solid black."
+        fi
+
         # Enable xenodm. The VMware SVGA II adapter has no DRM/KMS driver on
         # OpenBSD (no /dev/drm*), so Xorg needs aperture access — which means
         # running as root. xenodm provides that without making Xorg setuid.
