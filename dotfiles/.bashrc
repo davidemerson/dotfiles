@@ -87,5 +87,6 @@ case $- in
   *i*) if [ -z "$TMUX" ] && command -v pfetch >/dev/null 2>&1; then
          printf '\033[1;34m%s\033[0m\n' "$(hostname)"
          pfetch
+         command -v sysinfo >/dev/null 2>&1 && sysinfo
        fi ;;
 esac

@@ -14,28 +14,28 @@ order += "tztime utc"
 order += "tztime local"
 
 ethernet _first_ {
-    format_up = "%ip"
-    format_down = "no network"
+    format_up = "  %ip  "
+    format_down = "  no network  "
 }
 
 cpu_usage {
-    format = "CPU: %usage"
+    format = "  CPU: %usage  "
 }
 
 # i3status' "memory" module is unsupported on OpenBSD's build
 # ("Memory status information is not supported on this system"),
 # so use loadavg, which getloadavg() backs on every platform.
 load {
-    format = "load: %1min"
+    format = "  load: %1min  "
 }
 
 # Two clocks, each tagged with its zone code (%Z auto-shows EDT/EST for DC).
 tztime utc {
-    format = "%H:%M %Z"
+    format = "  %H:%M %Z  "
     timezone = "UTC"
 }
 
 tztime local {
-    format = "%Y-%m-%d %H:%M %Z"
+    format = "  %Y-%m-%d %H:%M %Z  "
     timezone = "America/New_York"
 }

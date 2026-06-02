@@ -39,6 +39,7 @@ check "dotfiles/.config/dunst/dunstrc"
 check "dotfiles/.local/bin/volnotify"
 check "dotfiles/.local/bin/shot"
 check "dotfiles/.local/bin/lock"
+check "dotfiles/.local/bin/sysinfo"
 
 printf "\nLinux (sway):\n"
 check "dotfiles/.config/sway/config"
