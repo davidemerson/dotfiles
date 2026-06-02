@@ -342,24 +342,51 @@ configure_services() {
 
         # NTP: pin the pool + cloudflare with HTTPS constraints. The -s flag
         # steps the clock at startup, so a suspended/cloned VM corrects a
-        # large offset immediately instead of slewing for weeks.
+        # large offset immediately instead of slewing for weeks. "sensor *"
+        # uses the vmt0 VMware host-time sensor (host = compton, kept accurate)
+        # as a fast, local time reference.
         #
-        # Deliberately NO "sensor *": the vmt0 VMware host-time sensor reports
-        # the hypervisor clock as an authoritative local source. When that host
-        # clock is wrong (it has been ~2h behind), the sensor agrees with the
-        # already-wrong guest clock at boot, so the -s step becomes a no-op and
-        # the real +offset from the network peers is left to slew (~17s/hr ->
-        # weeks to converge). Dropping the sensor lets the network peers drive
-        # the -s step every boot.
+        # Caveat: OpenNTPD only *steps* at startup; a running daemon only
+        # slews. So if the guest clock jumps mid-run (clone/snapshot/suspend),
+        # ntpd will not self-correct a large offset -- yews-clock-guard (below)
+        # restarts ntpd to force a fresh -s step.
         cat > /etc/ntpd.conf <<'NTPD'
 servers 0.pool.ntp.org
 servers 1.pool.ntp.org
 server time.cloudflare.com
+sensor *
 constraints from "www.google.com"
 NTPD
         rcctl set ntpd flags -s
         rcctl enable ntpd 2>/dev/null || true
         rcctl restart ntpd 2>/dev/null || true
+
+        # yews-clock-guard: OpenNTPD only steps at startup; a running daemon
+        # only slews, so a mid-run jump (VM clone/snapshot/suspend) never
+        # self-corrects a large offset. The VMware host (compton) keeps
+        # accurate time, so the vmt0 sensor delta is how far this guest has
+        # drifted; if it exceeds the threshold, force a clean re-step.
+        cat > /usr/local/sbin/yews-clock-guard <<'GUARD'
+#!/bin/sh
+THRESH=10
+d=$(sysctl -n hw.sensors.vmt0.timedelta0 2>/dev/null | awk '{print $1+0}')
+[ -z "$d" ] && exit 0
+a=${d#-}
+if awk -v a="$a" -v t="$THRESH" 'BEGIN{exit !(a>t)}'; then
+    logger -t clock-guard "vmt0 delta ${d}s exceeds ${THRESH}s; re-stepping clock via ntpd restart"
+    rcctl stop ntpd
+    rdate -nv time.cloudflare.com
+    rcctl start ntpd
+fi
+GUARD
+        chmod 0755 /usr/local/sbin/yews-clock-guard
+        # install the cron entry idempotently, preserving the rest of root's tab
+        crontab -l 2>/dev/null > /tmp/ct.$$ || true
+        grep -v yews-clock-guard /tmp/ct.$$ 2>/dev/null > /tmp/ct.new.$$ || true
+        echo "*/10 * * * * /usr/local/sbin/yews-clock-guard >/dev/null 2>&1" >> /tmp/ct.new.$$
+        crontab /tmp/ct.new.$$
+        rm -f /tmp/ct.$$ /tmp/ct.new.$$
+        log_info "yews-clock-guard installed (cron */10)."
 
         # Mount FFS partitions noatime (skip access-time writes -> less I/O),
         # persisted in fstab and applied live. Idempotent. softdep is omitted
