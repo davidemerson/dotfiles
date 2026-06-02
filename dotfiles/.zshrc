@@ -94,10 +94,11 @@ export PATH="/opt/homebrew/opt/ruby/bin:$HOME/.local/bin:$PATH"
 
 # ---------- minimal fetch: hostname header, no logo, no user@host ----------
 # ANSI slot 4 (blue) is light blue in our terminal palettes; 7 is light gray.
-export PF_INFO="os kernel uptime pkgs memory shell"
+export PF_INFO="os shell uptime memory"   # cpu/disk/epoch added by sysinfo
 export PF_COL1=4   # labels / accents
 export PF_COL2=7   # values
 # Interactive shells only, and not inside tmux (avoids per-pane spam).
+# sed strips pfetch's trailing blank line so sysinfo's lines abut it.
 if [[ -o interactive && -z "$TMUX" ]]; then
-  command -v pfetch >/dev/null 2>&1 && { printf '\033[1;34m%s\033[0m\n' "$(hostname)"; pfetch; command -v sysinfo >/dev/null 2>&1 && sysinfo; }
+  command -v pfetch >/dev/null 2>&1 && { printf '\033[1;34m%s\033[0m\n' "$(hostname)"; pfetch | sed '/^[[:space:]]*$/d'; command -v sysinfo >/dev/null 2>&1 && sysinfo; }
 fi

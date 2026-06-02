@@ -532,6 +532,39 @@ DOAS
 }
 
 # -------------------------------------------------------------------
+# sshd: key-only auth (these hosts deploy with SSH keys). Idempotent;
+# validates the candidate config with `sshd -t` before replacing, so a
+# bad edit can never lock you out. macOS keeps its own Remote Login.
+# -------------------------------------------------------------------
+configure_sshd() {
+    [ "$OS_TYPE" = "macos" ] && return
+    conf=/etc/ssh/sshd_config
+    [ -f "$conf" ] || return
+
+    log_info "Hardening sshd (key-only auth)..."
+    sshd_bin="$(command -v sshd 2>/dev/null || echo /usr/sbin/sshd)"
+    tmp="${conf}.dotfiles.$$"
+    sed -e 's/^#*[[:space:]]*PasswordAuthentication[[:space:]].*/PasswordAuthentication no/' \
+        -e 's/^#*[[:space:]]*KbdInteractiveAuthentication[[:space:]].*/KbdInteractiveAuthentication no/' \
+        "$conf" > "$tmp"
+    grep -qE '^PasswordAuthentication no'       "$tmp" || echo 'PasswordAuthentication no'       >> "$tmp"
+    grep -qE '^KbdInteractiveAuthentication no' "$tmp" || echo 'KbdInteractiveAuthentication no' >> "$tmp"
+
+    if "$sshd_bin" -t -f "$tmp" 2>/dev/null; then
+        cat "$tmp" > "$conf"
+        if [ "$OS_TYPE" = "openbsd" ]; then
+            rcctl reload sshd 2>/dev/null || rcctl restart sshd 2>/dev/null || true
+        else
+            systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+        fi
+        log_info "sshd set to key-only auth."
+    else
+        log_warn "Generated sshd_config failed validation; left unchanged."
+    fi
+    rm -f "$tmp"
+}
+
+# -------------------------------------------------------------------
 # Deploy dotfiles
 #
 # Files use @@IF_OPENBSD@@/@@IF_LINUX@@/@@IF_MACOS@@/@@END_IF@@
@@ -669,6 +702,7 @@ main() {
     get_username
     configure_hostname
     configure_doas
+    configure_sshd
     configure_services
     deploy_dotfiles
     update_fonts

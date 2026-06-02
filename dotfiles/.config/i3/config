@@ -69,6 +69,7 @@ bindsym $mod+n       exec --no-startup-id volnotify down
 bindsym $mod+Shift+m exec --no-startup-id volnotify mute
 
 # window management bindings
+bindsym $mod+w kill
 bindsym $mod+Shift+q kill
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
