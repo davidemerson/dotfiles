@@ -307,8 +307,20 @@ configure_services() {
 
     if [ "$OS_TYPE" = "openbsd" ]; then
         ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+
+        # NTP: pin the pool + cloudflare with HTTPS constraints. The -s flag
+        # steps the clock at startup, so a suspended/cloned VM corrects a
+        # large offset immediately instead of slewing for weeks.
+        cat > /etc/ntpd.conf <<'NTPD'
+servers 0.pool.ntp.org
+servers 1.pool.ntp.org
+server time.cloudflare.com
+sensor *
+constraints from "www.google.com"
+NTPD
+        rcctl set ntpd flags -s
         rcctl enable ntpd 2>/dev/null || true
-        rcctl start ntpd 2>/dev/null || true
+        rcctl restart ntpd 2>/dev/null || true
 
         # Remove default i3 config (conflicts with user config)
         rm -f /etc/i3/config
@@ -369,8 +381,17 @@ VMWARE_XORG
         fi
     else
         timedatectl set-timezone UTC 2>/dev/null || true
+
+        # NTP: pin servers for systemd-timesyncd.
+        mkdir -p /etc/systemd/timesyncd.conf.d
+        cat > /etc/systemd/timesyncd.conf.d/dotfiles.conf <<'TSYNC'
+[Time]
+NTP=0.pool.ntp.org 1.pool.ntp.org
+FallbackNTP=time.cloudflare.com
+TSYNC
         systemctl enable systemd-timesyncd 2>/dev/null || true
-        systemctl start systemd-timesyncd 2>/dev/null || true
+        systemctl restart systemd-timesyncd 2>/dev/null || true
+        timedatectl set-ntp true 2>/dev/null || true
         systemctl disable gdm 2>/dev/null || true
 
         # Set console font to Terminus 14 (small, clean bitmap font)

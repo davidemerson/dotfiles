@@ -77,13 +77,15 @@ export EDITOR="${EDITOR:-issy}"
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
-# ---------- pfetch (minimal system fetch) ----------
+# ---------- minimal fetch: hostname header, no logo, no user@host ----------
 # ANSI slot 4 (blue) is light blue in our terminal palettes; 7 is light gray.
-export PF_INFO="ascii title os host kernel uptime pkgs memory shell"
+export PF_INFO="os kernel uptime pkgs memory shell"
 export PF_COL1=4   # labels / accents
 export PF_COL2=7   # values
-export PF_COL3=4   # user@host
-# Run only in interactive shells, and not inside tmux (avoids per-pane spam).
+# Interactive shells only, and not inside tmux (avoids per-pane spam).
 case $- in
-  *i*) [ -z "$TMUX" ] && command -v pfetch >/dev/null 2>&1 && pfetch ;;
+  *i*) if [ -z "$TMUX" ] && command -v pfetch >/dev/null 2>&1; then
+         printf '\033[1;34m%s\033[0m\n' "$(hostname)"
+         pfetch
+       fi ;;
 esac
