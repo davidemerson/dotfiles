@@ -1,0 +1,33 @@
+/* Minimal black chrome to match the rice. Loaded via
+ * toolkit.legacyUserProfileCustomizations.stylesheets (set in user.js),
+ * on top of the built-in compact-dark theme. Uses Firefox's themable
+ * custom properties to stay resilient across versions. */
+:root {
+  --toolbar-bgcolor: #000000 !important;
+  --toolbar-color: #cccccc !important;
+  --lwt-toolbar-field-background-color: #11151c !important;
+  --lwt-toolbar-field-color: #cccccc !important;
+  --lwt-toolbar-field-focus: #11151c !important;
+  --toolbarbutton-icon-fill: #cccccc !important;
+  --tab-selected-bgcolor: #1f2d4d !important;
+  --tab-selected-textcolor: #ffffff !important;
+  --lwt-tab-line-color: #8fb6e0 !important;
+}
+
+#navigator-toolbox {
+  background-color: #000000 !important;
+  border-bottom: 1px solid #1f2d4d !important;
+}
+toolbar { background-color: #000000 !important; }
+
+/* URL bar: dark field, light-blue focus outline */
+#urlbar, #searchbar { background-color: #11151c !important; }
+#urlbar[focused="true"] > #urlbar-background {
+  outline: 1px solid #8fb6e0 !important;
+  border-color: #8fb6e0 !important;
+}
+
+/* selected tab: navy fill, light-blue top line */
+.tabbrowser-tab[selected] .tab-background {
+  background-color: #1f2d4d !important;
+}

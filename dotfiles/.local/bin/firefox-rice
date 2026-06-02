@@ -1,0 +1,31 @@
+#!/bin/sh
+# Install the dark/minimal Firefox chrome into every local profile.
+# Sources live in ~/.config/firefox (deployed by the dotfiles); profiles
+# are randomly named, so this copies userChrome.css into each profile's
+# chrome/ dir and merges the prefs from user.js. Safe to re-run; takes
+# effect on the next Firefox launch. Run it once after Firefox has created
+# a profile (first launch).
+src="$HOME/.config/firefox"
+ff="$HOME/.mozilla/firefox"
+
+[ -d "$ff" ] || { echo "no Firefox profiles yet — launch Firefox once, then re-run"; exit 0; }
+[ -f "$src/userChrome.css" ] && [ -f "$src/user.js" ] || { echo "missing $src/userChrome.css or user.js"; exit 1; }
+
+n=0
+for p in "$ff"/*/; do
+    # only real profiles (have prefs.js or times.json)
+    [ -f "${p}prefs.js" ] || [ -f "${p}times.json" ] || continue
+    mkdir -p "${p}chrome"
+    cp "$src/userChrome.css" "${p}chrome/userChrome.css"
+    touch "${p}user.js"
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        case "$line" in \#*|//*) continue ;; esac
+        key=$(printf '%s' "$line" | sed -n 's/^user_pref("\([^"]*\)".*/\1/p')
+        [ -n "$key" ] && grep -qF "\"$key\"" "${p}user.js" 2>/dev/null && continue
+        printf '%s\n' "$line" >> "${p}user.js"
+    done < "$src/user.js"
+    echo "installed -> ${p#"$ff"/}"
+    n=$((n + 1))
+done
+echo "firefox-rice: updated $n profile(s)"

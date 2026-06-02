@@ -92,6 +92,16 @@ export EDITOR="${EDITOR:-issy}"
 export PATH="/opt/homebrew/opt/ruby/bin:$HOME/.local/bin:$PATH"
 # @@END_IF@@
 
+# ---------- colored man/less (palette: light blue / navy / white) ----------
+export LESS=-R
+export LESS_TERMCAP_md=$'\e[1;38;5;110m'        # bold      -> light blue (headings)
+export LESS_TERMCAP_me=$'\e[0m'
+export LESS_TERMCAP_us=$'\e[4;38;5;152m'        # underline -> pale blue (options)
+export LESS_TERMCAP_ue=$'\e[0m'
+export LESS_TERMCAP_so=$'\e[48;5;17;38;5;255m'  # standout  -> navy bg / white (search, prompt)
+export LESS_TERMCAP_se=$'\e[0m'
+export LESS_TERMCAP_mb=$'\e[1;38;5;110m'        # blink     -> light blue
+
 # ---------- minimal fetch: hostname header, no logo, no user@host ----------
 # ANSI slot 4 (blue) is light blue in our terminal palettes; 7 is light gray.
 export PF_INFO="os shell uptime memory"   # cpu/disk/epoch added by sysinfo

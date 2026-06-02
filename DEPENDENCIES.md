@@ -49,3 +49,9 @@
 - **Terminal**: WezTerm (via Homebrew cask)
 - **Editors**: micro
 - **Package Manager**: Homebrew (installed automatically)
+
+### Theming (palette-wide rice)
+- **Colored man/less**: `LESS_TERMCAP` in the shell rc (light-blue headings, navy/white standout) — all platforms
+- **GTK** (Linux/OpenBSD): `~/.config/gtk-{3,4}.0/settings.ini` — dark theme preference + plan9 cursor
+- **btop**: `~/.config/btop/themes/nnix.theme` (grayscale + navy/blue), selected in `btop.conf`
+- **Firefox** (Linux/OpenBSD): minimal black `userChrome.css` + compact-dark `user.js` in `~/.config/firefox`; installed into each profile by `~/.local/bin/firefox-rice` (run once after Firefox's first launch)
