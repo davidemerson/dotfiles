@@ -28,6 +28,7 @@ client.urgent               #ffffff    #1f2d4d     #ffffff    #ffffff      #1f2d
 
 # launch, lock, and volume bindings
 bindsym $mod+Return exec foot
+bindsym $mod+b exec firefox-esr
 bindsym $mod+d exec wofi --show drun
 bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
 bindsym $mod+Shift+e exec swaynag -t warning -m 'Exit sway?' -B 'Yes' 'swaymsg exit'

@@ -211,6 +211,50 @@ install_pfetch() {
 }
 
 # -------------------------------------------------------------------
+# Patched st (OpenBSD terminal). Built from bakkeby/st-flexipatch with
+# our st/config.h + st/patches.h, which enable: clipboard (selection
+# auto-copies to the system CLIPBOARD), keyboard-select (mouseless
+# copy), scrollback (+ mouse wheel), anysize, bold-is-not-bright, and
+# boxdraw. Font is Berkeley Mono Variable NNIX. The packaged st (kept
+# in the pkg list) provides terminfo and a fallback if the build fails.
+# Idempotent: skips when the pinned commit is already installed.
+# -------------------------------------------------------------------
+ST_FLEXIPATCH_COMMIT="1d3f20096c9b5cea0452343a97c644f5987da6d9"
+
+install_st() {
+    [ "$OS_TYPE" = "openbsd" ] || return
+
+    stamp=/usr/local/share/st-flexipatch.commit
+    if [ -x /usr/local/bin/st ] && [ -f "$stamp" ] && \
+       [ "$(cat "$stamp" 2>/dev/null)" = "$ST_FLEXIPATCH_COMMIT" ]; then
+        log_info "Patched st already installed (flexipatch ${ST_FLEXIPATCH_COMMIT}.)"
+        return
+    fi
+
+    log_info "Building patched st (st-flexipatch)..."
+    src="/tmp/st-flexipatch.$$"
+    rm -rf "$src"
+    if ! git clone -q https://github.com/bakkeby/st-flexipatch.git "$src"; then
+        log_warn "Failed to clone st-flexipatch. Keeping packaged st."
+        return
+    fi
+    ( cd "$src" && git checkout -q "$ST_FLEXIPATCH_COMMIT" ) 2>/dev/null || \
+        log_warn "Could not pin st-flexipatch commit; building tip."
+    cp "$SCRIPT_DIR/st/config.h"  "$src/config.h"
+    cp "$SCRIPT_DIR/st/patches.h" "$src/patches.h"
+    if ! ( cd "$src" && make >/dev/null 2>&1 ); then
+        log_warn "st build failed. Keeping packaged st."
+        rm -rf "$src"
+        return
+    fi
+    # Overwrites the pkg-owned binary; terminfo from the package stays.
+    install -m 0755 "$src/st" /usr/local/bin/st
+    printf '%s\n' "$ST_FLEXIPATCH_COMMIT" > "$stamp"
+    rm -rf "$src"
+    log_info "Patched st installed to /usr/local/bin/st."
+}
+
+# -------------------------------------------------------------------
 # Services
 # -------------------------------------------------------------------
 configure_services() {
@@ -539,6 +583,7 @@ main() {
     install_packages
     install_issy
     install_pfetch
+    install_st
     get_username
     configure_hostname
     configure_doas

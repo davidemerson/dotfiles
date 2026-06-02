@@ -29,6 +29,7 @@ client.urgent               #ffffff    #1f2d4d     #ffffff    #ffffff      #1f2d
 
 # launch, lock, and volume bindings
 bindsym $mod+Return exec --no-startup-id /usr/local/bin/st
+bindsym $mod+b exec --no-startup-id firefox-esr
 bindsym $mod+d exec --no-startup-id dmenu_run -fn 'Berkeley Mono Variable NNIX-18' -nb '#000000' -nf '#999999' -sb '#1f2d4d' -sf '#bcd6f2'
 bindsym $mod+z exec --no-startup-id i3lock -c 000000
 bindsym $mod+Shift+e exec i3-nagbar -t warning -m 'Exit i3?' -B 'Yes' 'i3-msg exit'
