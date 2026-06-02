@@ -354,6 +354,18 @@ NTPD
         rcctl enable ntpd 2>/dev/null || true
         rcctl restart ntpd 2>/dev/null || true
 
+        # Mount FFS partitions noatime (skip access-time writes -> less I/O),
+        # persisted in fstab and applied live. Idempotent. softdep is omitted
+        # deliberately: it is a silent no-op on modern OpenBSD.
+        if grep '[[:space:]]ffs[[:space:]]' /etc/fstab | grep -qv noatime; then
+            awk '$3=="ffs" && $4 !~ /noatime/ { $4=$4",noatime" } {print}' /etc/fstab > /etc/fstab.new && \
+                mv /etc/fstab.new /etc/fstab && chmod 644 /etc/fstab
+            for mp in $(awk '$3=="ffs"{print $2}' /etc/fstab); do
+                mount -u -o noatime "$mp" 2>/dev/null || true
+            done
+            log_info "FFS partitions set to noatime."
+        fi
+
         # Remove default i3 config (conflicts with user config)
         rm -f /etc/i3/config
 
