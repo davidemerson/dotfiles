@@ -51,7 +51,7 @@ install_packages() {
         openbsd)
             pkg_add -U \
                 bash curl wget git unzip-- \
-                nano htop btop nmap screen-- lsd \
+                nano htop btop nmap screen-- lsd mosh \
                 i3 i3lock i3status dmenu xautolock st-- \
                 dbus dunst scrot xclip xsel xdotool xss-lock ImageMagick clipmenu \
                 firefox-esr neomutt-- msmtp
@@ -60,7 +60,7 @@ install_packages() {
             apt-get update -qq
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
-                nano micro htop btop nmap screen lsd tmux \
+                nano micro htop btop nmap screen lsd tmux mosh \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
                 firefox-esr neomutt msmtp
 
@@ -87,7 +87,7 @@ install_packages() {
             fi
 
             brew install \
-                bash git nano micro htop btop nmap lsd tmux neomutt msmtp || true
+                bash git nano micro htop btop nmap lsd tmux mosh neomutt msmtp || true
             brew install --cask wezterm || true
             ;;
     esac
@@ -104,18 +104,34 @@ install_packages() {
 # Idempotent: skips if already installed.
 # -------------------------------------------------------------------
 ZIG_VERSION="0.15.2"
+ZIG=""  # path to a usable zig, resolved by ensure_zig
+
+# issy requires Zig 0.15.x: 0.16 moved std.fs under std.Io.Dir and issy
+# fails its own comptime version gate. So never trust a bare `zig` on
+# PATH — verify the version of whatever we find or install.
+zig_ok() {
+    case "$("$1" version 2>/dev/null)" in
+        0.15.*) return 0 ;;
+        *)      return 1 ;;
+    esac
+}
 
 ensure_zig() {
-    if command -v zig >/dev/null 2>&1; then
+    if command -v zig >/dev/null 2>&1 && zig_ok zig; then
+        ZIG="zig"
         return 0
     fi
 
     case "$OS_TYPE" in
         macos)
-            brew install zig >/dev/null 2>&1 || return 1
+            # brew's main `zig` formula tracks latest (0.16+), which issy
+            # rejects; use the keg-only zig@0.15 pin instead.
+            brew install zig@0.15 >/dev/null 2>&1 || true
+            ZIG="$(brew --prefix zig@0.15 2>/dev/null)/bin/zig"
             ;;
         openbsd)
-            pkg_add -I zig >/dev/null 2>&1 || return 1
+            pkg_add -I zig >/dev/null 2>&1 || true
+            ZIG="zig"
             ;;
         linux)
             case "$(uname -m)" in
@@ -132,13 +148,26 @@ ensure_zig() {
             tar xf "$tmp" -C /opt/zig --strip-components=1 || return 1
             ln -sf /opt/zig/zig /usr/local/bin/zig
             rm -f "$tmp"
+            ZIG="/usr/local/bin/zig"
             ;;
     esac
 
-    command -v zig >/dev/null 2>&1
+    [ -n "$ZIG" ] && zig_ok "$ZIG"
 }
 
 install_issy() {
+    # macOS: if Homebrew manages issy (davidemerson/issy tap), let brew own
+    # it. A source build into /usr/local/bin would be shadowed by
+    # /opt/homebrew/bin on PATH, and the HEAD-vs-installed check would
+    # then trigger a futile rebuild on every run (release tags trail the
+    # formula-bump commit at HEAD).
+    if [ "$OS_TYPE" = "macos" ] && command -v brew >/dev/null 2>&1 && \
+       brew list issy >/dev/null 2>&1; then
+        log_info "issy is Homebrew-managed; updating via brew."
+        brew upgrade issy >/dev/null 2>&1 || true
+        return
+    fi
+
     if command -v issy >/dev/null 2>&1; then
         issy_bin="$(command -v issy)"
         # On OpenBSD a sysupgrade bumps libc/base libs and breaks old
@@ -167,8 +196,8 @@ install_issy() {
     log_info "Building issy from source..."
 
     if ! ensure_zig; then
-        log_warn "Could not install Zig. Skipping issy build."
-        log_warn "Install Zig ${ZIG_VERSION}+ manually and re-run to get issy."
+        log_warn "Could not install Zig 0.15.x. Skipping issy build."
+        log_warn "Install Zig ${ZIG_VERSION} (issy needs 0.15.x, not 0.16+) and re-run."
         return
     fi
 
@@ -179,7 +208,7 @@ install_issy() {
         return
     fi
 
-    if ! (cd "$src_dir" && zig build -Doptimize=ReleaseSafe); then
+    if ! (cd "$src_dir" && "$ZIG" build -Doptimize=ReleaseSafe); then
         log_warn "zig build failed for issy. Skipping install."
         rm -rf "$src_dir"
         return
@@ -229,6 +258,46 @@ install_pfetch() {
     else
         log_warn "Could not download pfetch. Skipping."
     fi
+}
+
+# -------------------------------------------------------------------
+# herdr — agent multiplexer (https://herdr.dev). Upstream ships prebuilt
+# binaries only (Linux x86_64/aarch64, macOS via homebrew-core); it's a
+# Rust project with no documented source build and no OpenBSD assets, so
+# OpenBSD is skipped. Idempotent: skips if already on PATH.
+# -------------------------------------------------------------------
+install_herdr() {
+    if command -v herdr >/dev/null 2>&1; then
+        log_info "herdr already installed."
+        return
+    fi
+
+    case "$OS_TYPE" in
+        macos)
+            brew install herdr >/dev/null 2>&1 && log_info "herdr installed." \
+                || log_warn "brew install herdr failed."
+            ;;
+        linux)
+            case "$(uname -m)" in
+                x86_64)  herdr_arch="x86_64" ;;
+                aarch64) herdr_arch="aarch64" ;;
+                *) log_warn "No herdr binary for $(uname -m). Skipping."; return ;;
+            esac
+            url="https://github.com/ogulcancelik/herdr/releases/latest/download/herdr-linux-${herdr_arch}"
+            log_info "Installing herdr..."
+            if curl -fsSL -o /tmp/herdr.$$ "$url"; then
+                install -m 0755 /tmp/herdr.$$ /usr/local/bin/herdr
+                rm -f /tmp/herdr.$$
+                log_info "herdr installed at /usr/local/bin/herdr."
+            else
+                rm -f /tmp/herdr.$$
+                log_warn "Could not download herdr. Skipping."
+            fi
+            ;;
+        openbsd)
+            log_warn "herdr publishes no OpenBSD builds; skipping."
+            ;;
+    esac
 }
 
 # -------------------------------------------------------------------
@@ -672,12 +741,12 @@ deploy_dotfiles() {
     # Directories to skip per OS
     case "$OS_TYPE" in
         openbsd) SKIP_DIRS="sway swaylock waybar wofi foot" ;;
-        linux)   SKIP_DIRS="i3" ;;
+        linux)   SKIP_DIRS="i3 i3status" ;;
         macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status" ;;
     esac
 
     cd "$SCRIPT_DIR/dotfiles"
-    find . -type f | while read -r rel; do
+    find . -type f ! -name .DS_Store | while read -r rel; do
         # Skip configs not relevant to this OS
         skip=false
         for d in $SKIP_DIRS; do
@@ -695,6 +764,12 @@ deploy_dotfiles() {
 
         src="$SCRIPT_DIR/dotfiles/$rel"
         dst="$home_dir/$rel"
+
+        # Per-machine configs: seed once, never clobber local edits.
+        case "$rel" in
+            *.config/workstation.conf) [ -f "$dst" ] && continue ;;
+        esac
+
         mkdir -p "$(dirname "$dst")"
 
         has_os_markers=false
@@ -735,6 +810,17 @@ deploy_dotfiles() {
         chmod 600 "$home_dir/.ssh/config" 2>/dev/null || true
     fi
 
+    # Mail configs reference credentials (via passwordeval/backticks);
+    # keep them user-only.
+    chmod 600 "$home_dir/.msmtprc" "$home_dir/.muttrc" 2>/dev/null || true
+
+    # macOS: CoreText doesn't scan ~/.fonts; register the font where the
+    # OS actually looks so WezTerm and friends can resolve it.
+    if [ "$OS_TYPE" = "macos" ] && [ -f "$home_dir/.fonts/bmv.otf" ]; then
+        mkdir -p "$home_dir/Library/Fonts"
+        cp "$home_dir/.fonts/bmv.otf" "$home_dir/Library/Fonts/bmv.otf"
+    fi
+
     # .xinitrc must be executable or xinit falls back to launching xterm
     chmod +x "$home_dir/.xinitrc" 2>/dev/null || true
 
@@ -770,6 +856,7 @@ main() {
     install_packages
     install_issy
     install_pfetch
+    install_herdr
     install_st
     install_dmenu
     get_username

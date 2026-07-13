@@ -14,7 +14,9 @@ set imap_user="d@nnix.com"
 set imap_pass=`cat ~/.secrets/mailpass`
 
 # SMTP
-set sendmail="/usr/local/bin/msmtp"
+# resolve via PATH: /usr/local/bin (OpenBSD), /usr/bin (Debian),
+# /opt/homebrew/bin (macOS arm64)
+set sendmail="msmtp"
 set use_from=yes
 set envelope_from=yes
 

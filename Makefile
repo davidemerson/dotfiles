@@ -16,11 +16,11 @@ provision:
 
 backup:
 	@echo "Backing up existing dotfiles..."
-	@mkdir -p backups/$$(date +%Y%m%d_%H%M%S)
 	@BDIR="backups/$$(date +%Y%m%d_%H%M%S)"; \
+	mkdir -p "$$BDIR"; \
 	for item in .config .bashrc .bash_profile .zshrc .gitconfig .ssh .wezterm.lua .xinitrc; do \
 		if [ -e "$$HOME/$$item" ]; then \
 			cp -r "$$HOME/$$item" "$$BDIR/"; \
 		fi; \
-	done
-	@echo "Backup created in backups/"
+	done; \
+	echo "Backup created in $$BDIR"

@@ -21,6 +21,11 @@
 # Scan file on open to detect tabs vs spaces (overrides tab_width/expand_tabs per file)
 # auto_detect_indent = true
 
+# While a buffer has unsaved changes, periodically write them to a sibling
+# .<name>.swp file (removed on save/clean exit; leftover swaps from a crash
+# are reported in the status bar on open)
+# swap_files = true
+
 # Minimum lines between cursor and screen edge before scrolling
 # scroll_margin = 5
 
@@ -37,6 +42,10 @@
 
 # Soft-wrap long lines at the right margin. Continuation lines are indented.
 # word_wrap = true
+
+# When soft-wrapping, indent continuation rows to the wrapped line's own
+# leading whitespace (hanging indent) instead of a flat 2 columns.
+# wrap_indent = false
 
 # Soft right margin — code stops here, rest is empty background. 0 = fill terminal.
 # right_margin = 100

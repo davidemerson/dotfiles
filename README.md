@@ -49,6 +49,8 @@ sh provision.sh    # as your normal user
 | Editor | issy (default), micro, nano, Sublime Text | issy (default), nano | issy (default), micro, nano, Sublime Text |
 | Shell | bash | bash (pkg_add) | zsh (default) |
 | Tools | htop, btop, nmap, screen, lsd | htop, btop, nmap, screen, lsd | htop, btop, nmap, lsd |
+| Multiplexers | tmux, herdr | tmux | tmux, herdr |
+| Remote shell | mosh | mosh | mosh |
 
 ## How It Works
 
@@ -69,7 +71,19 @@ At deploy time, `provision.sh` strips blocks for other OSes via `sed`, keeping o
 
 ### issy (default editor)
 
-`provision.sh` builds [issy](https://github.com/davidemerson/issy) from source and installs it to `/usr/local/bin/issy`. Zig (0.15.2+) is installed first if not already present — via Homebrew on macOS, `pkg_add` on OpenBSD, or the official tarball on Linux. `.muttrc`, `.bashrc`, and `.zshrc` all set issy as `EDITOR`. The step is idempotent: if `issy` is already on PATH, it's skipped.
+`provision.sh` builds [issy](https://github.com/davidemerson/issy) from source and installs it to `/usr/local/bin/issy`. Zig 0.15.x is required (0.16+ breaks the build), so provisioning verifies any zig already on PATH and otherwise installs a pinned one — `zig@0.15` via Homebrew on macOS, `pkg_add` on OpenBSD, or the official 0.15.2 tarball on Linux. `.muttrc`, `.bashrc`, and `.zshrc` all set issy as `EDITOR`. The step is idempotent: re-runs compare the installed commit (`issy --version`) against upstream `HEAD` and rebuild only when upstream is newer (or the binary stops linking after an OpenBSD `sysupgrade`).
+
+### workstation (mosh into the admin box)
+
+`~/.local/bin/workstation` moshes into the admin workstation: it loads the SSH
+key into the agent, probes the primary overlay path, falls back to the
+secondary automatically (fallback is optional), and `exec`s mosh. Where it
+points lives in `~/.config/workstation.conf` (labels, hosts, ssh aliases,
+user, key) — the file is seeded once by `provision.sh` and never overwritten
+on re-runs, so each machine can point at a different box. The tracked conf is
+intentionally blank (this repo is public); fill in real values per machine —
+the script refuses to run until you do. `workstation -h` shows the configured
+paths; `workstation <label>` forces one.
 
 ### File Routing
 
@@ -149,7 +163,7 @@ dotfiles/
 │   ├── i3status/config    # i3status (OpenBSD only)
 │   ├── micro/             # micro editor settings
 │   └── sublime-text-3/    # Sublime Text settings
-└── .muttrc, .msmtprc      # Email (in .gitignore)
+└── .muttrc, .msmtprc      # Email (secrets stay in ~/.secrets/mailpass)
 ```
 
 ## After an OpenBSD `sysupgrade`

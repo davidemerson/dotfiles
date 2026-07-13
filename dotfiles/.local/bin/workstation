@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+#
+# workstation — one-shot connect to the admin workstation via mosh.
+# Handles: loading the SSH key into the agent, picking a working overlay
+# path (primary, with automatic fallback), and launching mosh so you land
+# in an interactive shell.
+#
+# Where it points is configured in ~/.config/workstation.conf — seeded by
+# provision.sh and never overwritten on re-provision, so edit it freely
+# per machine. The tracked copy is intentionally blank (public repo);
+# the script refuses to run until the conf is filled in.
+#
+# Usage:
+#   workstation              # auto: probe the primary path, fall back
+#   workstation <label>      # force a path by its label from the conf
+#   workstation -h           # help
+#
+# Run it from a real terminal. mosh needs a sized TTY.
+
+set -uo pipefail
+
+# ---- defaults (all real values come from ~/.config/workstation.conf) --------
+REMOTE_USER=""
+KEY=""
+KEY_FP=""
+PRIMARY_LABEL="primary"
+PRIMARY_HOST=""
+PRIMARY_ALIAS=""
+FALLBACK_LABEL="fallback"
+FALLBACK_HOST=""
+FALLBACK_ALIAS=""
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/workstation.conf"
+[ -r "$CONF" ] && . "$CONF"
+# -------------------------------------------------------------------------------
+
+IS_MACOS=false
+[ "$(uname -s)" = "Darwin" ] && IS_MACOS=true
+
+note() { printf '\033[36m[workstation]\033[0m %s\n' "$*" >&2; }
+err()  { printf '\033[31m[workstation] ERROR:\033[0m %s\n' "$*" >&2; }
+
+# true if the given alias is already a Host entry in ~/.ssh/config (whole-word
+# match, so 'box' is not satisfied by a 'box-prod' line and vice versa)
+host_alias_defined() {
+  local alias="$1" cfg="$HOME/.ssh/config"
+  [ -f "$cfg" ] || return 1
+  grep -iE '^[[:space:]]*Host[[:space:]]+' "$cfg" \
+    | grep -qE "(^|[[:space:]])${alias}([[:space:]]|\$)"
+}
+
+# append a Host block for an alias if it isn't present
+add_host_block() { # <alias> <hostname> <comment>
+  local alias="$1" hostname="$2" comment="$3" cfg="$HOME/.ssh/config"
+  host_alias_defined "$alias" && return 0
+  note "Adding 'Host $alias' to ~/.ssh/config"
+  {
+    printf '\n# %s — added by workstation\n' "$comment"
+    printf 'Host %s\n' "$alias"
+    printf '    HostName %s\n' "$hostname"
+    printf '    User %s\n' "$REMOTE_USER"
+    printf '    IdentityFile %s\n' "$KEY"
+    printf '    IdentitiesOnly yes\n'
+    printf '    AddKeysToAgent yes\n'
+    $IS_MACOS && printf '    UseKeychain yes\n'
+  } >> "$cfg"
+}
+
+# make sure Host entries exist for the aliases that are configured
+ensure_ssh_config() {
+  mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh" 2>/dev/null || true
+  if [ ! -f "$HOME/.ssh/config" ]; then
+    touch "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
+  fi
+  if [ -n "$PRIMARY_ALIAS" ]; then
+    add_host_block "$PRIMARY_ALIAS" "$PRIMARY_HOST" "workstation ($PRIMARY_LABEL path)"
+  fi
+  if [ -n "$FALLBACK_ALIAS" ] && [ -n "$FALLBACK_HOST" ]; then
+    add_host_block "$FALLBACK_ALIAS" "$FALLBACK_HOST" "workstation ($FALLBACK_LABEL path)"
+  fi
+}
+
+# true if KEY is already loaded in the agent. Uses KEY_FP from the conf, or
+# derives the fingerprint from a sibling .pub; unknown fingerprint = not loaded.
+agent_has_key() {
+  local fp="$KEY_FP" pub
+  if [ -z "$fp" ]; then
+    for pub in "$KEY.pub" "${KEY%.*}.pub"; do
+      if [ -r "$pub" ]; then
+        fp="$(ssh-keygen -lf "$pub" 2>/dev/null | awk '{print $2}')" && break
+      fi
+    done
+  fi
+  [ -n "$fp" ] && ssh-add -l 2>/dev/null | grep -qF "$fp"
+}
+
+MODE="${1:-auto}"
+case "$MODE" in
+  -h|--help|help)
+    sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'
+    printf '\nConfigured paths (%s):\n' "$CONF"
+    printf '  %-10s %s (Host %s)\n' "$PRIMARY_LABEL" "${PRIMARY_HOST:-<unset>}" "${PRIMARY_ALIAS:--}"
+    if [ -n "$FALLBACK_HOST" ]; then
+      printf '  %-10s %s (Host %s)\n' "$FALLBACK_LABEL" "$FALLBACK_HOST" "${FALLBACK_ALIAS:--}"
+    fi
+    exit 0 ;;
+esac
+
+# 0. refuse to run unconfigured
+if [ -z "$REMOTE_USER" ] || [ -z "$KEY" ] || [ -z "$PRIMARY_HOST" ]; then
+  err "Not configured: set REMOTE_USER, KEY, and PRIMARY_HOST in $CONF."
+  exit 1
+fi
+
+# 1. preflight: mosh present, key readable
+if ! command -v mosh >/dev/null 2>&1; then
+  if $IS_MACOS; then
+    err "mosh is not installed locally. Install with: brew install mosh"
+  else
+    err "mosh is not installed locally. Re-run provision.sh or install the mosh package."
+  fi
+  exit 1
+fi
+[ -r "$KEY" ] || { err "SSH key not found/readable: $KEY (set KEY in $CONF)"; exit 1; }
+
+# 2. ensure ~/.ssh/config has Host entries for configured aliases
+ensure_ssh_config
+
+# 3. ensure the (passphrase-protected) key is loaded in the ssh-agent
+if ! agent_has_key; then
+  note "SSH key not in agent — loading it…"
+  if $IS_MACOS; then
+    ssh-add --apple-use-keychain "$KEY" || { err "ssh-add failed — cannot unlock the key."; exit 1; }
+  else
+    ssh-add "$KEY" || { err "ssh-add failed — cannot unlock the key."; exit 1; }
+  fi
+fi
+
+# helper: quick reachability probe. probe <host> <tries> <needed-successes>
+probe() {
+  local host="$1" tries="$2" need="$3" ok=0 i
+  for ((i = 1; i <= tries; i++)); do
+    if ssh -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
+           -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 \
+           "${REMOTE_USER}@${host}" true 2>/dev/null; then
+      ok=$((ok + 1))
+      [ "$ok" -ge "$need" ] && return 0
+    fi
+  done
+  return 1
+}
+
+# 4. choose the path
+TARGET=""
+case "$MODE" in
+  "$PRIMARY_LABEL"|primary)
+    TARGET="$PRIMARY_HOST"; note "Forced $PRIMARY_LABEL path ($PRIMARY_HOST)." ;;
+  "$FALLBACK_LABEL"|fallback)
+    [ -n "$FALLBACK_HOST" ] || { err "No fallback path configured in $CONF."; exit 1; }
+    TARGET="$FALLBACK_HOST"; note "Forced $FALLBACK_LABEL path ($FALLBACK_HOST)." ;;
+  auto)
+    note "Checking $PRIMARY_LABEL path ($PRIMARY_HOST)…"
+    if probe "$PRIMARY_HOST" 3 2; then
+      TARGET="$PRIMARY_HOST"; note "$PRIMARY_LABEL is healthy — using it."
+    elif [ -n "$FALLBACK_HOST" ]; then
+      note "$PRIMARY_LABEL is flaky/unreachable; checking $FALLBACK_LABEL ($FALLBACK_HOST)…"
+      if probe "$FALLBACK_HOST" 3 1; then
+        TARGET="$FALLBACK_HOST"
+        note "Using $FALLBACK_LABEL path."
+      else
+        err "Neither path is reachable right now. Check your network / overlay (and $CONF)."
+        exit 1
+      fi
+    else
+      err "$PRIMARY_LABEL path is unreachable and no fallback is configured in $CONF."
+      exit 1
+    fi ;;
+  *)
+    if [ -n "$FALLBACK_HOST" ]; then
+      err "Unknown mode '$MODE'. Use: auto | $PRIMARY_LABEL | $FALLBACK_LABEL (or -h)."
+    else
+      err "Unknown mode '$MODE'. Use: auto | $PRIMARY_LABEL (or -h)."
+    fi
+    exit 1 ;;
+esac
+
+# 5. connect — exec replaces this shell with mosh, dropping you into the workstation
+note "Connecting to ${REMOTE_USER}@${TARGET} via mosh…"
+exec mosh \
+  --ssh="ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15" \
+  "${REMOTE_USER}@${TARGET}"

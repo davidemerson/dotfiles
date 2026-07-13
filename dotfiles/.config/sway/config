@@ -29,6 +29,11 @@ client.unfocused            #666666    #000000     #999999    #666666      #1a1a
 client.focused_inactive     #666666    #000000     #cccccc    #666666      #1a1a1a
 client.urgent               #ffffff    #1f2d4d     #ffffff    #ffffff      #1f2d4d
 
+# volume OSD: wob displays values written to a fifo. $XDG_RUNTIME_DIR is
+# expanded by the shell at exec time, not by sway.
+set $WOBSOCK $XDG_RUNTIME_DIR/wob.sock
+exec rm -f $WOBSOCK && mkfifo $WOBSOCK && tail -f $WOBSOCK | wob
+
 # launch, lock, and volume bindings
 bindsym $mod+Return exec foot
 bindsym $mod+b exec firefox-esr
