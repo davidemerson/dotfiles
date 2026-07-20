@@ -5,6 +5,13 @@
 # commit signing have no agent to load the key into. Runs before the WM
 # launch so sway/i3 (and their terminals) inherit SSH_AUTH_SOCK.
 # ssh-add -l exit codes: 0 = has keys, 1 = agent up/no keys, 2 = no agent.
+#
+# Then load the git identity / signing key once per session (prompts for the
+# passphrase a single time; later shells find it already loaded and skip).
+# The agent matches keys by their blob, not filename, so the id_d_nnix.pem /
+# id_d_nnix.pub naming that otherwise breaks `ssh-keygen -Y sign` is fine once
+# the key is in the agent. This is what makes SSH commit signing and git push
+# over ssh "just work" on this machine. Ctrl+C at the prompt to skip.
 case $- in
   *i*)
     export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/tmp}/ssh-agent-$(id -u).sock"
@@ -12,6 +19,13 @@ case $- in
     if [ $? -ge 2 ]; then
       rm -f "$SSH_AUTH_SOCK"
       ssh-agent -a "$SSH_AUTH_SOCK" >/dev/null 2>&1
+    fi
+    if [ -r "$HOME/.ssh/id_d_nnix.pem" ] && [ -r "$HOME/.ssh/id_d_nnix.pub" ]; then
+      __sk_fp=$(ssh-keygen -lf "$HOME/.ssh/id_d_nnix.pub" 2>/dev/null | awk '{print $2}')
+      if [ -n "$__sk_fp" ] && ! ssh-add -l 2>/dev/null | grep -qF "$__sk_fp"; then
+        ssh-add "$HOME/.ssh/id_d_nnix.pem" 2>/dev/null || true
+      fi
+      unset __sk_fp
     fi
     ;;
 esac
