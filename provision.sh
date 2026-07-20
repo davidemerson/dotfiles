@@ -74,6 +74,20 @@ install_packages() {
                 apt-get update -qq && apt-get install -y sublime-text
             fi
 
+            # ZeroTier
+            if ! command -v zerotier-cli >/dev/null 2>&1; then
+                log_info "Installing ZeroTier..."
+                ZT_SUITE="trixie"
+                if [ -r /etc/os-release ]; then
+                    ZT_SUITE="$(. /etc/os-release; printf '%s' "${VERSION_CODENAME:-trixie}")"
+                fi
+                wget -qO - https://download.zerotier.com/contact%40zerotier.com.gpg \
+                    | gpg --dearmor > /usr/share/keyrings/zerotier.gpg
+                echo "deb [signed-by=/usr/share/keyrings/zerotier.gpg] https://download.zerotier.com/debian/$ZT_SUITE $ZT_SUITE main" \
+                    > /etc/apt/sources.list.d/zerotier.list
+                apt-get update -qq && apt-get install -y zerotier-one
+            fi
+
             # VMware tools (auto-detected)
             if grep -q VMware /sys/class/dmi/id/sys_vendor 2>/dev/null; then
                 apt-get install -y open-vm-tools-desktop
