@@ -1,3 +1,21 @@
+# ---------- ssh-agent: one shared agent per user ----------
+# macOS runs an agent via launchd; the bash platforms (Linux/OpenBSD) do
+# not, so start one bound to a fixed socket and reuse it across every shell
+# and the WM session launched below. Without this, `workstation` and SSH
+# commit signing have no agent to load the key into. Runs before the WM
+# launch so sway/i3 (and their terminals) inherit SSH_AUTH_SOCK.
+# ssh-add -l exit codes: 0 = has keys, 1 = agent up/no keys, 2 = no agent.
+case $- in
+  *i*)
+    export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/tmp}/ssh-agent-$(id -u).sock"
+    ssh-add -l >/dev/null 2>&1
+    if [ $? -ge 2 ]; then
+      rm -f "$SSH_AUTH_SOCK"
+      ssh-agent -a "$SSH_AUTH_SOCK" >/dev/null 2>&1
+    fi
+    ;;
+esac
+
 # @@IF_OPENBSD@@
 export LANG=en_US.UTF-8
 export LC_CTYPE=en_US.UTF-8

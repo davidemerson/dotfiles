@@ -54,7 +54,7 @@ install_packages() {
                 nano htop btop nmap screen-- lsd mosh \
                 i3 i3lock i3status dmenu xautolock st-- \
                 dbus dunst scrot xclip xsel xdotool xss-lock ImageMagick clipmenu \
-                firefox-esr neomutt-- msmtp
+                chromium audacity vlc
             ;;
         linux)
             apt-get update -qq
@@ -62,7 +62,10 @@ install_packages() {
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
-                firefox-esr neomutt msmtp
+                audacity vlc \
+                wl-clipboard cliphist \
+                fwupd rasdaemon ethtool \
+                flatpak
 
             # Sublime Text
             if ! command -v subl >/dev/null 2>&1; then
@@ -99,6 +102,55 @@ install_packages() {
                 apt-get update -qq && apt-get install -y google-chrome-stable
             fi
 
+            # 1Password (desktop app + CLI). The app requires debsig-verify
+            # per-package signature checking, so we install its policy and a
+            # second copy of the signing key under /etc/debsig + /usr/share/debsig.
+            # "stable" is 1Password's own suite (distro-agnostic), so there is
+            # nothing codename-specific to track. Repo serves amd64 and arm64.
+            if ! command -v 1password >/dev/null 2>&1; then
+                log_info "Installing 1Password..."
+                OP_ARCH="$(dpkg --print-architecture)"
+                wget -qO - https://downloads.1password.com/linux/keys/1password.asc \
+                    | gpg --dearmor > /usr/share/keyrings/1password-archive-keyring.gpg
+                echo "deb [arch=$OP_ARCH signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$OP_ARCH stable main" \
+                    > /etc/apt/sources.list.d/1password.list
+                mkdir -p /etc/debsig/policies/AC2D62742012EA22
+                wget -qO - https://downloads.1password.com/linux/debian/debsig/1password.pol \
+                    > /etc/debsig/policies/AC2D62742012EA22/1password.pol
+                mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+                wget -qO - https://downloads.1password.com/linux/keys/1password.asc \
+                    | gpg --dearmor > /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+                apt-get update -qq && apt-get install -y 1password 1password-cli
+            fi
+
+            # Zoom (official .deb; Zoom publishes no apt repo, so this is a
+            # one-shot install and Zoom self-updates in-app). amd64 only. Runs
+            # under XWayland on Sway. Downloaded over HTTPS from zoom.us.
+            if ! command -v zoom >/dev/null 2>&1 \
+                && [ "$(dpkg --print-architecture)" = "amd64" ]; then
+                log_info "Installing Zoom..."
+                zoom_deb="/tmp/zoom_amd64.$$.deb"
+                if wget -qO "$zoom_deb" https://zoom.us/client/latest/zoom_amd64.deb; then
+                    apt-get install -y "$zoom_deb" || log_warn "Zoom install failed."
+                    rm -f "$zoom_deb"
+                else
+                    log_warn "Zoom download failed; skipping."
+                fi
+            fi
+
+            # GitHub Desktop — COMMUNITY build. GitHub ships no official Linux
+            # app; this is the shiftkey/desktop fork's apt repo (its 'ubuntu'
+            # suite installs fine on Debian). amd64 only.
+            if ! command -v github-desktop >/dev/null 2>&1 \
+                && [ "$(dpkg --print-architecture)" = "amd64" ]; then
+                log_info "Installing GitHub Desktop (community shiftkey build)..."
+                wget -qO - https://apt.packages.shiftkey.dev/gpg.key \
+                    | gpg --dearmor > /usr/share/keyrings/shiftkey-packages.gpg
+                echo "deb [arch=amd64 signed-by=/usr/share/keyrings/shiftkey-packages.gpg] https://apt.packages.shiftkey.dev/ubuntu/ any main" \
+                    > /etc/apt/sources.list.d/shiftkey-packages.list
+                apt-get update -qq && apt-get install -y github-desktop || log_warn "GitHub Desktop install failed."
+            fi
+
             # VMware tools (auto-detected)
             if grep -q VMware /sys/class/dmi/id/sys_vendor 2>/dev/null; then
                 apt-get install -y open-vm-tools-desktop
@@ -112,8 +164,9 @@ install_packages() {
             fi
 
             brew install \
-                bash git nano micro htop btop nmap lsd tmux mosh neomutt msmtp || true
-            brew install --cask wezterm || true
+                bash git nano micro htop btop nmap lsd tmux mosh || true
+            brew install --cask wezterm 1password 1password-cli \
+                audacity vlc zoom github || true
             ;;
     esac
 
@@ -424,6 +477,160 @@ install_dmenu() {
 }
 
 # -------------------------------------------------------------------
+# Todoist — no official .deb, so install the official AppImage (Doist's
+# real native app) on Linux and the official cask on macOS. No OpenBSD
+# build exists, so it is skipped there. Idempotent: the AppImage is only
+# re-downloaded when absent; the wrapper + launcher are rewritten each run.
+# -------------------------------------------------------------------
+install_todoist() {
+    case "$OS_TYPE" in
+        linux)
+            # upstream publishes x86_64 only
+            [ "$(dpkg --print-architecture)" = "amd64" ] || { log_warn "Todoist AppImage is x86_64-only; skipping."; return 0; }
+            if [ ! -x /opt/todoist/Todoist.AppImage ]; then
+                log_info "Installing Todoist (official AppImage)..."
+                # AppImages need FUSE 2 at runtime (libfuse2t64 on trixie)
+                apt-get install -y libfuse2t64 >/dev/null 2>&1 || apt-get install -y libfuse2 >/dev/null 2>&1 || true
+                mkdir -p /opt/todoist
+                # the /linux_app/appimage endpoint 302-redirects to the latest
+                # versioned build, so this stays version-agnostic across re-runs
+                if wget -qO /opt/todoist/Todoist.AppImage https://todoist.com/linux_app/appimage; then
+                    chmod 0755 /opt/todoist/Todoist.AppImage
+                    # extract the bundled icon for the launcher (no FUSE needed)
+                    td_tmp="$(mktemp -d)"
+                    ( cd "$td_tmp" && /opt/todoist/Todoist.AppImage --appimage-extract >/dev/null 2>&1 ) || true
+                    td_icon="$(find "$td_tmp/squashfs-root" -name 'todoist.png' 2>/dev/null | head -1)"
+                    [ -z "$td_icon" ] && td_icon="$td_tmp/squashfs-root/.DirIcon"
+                    [ -e "$td_icon" ] && cp -L "$td_icon" /opt/todoist/todoist.png 2>/dev/null || true
+                    rm -rf "$td_tmp"
+                else
+                    log_warn "Todoist AppImage download failed; skipping."
+                    rm -f /opt/todoist/Todoist.AppImage
+                    return 0
+                fi
+            fi
+            # wrapper (Electron → native Wayland where supported) + launcher entry
+            cat > /usr/local/bin/todoist <<'TDWRAP'
+#!/bin/sh
+exec /opt/todoist/Todoist.AppImage --ozone-platform-hint=auto "$@"
+TDWRAP
+            chmod 0755 /usr/local/bin/todoist
+            cat > /usr/share/applications/todoist.desktop <<'TDDESK'
+[Desktop Entry]
+Type=Application
+Name=Todoist
+Comment=Task manager
+Exec=/usr/local/bin/todoist %U
+Icon=/opt/todoist/todoist.png
+Terminal=false
+Categories=Office;ProjectManagement;
+StartupWMClass=Todoist
+TDDESK
+            log_info "Todoist installed (/opt/todoist, launcher: todoist)."
+            ;;
+        macos)
+            brew install --cask todoist-app || true
+            ;;
+        openbsd)
+            log_info "No Todoist build for OpenBSD; skipping."
+            ;;
+    esac
+}
+
+# -------------------------------------------------------------------
+# Fastmail — Fastmail shipped official native desktop apps in Oct 2025.
+# On Linux the official distribution is a Flatpak on Flathub (published
+# by Fastmail); on macOS it is the official cask. No OpenBSD build, and
+# no Flatpak on OpenBSD, so it is skipped there (use the Fastmail web app
+# in a browser). Flatpak itself is installed via apt in install_packages.
+# -------------------------------------------------------------------
+install_fastmail() {
+    case "$OS_TYPE" in
+        linux)
+            command -v flatpak >/dev/null 2>&1 || { log_warn "flatpak missing; skipping Fastmail."; return 0; }
+            flatpak remote-add --if-not-exists flathub \
+                https://dl.flathub.org/repo/flathub.flatpakrepo >/dev/null 2>&1 || true
+            if ! flatpak info com.fastmail.Fastmail >/dev/null 2>&1; then
+                log_info "Installing Fastmail (official Flatpak)..."
+                flatpak install -y --noninteractive flathub com.fastmail.Fastmail || \
+                    log_warn "Fastmail Flatpak install failed."
+            else
+                log_info "Fastmail Flatpak already installed."
+            fi
+            ;;
+        macos)
+            brew install --cask fastmail || true
+            ;;
+        openbsd)
+            log_info "No Fastmail desktop app for OpenBSD; use the web app in a browser."
+            ;;
+    esac
+}
+
+# -------------------------------------------------------------------
+# Joplin — official Linux distribution is an AppImage (from Joplin's own
+# object store; latest version resolved via the GitHub releases API). We
+# install it system-wide under /opt like Todoist, with a wrapper + launcher,
+# rather than piping their installer to a shell. macOS uses the official cask.
+# No OpenBSD build.
+# -------------------------------------------------------------------
+install_joplin() {
+    case "$OS_TYPE" in
+        linux)
+            [ "$(dpkg --print-architecture)" = "amd64" ] || { log_warn "Joplin AppImage is x86_64-only; skipping."; return 0; }
+            if [ ! -x /opt/joplin/Joplin.AppImage ]; then
+                log_info "Installing Joplin (official AppImage)..."
+                apt-get install -y libfuse2t64 >/dev/null 2>&1 || apt-get install -y libfuse2 >/dev/null 2>&1 || true
+                jver=$(wget -qO- https://api.github.com/repos/laurent22/joplin/releases/latest 2>/dev/null \
+                    | grep -oE '"tag_name"[ :]*"v[0-9.]+"' | grep -oE '[0-9][0-9.]*' | head -1)
+                if [ -n "$jver" ]; then
+                    mkdir -p /opt/joplin
+                    if wget -qO /opt/joplin/Joplin.AppImage "https://objects.joplinusercontent.com/v${jver}/Joplin-${jver}.AppImage"; then
+                        chmod 0755 /opt/joplin/Joplin.AppImage
+                        j_tmp="$(mktemp -d)"
+                        ( cd "$j_tmp" && /opt/joplin/Joplin.AppImage --appimage-extract >/dev/null 2>&1 ) || true
+                        j_icon="$(find "$j_tmp/squashfs-root" -name 'joplin.png' 2>/dev/null | head -1)"
+                        [ -z "$j_icon" ] && j_icon="$j_tmp/squashfs-root/.DirIcon"
+                        [ -e "$j_icon" ] && cp -L "$j_icon" /opt/joplin/joplin.png 2>/dev/null || true
+                        rm -rf "$j_tmp"
+                    else
+                        log_warn "Joplin download failed; skipping."
+                        rm -f /opt/joplin/Joplin.AppImage
+                        return 0
+                    fi
+                else
+                    log_warn "Could not resolve latest Joplin version (GitHub API); skipping."
+                    return 0
+                fi
+            fi
+            cat > /usr/local/bin/joplin <<'JOPWRAP'
+#!/bin/sh
+exec /opt/joplin/Joplin.AppImage --ozone-platform-hint=auto "$@"
+JOPWRAP
+            chmod 0755 /usr/local/bin/joplin
+            cat > /usr/share/applications/joplin.desktop <<'JOPDESK'
+[Desktop Entry]
+Type=Application
+Name=Joplin
+Comment=Note taking and to-do
+Exec=/usr/local/bin/joplin %U
+Icon=/opt/joplin/joplin.png
+Terminal=false
+Categories=Office;
+StartupWMClass=Joplin
+JOPDESK
+            log_info "Joplin installed (/opt/joplin, launcher: joplin)."
+            ;;
+        macos)
+            brew install --cask joplin || true
+            ;;
+        openbsd)
+            log_info "No Joplin build for OpenBSD; skipping."
+            ;;
+    esac
+}
+
+# -------------------------------------------------------------------
 # Services
 # -------------------------------------------------------------------
 configure_services() {
@@ -588,6 +795,25 @@ TSYNC
         sed -i 's/^FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
         sed -i 's/^FONTSIZE=.*/FONTSIZE="14"/' /etc/default/console-setup
         setupcon --force 2>/dev/null || true
+
+        # Make Google Chrome the default browser: system-wide alternatives
+        # for CLI callers, plus the per-user xdg default for GUI apps that
+        # open links (xdg-settings writes ~/.config/mimeapps.list; it needs
+        # no running session for the generic backend).
+        if command -v google-chrome-stable >/dev/null 2>&1; then
+            update-alternatives --set x-www-browser /usr/bin/google-chrome-stable 2>/dev/null || true
+            update-alternatives --set gnome-www-browser /usr/bin/google-chrome-stable 2>/dev/null || true
+            su - "$username" -c 'xdg-settings set default-web-browser google-chrome.desktop' 2>/dev/null || true
+        fi
+
+        # rasdaemon: log ECC/MCE hardware error events. Effective wherever the
+        # kernel EDAC layer exposes memory controllers (ECC workstations and
+        # servers); a harmless no-op on machines/VMs without ECC. fwupd is left
+        # to its own metadata-refresh timer — firmware is never auto-flashed
+        # from here, since that is irreversible and reboots the machine.
+        if dpkg -s rasdaemon >/dev/null 2>&1; then
+            systemctl enable --now rasdaemon.service 2>/dev/null || true
+        fi
     fi
 
     log_info "Services configured."
@@ -874,10 +1100,6 @@ deploy_dotfiles() {
         chmod 600 "$home_dir/.ssh/config" 2>/dev/null || true
     fi
 
-    # Mail configs reference credentials (via passwordeval/backticks);
-    # keep them user-only.
-    chmod 600 "$home_dir/.msmtprc" "$home_dir/.muttrc" 2>/dev/null || true
-
     # macOS: CoreText doesn't scan ~/.fonts; register the font where the
     # OS actually looks so WezTerm and friends can resolve it.
     if [ "$OS_TYPE" = "macos" ] && [ -f "$home_dir/.fonts/bmv.otf" ]; then
@@ -923,6 +1145,9 @@ main() {
     install_herdr
     install_st
     install_dmenu
+    install_todoist
+    install_fastmail
+    install_joplin
     get_username
     install_claude
     configure_hostname

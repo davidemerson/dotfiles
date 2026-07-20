@@ -9,6 +9,14 @@ seat * xcursor_theme plan9 16
 # blank screen after 300 seconds
 exec swayidle -w timeout 300 'swaymsg "output * power off"' resume 'swaymsg "output * power on"'
 
+# clipboard: mirror the primary selection into the clipboard (so selecting
+# text in any terminal/app is pasteable everywhere with Ctrl+Shift+V, matching
+# the OpenBSD st behavior), and keep a history with cliphist so a selection
+# that clobbers a copied value (e.g. a 1Password field) can be recovered via
+# the $mod+v picker below.
+exec wl-paste --primary --watch wl-copy
+exec wl-paste --watch cliphist store
+
 # modifier definition
 set $mod Mod4
 floating_modifier $mod
@@ -36,9 +44,20 @@ exec rm -f $WOBSOCK && mkfifo $WOBSOCK && tail -f $WOBSOCK | wob
 
 # launch, lock, and volume bindings
 bindsym $mod+Return exec foot
-bindsym $mod+b exec firefox-esr
+bindsym $mod+b exec google-chrome-stable
 bindsym $mod+d exec wofi --show drun
 bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
+
+# application bindings
+bindsym $mod+t exec todoist
+bindsym $mod+e exec flatpak run com.fastmail.Fastmail
+# clipboard history picker (cliphist via wofi)
+bindsym $mod+v exec cliphist list | wofi --dmenu | cliphist decode | wl-copy
+# 1Password: quick access, main window, lock. Wayland requires the
+# compositor to grab these (the app cannot register global hotkeys itself).
+bindsym $mod+p exec 1password --quick-access
+bindsym $mod+Shift+p exec 1password --show
+bindsym $mod+Shift+z exec 1password --lock
 bindsym $mod+Shift+e exec swaynag -t warning -m 'Exit sway?' -B 'Yes' 'swaymsg exit'
 bindsym $mod+Shift+s exec swaynag -t warning -m 'Shut down?' -B 'Yes' 'systemctl poweroff'
 bindsym $mod+m exec pamixer -i 5 && pamixer --get-volume > $WOBSOCK

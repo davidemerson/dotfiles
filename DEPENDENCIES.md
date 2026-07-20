@@ -11,8 +11,8 @@
 - **Font**: Berkeley Mono Variable NNIX (`~/.fonts/bmv.otf`) — set as the generic `monospace` family via `~/.config/fontconfig/fonts.conf`, so every fontconfig client inherits it.
 - **Cursor** (Linux/OpenBSD): [plan9 Xcursor theme](https://github.com/wintermute-cell/xcursor-plan9) vendored at `~/.icons/plan9`, set default via `~/.icons/default` + `Xcursor.theme` (X11) and `seat xcursor_theme` (sway/Wayland); `XCURSOR_THEME`/`SIZE` exported in the session.
 - **Shell**: bash (Linux/OpenBSD), zsh (macOS default)
-- **Editor**: [issy](https://github.com/davidemerson/issy) — built from source via Zig 0.15.x (0.16+ breaks the build; provisioning verifies the version) and installed to `/usr/local/bin/issy`. Set as `EDITOR` in `.bashrc`/`.zshrc`/`.muttrc`. Configured via `~/.issyrc`. Re-running `provision.sh` compares the installed commit (`issy --version`) against upstream `HEAD` and rebuilds when a newer one exists (or when it stops linking after an OpenBSD upgrade).
-- **Email**: neomutt + msmtp
+- **Editor**: [issy](https://github.com/davidemerson/issy) — built from source via Zig 0.15.x (0.16+ breaks the build; provisioning verifies the version) and installed to `/usr/local/bin/issy`. Set as `EDITOR` in `.bashrc`/`.zshrc`. Configured via `~/.issyrc`. Re-running `provision.sh` compares the installed commit (`issy --version`) against upstream `HEAD` and rebuilds when a newer one exists (or when it stops linking after an OpenBSD upgrade).
+- **ssh-agent** (Linux/OpenBSD): `.bashrc` starts one shared per-user agent on a fixed `$XDG_RUNTIME_DIR` socket and reuses it across shells and the WM session (macOS uses the launchd agent). Needed for `workstation` and SSH commit signing.
 - **Version Control**: git
 - **Multiplexer**: tmux (in base on OpenBSD; via apt/brew elsewhere) — config at `~/.tmux.conf`
 - **Agent multiplexer**: [herdr](https://herdr.dev) — homebrew-core on macOS, prebuilt release binary on Linux (x86_64/aarch64) at `/usr/local/bin/herdr`; no OpenBSD builds upstream, skipped there
@@ -28,7 +28,12 @@
 - **Lock Screen**: swaylock
 - **Volume**: pamixer + wob
 - **Editors**: micro, Sublime Text
-- **Browser**: Firefox ESR
+- **Browser**: Google Chrome (upstream apt repo) — set as the default browser via update-alternatives + xdg
+- **Clipboard**: wl-clipboard + cliphist — Sway autostarts `wl-paste --primary --watch wl-copy` (selection→clipboard) and `wl-paste --watch cliphist store` (history, `$mod+v` picker)
+- **Password manager**: 1Password + `1password-cli` (`op`) — upstream apt repo with debsig-verify; `$mod+p`/`$mod+Shift+p`/`$mod+Shift+z`
+- **Apps**: Todoist (official AppImage → `/opt/todoist`, `$mod+t`), Joplin (official AppImage → `/opt/joplin`), Fastmail (official Flatpak `com.fastmail.Fastmail`, `$mod+e`), VLC, Audacity, Zoom (official `.deb`), GitHub Desktop (community `shiftkey` build)
+- **Packaging**: Flatpak + Flathub (for Fastmail and any Flatpaks)
+- **Hardware**: fwupd (firmware; not auto-flashed), rasdaemon (ECC/MCE logging, enabled), ethtool
 - **VM Tools**: open-vm-tools-desktop (auto-detected)
 - **Build**: build-essential
 - **Console Font**: Terminus 14
@@ -45,15 +50,17 @@
 - **X resources**: `~/.Xresources` (crisp Xft) merged in `.xinitrc`; Caps→Escape, key-repeat tuning
 - **Volume**: sndioctl (built-in)
 - **Privilege**: doas (configured for wheel group)
-- **Browser**: Firefox ESR (`firefox-esr`; `$mod+b`)
+- **Browser**: Chromium (`chromium`, launched as `chrome`; `$mod+b`) — Google Chrome has no OpenBSD build, so Chromium replaces it here
+- **Apps**: VLC, Audacity (packaged). 1Password, Todoist, Joplin, Fastmail, Zoom, and GitHub Desktop have no OpenBSD builds and are skipped.
 
 ### macOS
 - **Terminal**: WezTerm (via Homebrew cask)
 - **Editors**: micro
+- **Apps** (casks): 1Password + CLI, Todoist, Joplin, Fastmail, VLC, Audacity, Zoom, GitHub Desktop (official on macOS)
 - **Package Manager**: Homebrew (installed automatically)
 
 ### Theming (palette-wide rice)
 - **Colored man/less**: `LESS_TERMCAP` in the shell rc (light-blue headings, navy/white standout) — all platforms
 - **GTK** (Linux/OpenBSD): `~/.config/gtk-{3,4}.0/settings.ini` — dark theme preference + plan9 cursor
 - **btop**: `~/.config/btop/themes/nnix.theme` (grayscale + navy/blue), selected in `btop.conf`
-- **Firefox** (Linux/OpenBSD): minimal black `userChrome.css` + compact-dark `user.js` in `~/.config/firefox`; installed into each profile by `~/.local/bin/firefox-rice` (run once after Firefox's first launch)
+- **waybar**: on-brand gray→blue load histogram (`~/.config/waybar/loadgraph.sh`) plus labeled EST/UTC clocks

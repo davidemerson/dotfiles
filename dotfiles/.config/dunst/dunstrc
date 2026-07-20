@@ -34,7 +34,7 @@
     history_length = 20
     corner_radius = 0
     dmenu = /usr/local/bin/dmenu -p dunst:
-    browser = /usr/local/bin/firefox-esr
+    browser = /usr/local/bin/chrome
     title = Dunst
     class = Dunst
     mouse_left_click = close_current

@@ -11,8 +11,10 @@
     "modules-right": [
     	"network",
     	"cpu",
+    	"custom/loadgraph",
     	"memory",
-    	"clock",
+    	"clock#est",
+    	"clock#utc",
     	"tray",
     	],
     "sway/mode": {
@@ -21,12 +23,28 @@
     "tray": {
         "spacing": 10,
     },
-    "clock": {
-    	"interval": 8,
-        "format": "{:%Y-%m-%d | %H:%M:%S }",
+    // Two clocks, each labeled so it's clear which zone is which. Date is
+    // shown once, on the EST clock, in the existing Y-M-D format.
+    "clock#est": {
+    	"interval": 1,
+    	"timezone": "America/New_York",
+        "format": "EST {:%Y-%m-%d %H:%M:%S}",
+    },
+    "clock#utc": {
+    	"interval": 1,
+    	"timezone": "UTC",
+        "format": "UTC {:%H:%M:%S}",
     },
     "cpu": {
         "format": "CPU: {usage}% ",
+    },
+    // Rolling load histogram (~last minute): 20 samples at 3s each, drawn as
+    // an on-brand gray->blue block sparkline by loadgraph.sh.
+    "custom/loadgraph": {
+    	"exec": "sh $HOME/.config/waybar/loadgraph.sh",
+    	"interval": 3,
+    	"format": "load {}",
+    	"tooltip": false,
     },
     "memory": {
         "format": "RAM: {}% ",

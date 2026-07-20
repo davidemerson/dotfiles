@@ -12,9 +12,6 @@ dotfiles/.ssh/id_*
 dotfiles/.ssh/*.pem
 dotfiles/.ssh/authorized_keys
 
-# Mail configs (.msmtprc/.muttrc) are tracked deliberately: they hold no
-# secrets — credentials come from ~/.secrets/mailpass, which stays local.
-
 # Sublime Text session files
 dotfiles/.config/sublime-text-3/Local/
 dotfiles/.config/sublime-text-3/Packages/User/Package Control.cache/
