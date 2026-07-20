@@ -565,7 +565,13 @@ TSYNC
         systemctl enable systemd-timesyncd 2>/dev/null || true
         systemctl restart systemd-timesyncd 2>/dev/null || true
         timedatectl set-ntp true 2>/dev/null || true
-        systemctl disable gdm 2>/dev/null || true
+        # Display manager: we boot to tty1 and hand off to sway from .bashrc.
+        # gdm.service is static (no [Install] section), so `systemctl disable`
+        # is a silent no-op on it. Mask the unit, drop the SysV runlevel links,
+        # and stop booting into graphical.target so getty@tty1 actually runs.
+        systemctl mask gdm.service 2>/dev/null || true
+        update-rc.d -f gdm3 remove 2>/dev/null || true
+        systemctl set-default multi-user.target 2>/dev/null || true
 
         # Set console font to Terminus 14 (small, clean bitmap font)
         sed -i 's/^FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
