@@ -814,6 +814,13 @@ TSYNC
         if dpkg -s rasdaemon >/dev/null 2>&1; then
             systemctl enable --now rasdaemon.service 2>/dev/null || true
         fi
+
+        # Never suspend/sleep (this is a workstation). Mask the sleep targets so
+        # nothing — logind idle action, lid events, a stray `systemctl suspend`
+        # — can put it to sleep. The display still blanks after 30 min via
+        # swayidle; this only blocks actual system sleep. Reversible with
+        # `systemctl unmask`. Harmless on a VM.
+        systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target 2>/dev/null || true
     fi
 
     log_info "Services configured."

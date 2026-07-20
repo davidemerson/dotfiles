@@ -6,8 +6,9 @@ exec swaybg --output "*" --color "#000000"
 # plan9 cursor theme (installed to ~/.icons/plan9 by provision)
 seat * xcursor_theme plan9 16
 
-# blank screen after 300 seconds
-exec swayidle -w timeout 300 'swaymsg "output * power off"' resume 'swaymsg "output * power on"'
+# turn the display off after 30 minutes idle (never suspends — this only
+# powers the outputs off; system sleep is masked entirely, see provision.sh)
+exec swayidle -w timeout 1800 'swaymsg "output * power off"' resume 'swaymsg "output * power on"'
 
 # clipboard: mirror the primary selection into the clipboard (so selecting
 # text in any terminal/app is pasteable everywhere with Ctrl+Shift+V, matching
