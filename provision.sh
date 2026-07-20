@@ -312,7 +312,7 @@ install_herdr() {
 ST_FLEXIPATCH_COMMIT="1d3f20096c9b5cea0452343a97c644f5987da6d9"
 
 install_st() {
-    [ "$OS_TYPE" = "openbsd" ] || return
+    [ "$OS_TYPE" = "openbsd" ] || return 0
 
     # Stamp on commit + OS release. A sysupgrade bumps Xenocara/base libs,
     # so the old binary stops loading even though the commit is unchanged;
@@ -363,7 +363,7 @@ install_st() {
 DMENU_FLEXIPATCH_COMMIT="c59af646f2d8ccbc31f799111b0ff7a1282efa63"
 
 install_dmenu() {
-    [ "$OS_TYPE" = "openbsd" ] || return
+    [ "$OS_TYPE" = "openbsd" ] || return 0
 
     # Rebuild on commit OR OS-release change (sysupgrade bumps base libs) OR
     # if the binary no longer links — see install_st() for the rationale.
@@ -681,7 +681,7 @@ DOAS
 configure_sshd() {
     [ "$OS_TYPE" = "macos" ] && return
     conf=/etc/ssh/sshd_config
-    [ -f "$conf" ] || return
+    [ -f "$conf" ] || return 0
 
     log_info "Hardening sshd (key-only auth)..."
     sshd_bin="$(command -v sshd 2>/dev/null || echo /usr/sbin/sshd)"
