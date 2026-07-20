@@ -594,6 +594,39 @@ TSYNC
 }
 
 # -------------------------------------------------------------------
+# Claude Code — native build (no node required), lands in ~/.local/bin.
+#
+# This is a per-user install, so on Linux it must run as the target
+# user rather than root, or the binary ends up in /root/.local/bin.
+# Must therefore be called after get_username. No OpenBSD build.
+# -------------------------------------------------------------------
+install_claude() {
+    if [ "$OS_TYPE" = "openbsd" ]; then
+        return 0
+    fi
+
+    if [ "$OS_TYPE" = "macos" ]; then
+        if command -v claude >/dev/null 2>&1; then
+            log_info "Claude Code already installed."
+            return 0
+        fi
+        log_info "Installing Claude Code..."
+        curl -fsSL https://claude.ai/install.sh | bash \
+            || log_warn "Claude Code install failed."
+        return 0
+    fi
+
+    if [ -x "/home/$username/.local/bin/claude" ]; then
+        log_info "Claude Code already installed."
+        return 0
+    fi
+
+    log_info "Installing Claude Code for $username..."
+    su - "$username" -c 'curl -fsSL https://claude.ai/install.sh | bash' \
+        || log_warn "Claude Code install failed."
+}
+
+# -------------------------------------------------------------------
 # User and group (Linux/OpenBSD only — macOS uses existing user)
 # -------------------------------------------------------------------
 get_username() {
@@ -891,6 +924,7 @@ main() {
     install_st
     install_dmenu
     get_username
+    install_claude
     configure_hostname
     configure_doas
     configure_sshd
