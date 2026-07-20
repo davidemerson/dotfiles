@@ -138,17 +138,25 @@ install_packages() {
                 fi
             fi
 
-            # GitHub Desktop — COMMUNITY build. GitHub ships no official Linux
-            # app; this is the shiftkey/desktop fork's apt repo (its 'ubuntu'
-            # suite installs fine on Debian). amd64 only.
+            # GitHub Desktop — COMMUNITY build (GitHub ships no official Linux
+            # app). shiftkey/desktop's own apt host (apt.packages.shiftkey.dev)
+            # has recurring TLS-cert breakage, so we use the maintained @mwt
+            # mirror instead. Wrapped so a broken third-party repo only warns
+            # and never aborts the rest of provisioning. amd64 only.
             if ! command -v github-desktop >/dev/null 2>&1 \
                 && [ "$(dpkg --print-architecture)" = "amd64" ]; then
-                log_info "Installing GitHub Desktop (community shiftkey build)..."
-                wget -qO - https://apt.packages.shiftkey.dev/gpg.key \
-                    | gpg --dearmor > /usr/share/keyrings/shiftkey-packages.gpg
-                echo "deb [arch=amd64 signed-by=/usr/share/keyrings/shiftkey-packages.gpg] https://apt.packages.shiftkey.dev/ubuntu/ any main" \
-                    > /etc/apt/sources.list.d/shiftkey-packages.list
-                apt-get update -qq && apt-get install -y github-desktop || log_warn "GitHub Desktop install failed."
+                log_info "Installing GitHub Desktop (community shiftkey build, @mwt mirror)..."
+                ghd_key="/tmp/ghd-key.$$"
+                if wget -qO "$ghd_key" https://mirror.mwt.me/shiftkey-desktop/gpgkey; then
+                    gpg --dearmor < "$ghd_key" > /usr/share/keyrings/mwt-desktop.gpg 2>/dev/null \
+                        || cp "$ghd_key" /usr/share/keyrings/mwt-desktop.gpg
+                    rm -f "$ghd_key"
+                    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/mwt-desktop.gpg] https://mirror.mwt.me/shiftkey-desktop/deb/ any main" \
+                        > /etc/apt/sources.list.d/shiftkey-packages.list
+                    apt-get update -qq && apt-get install -y github-desktop || log_warn "GitHub Desktop install failed; continuing."
+                else
+                    log_warn "GitHub Desktop key download failed; skipping."
+                fi
             fi
 
             # VMware tools (auto-detected)
