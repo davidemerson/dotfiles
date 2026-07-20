@@ -88,6 +88,17 @@ install_packages() {
                 apt-get update -qq && apt-get install -y zerotier-one
             fi
 
+            # Google Chrome (upstream ships amd64 only)
+            if ! command -v google-chrome >/dev/null 2>&1 \
+                && [ "$(dpkg --print-architecture)" = "amd64" ]; then
+                log_info "Installing Google Chrome..."
+                wget -qO - https://dl.google.com/linux/linux_signing_key.pub \
+                    | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg
+                echo "deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
+                    > /etc/apt/sources.list.d/google-chrome.list
+                apt-get update -qq && apt-get install -y google-chrome-stable
+            fi
+
             # VMware tools (auto-detected)
             if grep -q VMware /sys/class/dmi/id/sys_vendor 2>/dev/null; then
                 apt-get install -y open-vm-tools-desktop
