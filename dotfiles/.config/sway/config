@@ -52,8 +52,9 @@ bindsym $mod+z exec swaylock --config ~/.config/swaylock/config
 # application bindings
 bindsym $mod+t exec todoist
 bindsym $mod+e exec flatpak run com.fastmail.Fastmail
-# clipboard history picker (cliphist via wofi)
-bindsym $mod+v exec cliphist list | wofi --dmenu | cliphist decode | wl-copy
+# clipboard history picker (cliphist via wofi); $mod+c matches the OpenBSD
+# i3 clipboard key. ($mod+v is vertical split, below.)
+bindsym $mod+c exec cliphist list | wofi --dmenu | cliphist decode | wl-copy
 # 1Password: quick access, main window, lock. Wayland requires the
 # compositor to grab these (the app cannot register global hotkeys itself).
 bindsym $mod+p exec 1password --quick-access

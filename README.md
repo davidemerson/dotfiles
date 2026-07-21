@@ -141,6 +141,7 @@ Not every file deploys on every OS:
 |------|-------|---------|-------|
 | `.bashrc`, `.bash_profile` | yes | yes | — |
 | `.zshrc` | — | — | yes |
+| `.wezterm.lua` | — | — | yes |
 | `.xinitrc` | — | yes | — |
 | `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*` | yes | — | — |
 | `.config/i3/*`, `i3status/*` | — | yes | — |
@@ -181,7 +182,7 @@ Package installs, from-source builds, and file deploys are idempotent.
 | Mod4 + e | Fastmail |
 | Mod4 + p | 1Password quick access (Sway) |
 | Mod4 + Shift+p | 1Password main window (Sway) |
-| Mod4 + v | Clipboard history picker (Sway) |
+| Mod4 + c | Clipboard history picker (Sway) |
 | Mod4 + z | Lock screen |
 | Mod4 + Shift+z | 1Password lock (Sway) |
 | Mod4 + Shift+q | Kill window |

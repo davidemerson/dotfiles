@@ -1072,6 +1072,7 @@ deploy_dotfiles() {
             *.xinitrc) [ "$OS_TYPE" != "openbsd" ] && skip=true ;;
             *.bashrc|*.bash_profile) [ "$OS_TYPE" = "macos" ] && skip=true ;;
             *.zshrc) [ "$OS_TYPE" != "macos" ] && skip=true ;;
+            *.wezterm.lua) [ "$OS_TYPE" != "macos" ] && skip=true ;;
         esac
         if [ "$skip" = "true" ]; then continue; fi
 
