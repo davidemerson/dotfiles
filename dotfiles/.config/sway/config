@@ -75,6 +75,7 @@ bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
 
 # window management bindings
 bindsym $mod+Shift+q kill
+bindsym $mod+w kill
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 bindsym $mod+Shift+j move left
