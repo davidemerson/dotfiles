@@ -661,7 +661,9 @@ configure_services() {
     log_info "Configuring services..."
 
     if [ "$OS_TYPE" = "openbsd" ]; then
-        ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+        # System timezone: US Eastern (EST/EDT, auto-DST). The waybar UTC clock
+        # uses its own explicit override, so it stays UTC regardless.
+        ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
 
         # NTP: pin the pool + cloudflare with HTTPS constraints. The -s flag
         # steps the clock at startup, so a suspended/cloned VM corrects a
@@ -793,7 +795,9 @@ VMWARE_XORG
             log_info "Installed VMware Xorg config (4K default)."
         fi
     else
-        timedatectl set-timezone UTC 2>/dev/null || true
+        # System timezone: US Eastern (EST/EDT, auto-DST). The waybar UTC clock
+        # keeps its own override, so it stays UTC regardless.
+        timedatectl set-timezone America/New_York 2>/dev/null || true
 
         # NTP: pin servers for systemd-timesyncd.
         mkdir -p /etc/systemd/timesyncd.conf.d

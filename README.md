@@ -113,7 +113,7 @@ paths; `workstation <label>` forces one.
 ### System Configuration (Linux/OpenBSD)
 
 - **sshd**: key-only auth (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`); the candidate config is validated with `sshd -t` before replacing the real one.
-- **Timezone**: UTC on both.
+- **Timezone**: `America/New_York` (US Eastern, EST/EDT with auto-DST) on both. The waybar UTC clock uses an explicit override, so it still shows UTC alongside the Eastern clock.
 - **NTP (Linux)**: systemd-timesyncd pinned to pool servers with a cloudflare fallback.
 - **NTP (OpenBSD)**: `/etc/ntpd.conf` with pool + cloudflare + the vmt0 host-time sensor + HTTPS constraints, and `ntpd -s` to step at boot. A clock-guard cron job (every 10 minutes) restarts ntpd with an `rdate` step if the vmt0 sensor shows more than 10 seconds of drift, since a running OpenNTPD only slews.
 - **OpenBSD extras**: doas for wheel (`permit persist :wheel`), noatime on all FFS partitions, xenodm enabled (Xorg needs root aperture access on VMware, no DRM), xconsole disabled, solid black greeter background, Spleen 8x16 console font where supported, and a VMware Xorg snippet with a 4K default mode.
