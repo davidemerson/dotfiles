@@ -119,7 +119,7 @@ paths; `workstation <label>` forces one.
 - **NTP (Linux)**: systemd-timesyncd pinned to pool servers with a cloudflare fallback.
 - **NTP (OpenBSD)**: `/etc/ntpd.conf` with pool + cloudflare + the vmt0 host-time sensor + HTTPS constraints, and `ntpd -s` to step at boot. A clock-guard cron job (every 10 minutes) restarts ntpd with an `rdate` step if the vmt0 sensor shows more than 10 seconds of drift, since a running OpenNTPD only slews.
 - **OpenBSD extras**: doas for wheel (`permit persist :wheel`), noatime on all FFS partitions, xenodm enabled (Xorg needs root aperture access on VMware, no DRM), xconsole disabled, solid black greeter background, Spleen 8x16 console font where supported, and a VMware Xorg snippet with a 4K default mode.
-- **Linux extras**: Terminus 14 console font, gdm masked in favor of a **greetd + tuigreet** greeter (minimal TUI on vt7; sway starts via the `sway-session` login-shell wrapper), Sublime Text from the official apt repo, open-vm-tools-desktop when VMware is detected. Google Chrome is set as the default browser (update-alternatives for `x-www-browser`/`gnome-www-browser`, plus the per-user xdg default). **rasdaemon** is enabled to log ECC/MCE hardware error events (effective wherever the kernel EDAC layer exposes memory controllers; a no-op without ECC). **fwupd** is installed but firmware is never auto-flashed from the script — that is a deliberate, out-of-band action (`fwupdmgr refresh && fwupdmgr update`).
+- **Linux extras**: Berkeley Mono console font (rasterized from `bmv.otf`; see `scripts/build-console-font.sh`), gdm masked in favor of a **greetd + tuigreet** greeter (minimal TUI on vt7; sway starts via the `sway-session` login-shell wrapper), Sublime Text from the official apt repo, open-vm-tools-desktop when VMware is detected. Google Chrome is set as the default browser (update-alternatives for `x-www-browser`/`gnome-www-browser`, plus the per-user xdg default). **rasdaemon** is enabled to log ECC/MCE hardware error events (effective wherever the kernel EDAC layer exposes memory controllers; a no-op without ECC). **fwupd** is installed but firmware is never auto-flashed from the script — that is a deliberate, out-of-band action (`fwupdmgr refresh && fwupdmgr update`).
 
 ### ssh-agent
 
@@ -297,7 +297,7 @@ session did not come back cleanly from the upgrade.
 - **OpenBSD disk space**: `/usr/local` needs at least 2GB for packages
 - **OpenBSD UTF-8**: The `.bashrc` sets `LANG=en_US.UTF-8` for st/btop
 - **OpenBSD console font**: Cannot be changed on VMware arm64 (simplefb limitation)
-- **Debian console font**: Set to Terminus 14 via console-setup
+- **Debian console font**: Berkeley Mono (NNIX) — a ~16x32 PSF bitmap rasterized from `bmv.otf` via `scripts/build-console-font.sh`, installed to `/usr/share/consolefonts` and set through console-setup (`FONT=`). The greeter's vt7 isn't covered by console-setup, so a `greetd.service` drop-in loads it there too. tuigreet's password mask is `•` (Berkeley Mono has no `※`/U+203B glyph)
 - **macOS Homebrew**: Installed automatically if missing
 - **macOS fonts**: CoreText doesn't scan `~/.fonts`, so the font is also copied to `~/Library/Fonts`
 

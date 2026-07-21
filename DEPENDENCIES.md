@@ -45,7 +45,7 @@
 - **Smart card**: pcscd + libccid + opensc + pcsc-tools (pcscd.socket enabled; the stock CCID driver covers readers like the ACR1552)
 - **VM Tools**: open-vm-tools-desktop (auto-detected)
 - **Build**: build-essential
-- **Console Font**: Terminus 14
+- **Console Font**: Berkeley Mono (NNIX), a ~16x32 PSF bitmap rasterized from `bmv.otf` (`scripts/build-console-font.sh`), used for tty1-6 and the tuigreet greeter
 
 ### OpenBSD (i3 Desktop)
 - **Window Manager**: i3

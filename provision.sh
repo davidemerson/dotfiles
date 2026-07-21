@@ -867,9 +867,18 @@ SWAYSESS
 vt = 7
 
 [default_session]
-command = "tuigreet --time --time-format '%Y-%m-%d %H:%M:%S' --asterisks --asterisks-char '※' --greeting '$(hostname)' --theme 'action=black;button=black' --cmd /usr/local/bin/sway-session"
+command = "tuigreet --time --time-format '%Y-%m-%d %H:%M:%S' --asterisks --asterisks-char '•' --greeting '$(hostname)' --theme 'action=black;button=black' --cmd /usr/local/bin/sway-session"
 user = "_greetd"
 GREETD
+            # The greeter runs on vt7, which console-setup (tty1-6) never
+            # touches, so load the Berkeley Mono console font on vt7 before
+            # tuigreet draws. (Mask char is • not ※ — Berkeley Mono has no
+            # U+203B glyph, so ※ would render as tofu in the console font.)
+            mkdir -p /etc/systemd/system/greetd.service.d
+            cat > /etc/systemd/system/greetd.service.d/console-font.conf <<'GFONT'
+[Service]
+ExecStartPre=/usr/bin/setfont /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz -C /dev/tty7
+GFONT
             systemctl set-default graphical.target 2>/dev/null || true
             systemctl enable greetd 2>/dev/null || true
         else
@@ -877,9 +886,21 @@ GREETD
             systemctl set-default multi-user.target 2>/dev/null || true
         fi
 
-        # Set console font to Terminus 14 (small, clean bitmap font)
-        sed -i 's/^FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
-        sed -i 's/^FONTSIZE=.*/FONTSIZE="14"/' /etc/default/console-setup
+        # Console font: Berkeley Mono (NNIX) — a ~16x32 bitmap rasterized from
+        # bmv.otf (see scripts/build-console-font.sh), so tty1-6 and the greeter
+        # match st/dmenu/waybar. Ship the prebuilt .psf.gz rather than build it
+        # here: otf2bdf/bdf2psf need a fiddly XLFD fixup, and the result is
+        # deterministic. setupcon uses FONT= directly when set; clearing
+        # FONTFACE/FONTSIZE keeps it from falling back to a stock face.
+        install -m 0644 "$SCRIPT_DIR/scripts/BerkeleyMonoNNIX.psf.gz" \
+            /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz
+        sed -i 's/^FONTFACE=.*/FONTFACE=""/' /etc/default/console-setup
+        sed -i 's/^FONTSIZE=.*/FONTSIZE=""/' /etc/default/console-setup
+        if grep -q '^FONT=' /etc/default/console-setup; then
+            sed -i 's|^FONT=.*|FONT="BerkeleyMonoNNIX.psf.gz"|' /etc/default/console-setup
+        else
+            printf 'FONT="BerkeleyMonoNNIX.psf.gz"\n' >> /etc/default/console-setup
+        fi
         setupcon --force 2>/dev/null || true
 
         # Dark mode for GTK4/libadwaita, the xdg portal, and Chrome/Electron/
