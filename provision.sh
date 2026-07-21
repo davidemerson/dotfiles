@@ -881,10 +881,21 @@ ExecStartPre=/usr/bin/setfont /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz -C
 GFONT
             # Rename the prompt-box title "Authenticate into <hostname>" to
             # "Login": the hostname is already in the --greeting line, so the
-            # title is redundant. tuigreet has no flag for this, so we patch the
-            # binary's embedded locale (reverts on tuigreet upgrade; re-run the
-            # script by hand then, or just re-run provision.sh).
-            sh "$SCRIPT_DIR/scripts/patch-tuigreet-title.sh" || true
+            # title is redundant. tuigreet has no flag for this and compiles its
+            # locale strings into the binary, so we patch the binary in place.
+            # That patch is reverted on a tuigreet upgrade, so install the script
+            # to a stable path and register an APT hook that re-applies it (it's
+            # idempotent) after any package change — an upgrade never leaves the
+            # wrong title behind.
+            install -m 0755 "$SCRIPT_DIR/scripts/patch-tuigreet-title.sh" \
+                /usr/local/sbin/patch-tuigreet-title
+            cat > /etc/apt/apt.conf.d/99-tuigreet-title <<'APTHOOK'
+// Re-apply the tuigreet "Login" title patch after any apt/dpkg run so a
+// tuigreet upgrade or reinstall doesn't revert it. The script is idempotent
+// and a no-op when tuigreet is absent or its embedded string has changed.
+DPkg::Post-Invoke { "test -x /usr/local/sbin/patch-tuigreet-title && /usr/local/sbin/patch-tuigreet-title >/dev/null 2>&1 || true"; };
+APTHOOK
+            /usr/local/sbin/patch-tuigreet-title || true
             systemctl set-default graphical.target 2>/dev/null || true
             systemctl enable greetd 2>/dev/null || true
         else
