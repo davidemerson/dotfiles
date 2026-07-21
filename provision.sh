@@ -63,7 +63,7 @@ install_packages() {
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
-                sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
+                sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer pavucontrol foot \
                 greetd tuigreet \
                 grim slurp mako-notifier libnotify-bin \
                 audacity vlc adwaita-qt6 adwaita-qt \

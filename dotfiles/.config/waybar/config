@@ -12,6 +12,7 @@
     	"cpu",
     	"custom/loadgraph",
     	"memory",
+    	"pulseaudio",
     	"clock#est",
     	"clock#utc",
     	"tray",
@@ -56,6 +57,19 @@
     },
     "memory": {
         "format": "RAM: {}% ",
+    },
+    // Volume: scroll to change, right-click to mute, left-click opens
+    // pavucontrol to pick the output device / per-app levels. Reflects
+    // changes made via $mod+m/n (pamixer) too.
+    "pulseaudio": {
+    	"format": "vol {volume}%",
+    	"format-muted": "vol muted",
+    	"format-bluetooth": "vol {volume}% bt",
+    	"format-bluetooth-muted": "vol muted bt",
+    	"scroll-step": 5,
+    	"on-click": "pavucontrol",
+    	"on-click-right": "pamixer -t",
+    	"tooltip-format": "{desc} — {volume}%",
     },
     "network": {
         "format-wifi": "{essid} ({signalStrength}%)",

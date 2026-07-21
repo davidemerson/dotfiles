@@ -27,7 +27,7 @@
 - **Status Bar**: waybar
 - **Launcher**: wofi
 - **Lock Screen**: swaylock
-- **Volume**: pamixer + wob
+- **Volume**: pamixer + wob (OSD); waybar `pulseaudio` module + `pavucontrol` — scroll = volume, left-click opens the output-device / per-app picker, right-click = mute
 - **Editors**: micro, Sublime Text
 - **Browser**: Google Chrome (upstream apt repo) — set as the default browser via update-alternatives + xdg
 - **Clipboard**: wl-clipboard + cliphist — Sway autostarts `wl-paste --primary --watch wl-copy` (selection→clipboard) and `wl-paste --watch cliphist store` (history, `$mod+v` picker)
