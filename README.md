@@ -64,6 +64,7 @@ On Linux/OpenBSD the script prompts for the username to provision (creating it i
 | Git GUI | GitHub Desktop (community) | | GitHub Desktop |
 | Clipboard | wl-clipboard + cliphist | clipmenu | |
 | Firmware / ECC | fwupd, rasdaemon | | |
+| Smart card | pcscd + libccid + opensc | | |
 | Tools | htop, btop, nmap, screen, lsd, ethtool | htop, btop, nmap, screen, lsd | htop, btop, nmap, lsd |
 | Font | Berkeley Mono | Berkeley Mono | Berkeley Mono |
 

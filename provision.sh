@@ -65,6 +65,7 @@ install_packages() {
                 audacity vlc \
                 wl-clipboard cliphist \
                 fwupd rasdaemon ethtool \
+                pcscd libccid opensc pcsc-tools \
                 flatpak
 
             # Sublime Text
@@ -821,6 +822,13 @@ TSYNC
         # from here, since that is irreversible and reboots the machine.
         if dpkg -s rasdaemon >/dev/null 2>&1; then
             systemctl enable --now rasdaemon.service 2>/dev/null || true
+        fi
+
+        # Smart card daemon: pcscd is socket-activated, so ensure its socket is
+        # enabled and readers (e.g. the ACR1552, supported by the stock CCID
+        # driver) work on demand. Harmless if no reader is attached.
+        if dpkg -s pcscd >/dev/null 2>&1; then
+            systemctl enable --now pcscd.socket 2>/dev/null || true
         fi
 
         # Never suspend/sleep (this is a workstation). Mask the sleep targets so

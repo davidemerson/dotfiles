@@ -34,6 +34,7 @@
 - **Apps**: Todoist (official AppImage → `/opt/todoist`, `$mod+t`), Joplin (official AppImage → `/opt/joplin`), Fastmail (official Flatpak `com.fastmail.Fastmail`, `$mod+e`), VLC, Audacity, Zoom (official `.deb`), GitHub Desktop (community `shiftkey` build)
 - **Packaging**: Flatpak + Flathub (for Fastmail and any Flatpaks)
 - **Hardware**: fwupd (firmware; not auto-flashed), rasdaemon (ECC/MCE logging, enabled), ethtool
+- **Smart card**: pcscd + libccid + opensc + pcsc-tools (pcscd.socket enabled; the stock CCID driver covers readers like the ACR1552)
 - **VM Tools**: open-vm-tools-desktop (auto-detected)
 - **Build**: build-essential
 - **Console Font**: Terminus 14
