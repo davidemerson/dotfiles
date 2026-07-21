@@ -1,0 +1,83 @@
+#!/bin/sh
+# nnix system health check — logs a one-shot health summary to the journal.
+# Installed to /usr/local/bin/healthcheck and run weekly by healthcheck.timer
+# (provision.sh, Linux only). View history:  journalctl -t healthcheck
+#
+# Every probe is guarded, so this is a harmless no-op wherever a subsystem is
+# absent (e.g. no ECC / SMART / sensors on a VM).
+
+tag=healthcheck
+issues=0
+say()  { logger -t "$tag" -p "daemon.$1" -- "$2"; }
+note() { say info "$1"; }
+warn() { say warning "$1"; issues=$((issues + 1)); }
+crit() { say err "$1"; issues=$((issues + 1)); }
+
+# --- reboot required (new kernel installed, or flagged by apt/needrestart) ---
+running=$(uname -r)
+newest=$(ls -1 /boot/vmlinuz-* 2>/dev/null | sed 's#.*/vmlinuz-##' | sort -V | tail -1)
+if [ -f /var/run/reboot-required ]; then
+    warn "reboot required: $(tr '\n' ' ' < /var/run/reboot-required.pkgs 2>/dev/null)"
+elif [ -n "$newest" ] && [ "$running" != "$newest" ]; then
+    warn "reboot required: running $running, installed $newest"
+fi
+
+# --- disk usage (warn >= 85% on real filesystems); for-loop keeps $issues ---
+for e in $(df -P -x tmpfs -x devtmpfs -x overlay 2>/dev/null | awk 'NR>1 && $5+0>=85 {print $6"="$5}'); do
+    warn "disk ${e%=*} at ${e#*=}"
+done
+
+# --- failed systemd units ---
+failed=$(systemctl --failed --no-legend 2>/dev/null | awk '{print $1}' | tr '\n' ' ')
+[ -n "$failed" ] && warn "failed units: $failed"
+
+# --- SMART overall health per drive ---
+if command -v smartctl >/dev/null 2>&1; then
+    for d in /dev/nvme?n1 /dev/sd?; do
+        [ -e "$d" ] || continue
+        h=$(smartctl -H "$d" 2>/dev/null | grep -iE 'overall-health|SMART Health Status' | sed 's/.*: *//')
+        case "$h" in
+            ""|*PASSED*|*OK*) : ;;
+            *) crit "SMART $d: $h" ;;
+        esac
+    done
+fi
+
+# --- NVMe wear (warn >= 85% of rated endurance) ---
+if command -v nvme >/dev/null 2>&1; then
+    for c in /dev/nvme?; do
+        [ -e "$c" ] || continue
+        u=$(nvme smart-log "$c" 2>/dev/null | awk -F: '/percentage_used/{gsub(/[^0-9]/,"",$2);print $2}')
+        [ -n "$u" ] && [ "$u" -ge 85 ] 2>/dev/null && warn "NVMe $c at ${u}% rated wear"
+    done
+fi
+
+# --- ECC memory errors (EDAC sysfs) ---
+for mc in /sys/devices/system/edac/mc/mc*; do
+    [ -d "$mc" ] || continue
+    ue=$(cat "$mc/ue_count" 2>/dev/null)
+    ce=$(cat "$mc/ce_count" 2>/dev/null)
+    [ "${ue:-0}" -gt 0 ] 2>/dev/null && crit "ECC uncorrectable on $(basename "$mc"): $ue"
+    [ "${ce:-0}" -gt 0 ] 2>/dev/null && warn "ECC corrected on $(basename "$mc"): $ce"
+done
+
+# --- thermals (warn if any real temp reading >= 85C). Use `sensors -u` and
+# read only temp*_input lines, so threshold values (high/crit, and bogus NVMe
+# limit readings like +65261C) and fan/voltage inputs are never mistaken for
+# a temperature. ---
+if command -v sensors >/dev/null 2>&1; then
+    hot=$(sensors -u 2>/dev/null | awk -F': ' '/^[[:space:]]*temp[0-9]+_input:/{v=$2+0; if(v>m)m=v} END{if(m>0)printf "%d", m+0.5}')
+    [ -n "$hot" ] && [ "$hot" -ge 85 ] 2>/dev/null && warn "high temperature ${hot}C"
+fi
+
+# --- pending package updates (informational) ---
+if command -v apt-get >/dev/null 2>&1; then
+    n=$(LC_ALL=C apt-get -s -o Debug::NoLocking=true upgrade 2>/dev/null | grep -c '^Inst')
+    [ "${n:-0}" -gt 0 ] && note "$n package update(s) available"
+fi
+
+if [ "$issues" -eq 0 ]; then
+    note "OK — disk, SMART, NVMe wear, ECC, units, temps, reboot all nominal"
+else
+    warn "finished with $issues issue(s) — see entries above"
+fi

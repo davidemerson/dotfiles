@@ -65,6 +65,7 @@ install_packages() {
                 audacity vlc \
                 wl-clipboard cliphist \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
+                unattended-upgrades needrestart \
                 pcscd libccid opensc pcsc-tools \
                 flatpak
 
@@ -851,6 +852,92 @@ TSYNC
 }
 
 # -------------------------------------------------------------------
+# System maintenance (Linux): automatic updates, bounded logs, drive/SMART
+# monitoring, and a weekly health check. Debian already ships the
+# fstrim/logrotate/fwupd-refresh timers, so this only adds what's missing.
+# Idempotent: config files are rewritten and units re-enabled on every run.
+# -------------------------------------------------------------------
+configure_maintenance() {
+    [ "$OS_TYPE" = "linux" ] || return 0
+    log_info "Configuring system maintenance..."
+
+    # Automatic updates: install all Debian updates (main + updates + security),
+    # remove unused deps/kernels, but never auto-reboot (needrestart and the
+    # health check flag a needed reboot instead).
+    cat > /etc/apt/apt.conf.d/20auto-upgrades <<'AUTOUP'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+AUTOUP
+    cat > /etc/apt/apt.conf.d/52unattended-upgrades-nnix <<'UUP'
+// Managed by dotfiles provision.sh.
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Debian,codename=${distro_codename},label=Debian";
+    "origin=Debian,codename=${distro_codename}-updates";
+    "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::MinimalSteps "true";
+UUP
+    systemctl enable unattended-upgrades 2>/dev/null || true
+
+    # needrestart: report only — never auto-restart services (esp. during an
+    # unattended upgrade); it still records when a reboot is required.
+    if dpkg -s needrestart >/dev/null 2>&1; then
+        mkdir -p /etc/needrestart/conf.d
+        cat > /etc/needrestart/conf.d/nnix.conf <<'NRC'
+# report only; do not interactively prompt or auto-restart services
+$nrconf{restart} = 'l';
+NRC
+    fi
+
+    # Bound the (persistent) journal so it can't grow toward ~10% of the disk.
+    mkdir -p /etc/systemd/journald.conf.d
+    cat > /etc/systemd/journald.conf.d/nnix.conf <<'JRN'
+[Journal]
+Storage=persistent
+SystemMaxUse=1G
+JRN
+    systemctl restart systemd-journald 2>/dev/null || true
+
+    # SMART drive-health monitoring (unit is smartmontools.service on Debian;
+    # smartd.service is only a linked alias, which systemctl refuses to enable).
+    systemctl enable --now smartmontools.service 2>/dev/null \
+        || systemctl enable --now smartd.service 2>/dev/null || true
+
+    # Weekly health check -> journal (journalctl -t healthcheck).
+    if [ -f "$SCRIPT_DIR/scripts/healthcheck" ]; then
+        install -m 0755 "$SCRIPT_DIR/scripts/healthcheck" /usr/local/bin/healthcheck
+        cat > /etc/systemd/system/healthcheck.service <<'HCS'
+[Unit]
+Description=nnix system health check
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/healthcheck
+HCS
+        cat > /etc/systemd/system/healthcheck.timer <<'HCT'
+[Unit]
+Description=Weekly nnix system health check
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+HCT
+        systemctl daemon-reload 2>/dev/null || true
+        systemctl enable healthcheck.timer 2>/dev/null || true
+    fi
+
+    log_info "System maintenance configured."
+}
+
+# -------------------------------------------------------------------
 # Claude Code — native build (no node required), lands in ~/.local/bin.
 #
 # This is a per-user install, so on Linux it must run as the target
@@ -919,7 +1006,7 @@ get_username() {
                 log_info "Login shell for $username changed to /usr/local/bin/bash."
             fi
         else
-            usermod -aG sudo "$username" 2>/dev/null || true
+            usermod -aG sudo,systemd-journal "$username" 2>/dev/null || true
             current_shell=$(getent passwd "$username" | cut -d: -f7)
             if [ "$current_shell" != "/bin/bash" ] && [ -x /bin/bash ]; then
                 usermod -s /bin/bash "$username" 2>/dev/null || true
@@ -1186,6 +1273,7 @@ main() {
     configure_doas
     configure_sshd
     configure_services
+    configure_maintenance
     deploy_dotfiles
     update_fonts
 

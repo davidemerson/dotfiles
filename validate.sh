@@ -24,6 +24,7 @@ printf "Validating dotfiles...\n\n"
 
 printf "Core:\n"
 check "provision.sh"
+check "scripts/healthcheck"
 
 printf "\nShell:\n"
 check "dotfiles/.bashrc"

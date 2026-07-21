@@ -133,6 +133,16 @@ On Sway, `wl-paste --primary --watch wl-copy` mirrors the primary selection into
 - **Fastmail** (`$mod+e`) — official Flatpak (`com.fastmail.Fastmail`) on Linux via Flathub; official cask on macOS.
 - **VLC**, **Audacity** — packaged on all platforms. **Zoom** — official `.deb` (no upstream apt repo; self-updates in-app) on Linux, cask on macOS. **GitHub Desktop** — *community* `shiftkey` build on Linux (GitHub ships no official Linux app); the genuine cask on macOS.
 
+### System maintenance (Linux)
+
+Beyond Debian's stock `fstrim`/`logrotate`/`fwupd-refresh` timers, `provision.sh` (`configure_maintenance`) adds:
+
+- **Automatic updates** — `unattended-upgrades` installs all Debian updates (main + updates + security), removes unused deps and old kernels, and **never auto-reboots** — a needed reboot is only flagged, never forced.
+- **needrestart** — after upgrades, reports which services need restarting and whether a kernel reboot is required (report-only; never auto-restarts a service).
+- **Bounded logs** — the persistent journal is capped at `SystemMaxUse=1G`.
+- **SMART monitoring** — `smartmontools` (`smartd`) watches drive health.
+- **Weekly health check** — `/usr/local/bin/healthcheck` (from `scripts/healthcheck`) runs via `healthcheck.timer` and logs a summary to the journal: reboot-required, disk usage, failed units, SMART/NVMe wear, ECC error counts, temperatures, pending updates. View with `journalctl -t healthcheck` (the target user is added to the `systemd-journal` group so no sudo is needed). Every probe is guarded, so it's a harmless no-op where a subsystem is absent (e.g. a VM).
+
 ### File Routing
 
 Not every file deploys on every OS:
@@ -217,6 +227,7 @@ provision.sh              # Single provisioning script (POSIX sh)
 validate.sh               # Check that all expected files exist
 Makefile                  # make validate / make provision / make backup
 DEPENDENCIES.md           # Platform and package inventory
+scripts/healthcheck       # Weekly system health check (installed to /usr/local/bin, Linux)
 st/config.h, patches.h    # Patched st build config (OpenBSD)
 dmenu/config.h, patches.h # Patched dmenu build config (OpenBSD)
 dotfiles/
