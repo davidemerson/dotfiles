@@ -62,10 +62,13 @@ install_packages() {
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
-                audacity vlc \
+                grim slurp mako-notifier libnotify-bin \
+                audacity vlc adwaita-qt6 \
                 wl-clipboard cliphist \
+                fzf fd-find git-delta \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
                 unattended-upgrades needrestart \
+                nftables zram-tools systemd-oomd \
                 pcscd libccid opensc pcsc-tools \
                 flatpak
 
@@ -938,6 +941,80 @@ HCT
 }
 
 # -------------------------------------------------------------------
+# Hardening + reliability (Linux): a minimal default-deny host firewall,
+# conservative kernel/network sysctls, zram compressed swap, and graceful
+# OOM handling. Idempotent. The firewall preserves SSH / mosh / ZeroTier.
+# -------------------------------------------------------------------
+configure_hardening() {
+    [ "$OS_TYPE" = "linux" ] || return 0
+    log_info "Configuring hardening + reliability..."
+
+    # Host firewall: default-deny inbound; allow loopback, established/related,
+    # ICMP, and only the services we use (SSH, mosh, ZeroTier). Outbound open.
+    cat > /etc/nftables.conf <<'NFT'
+#!/usr/sbin/nft -f
+# Managed by dotfiles provision.sh.
+flush ruleset
+
+table inet filter {
+    chain input {
+        type filter hook input priority filter; policy drop;
+        iif "lo" accept
+        ct state established,related accept
+        ct state invalid drop
+        meta l4proto ipv6-icmp accept
+        ip protocol icmp accept
+        tcp dport 22 accept
+        udp dport 60000-61000 accept
+        udp dport 9993 accept
+    }
+    chain forward { type filter hook forward priority filter; policy drop; }
+    chain output  { type filter hook output priority filter; policy accept; }
+}
+NFT
+    chmod 0755 /etc/nftables.conf
+    systemctl enable nftables 2>/dev/null || true
+    nft -f /etc/nftables.conf 2>/dev/null || log_warn "nftables ruleset failed to load."
+
+    # Conservative kernel/network hardening.
+    cat > /etc/sysctl.d/99-nnix-hardening.conf <<'SYSCTL'
+# Managed by dotfiles provision.sh.
+kernel.kptr_restrict = 1
+kernel.dmesg_restrict = 1
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.tcp_syncookies = 1
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+fs.protected_fifos = 2
+fs.protected_regular = 2
+SYSCTL
+    sysctl --system >/dev/null 2>&1 || true
+
+    # zram compressed swap (spikes stay in RAM, no NVMe wear).
+    if dpkg -s zram-tools >/dev/null 2>&1; then
+        cat > /etc/default/zramswap <<'ZRAM'
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
+ZRAM
+        systemctl enable --now zramswap 2>/dev/null || true
+    fi
+
+    # Graceful low-memory handling (kills the hog before the box locks up).
+    systemctl enable --now systemd-oomd 2>/dev/null || true
+
+    log_info "Hardening + reliability configured."
+}
+
+# -------------------------------------------------------------------
 # Claude Code — native build (no node required), lands in ~/.local/bin.
 #
 # This is a per-user install, so on Linux it must run as the target
@@ -1148,9 +1225,9 @@ deploy_dotfiles() {
 
     # Directories to skip per OS
     case "$OS_TYPE" in
-        openbsd) SKIP_DIRS="sway swaylock waybar wofi foot" ;;
+        openbsd) SKIP_DIRS="sway swaylock waybar wofi foot mako" ;;
         linux)   SKIP_DIRS="i3 i3status" ;;
-        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status" ;;
+        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status mako" ;;
     esac
 
     cd "$SCRIPT_DIR/dotfiles"
@@ -1274,6 +1351,7 @@ main() {
     configure_sshd
     configure_services
     configure_maintenance
+    configure_hardening
     deploy_dotfiles
     update_fonts
 

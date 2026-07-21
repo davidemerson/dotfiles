@@ -1,0 +1,26 @@
+# mako notifications — nnix palette (black / grayscale + navy/blue accents),
+# Berkeley Mono, top-right, matching waybar.
+font=Berkeley Mono Variable NNIX 11
+background-color=#000000ee
+text-color=#cccccc
+border-color=#1f2d4d
+progress-color=over #1f2d4d
+border-size=2
+border-radius=4
+padding=10
+margin=8
+default-timeout=6000
+max-visible=5
+anchor=top-right
+layer=overlay
+icons=1
+
+[urgency=low]
+border-color=#666666
+text-color=#999999
+
+[urgency=high]
+background-color=#1f2d4dee
+border-color=#8fb6e0
+text-color=#ffffff
+default-timeout=0

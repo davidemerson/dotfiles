@@ -46,7 +46,7 @@ On Linux/OpenBSD the script prompts for the username to provision (creating it i
 | Status Bar | waybar | i3bar + i3status | |
 | Launcher | wofi | dmenu (patched) | |
 | Lock Screen | swaylock | i3lock via `lock` script | |
-| Notifications | | dunst | |
+| Notifications | mako | dunst | |
 | Volume | pamixer + wob | sndioctl via `volnotify` | |
 | Privilege | sudo | doas | sudo (built-in) |
 | Browser | Google Chrome | Chromium | |
@@ -143,6 +143,17 @@ Beyond Debian's stock `fstrim`/`logrotate`/`fwupd-refresh` timers, `provision.sh
 - **SMART monitoring** — `smartmontools` (`smartd`) watches drive health.
 - **Weekly health check** — `/usr/local/bin/healthcheck` (from `scripts/healthcheck`) runs via `healthcheck.timer` and logs a summary to the journal: reboot-required, disk usage, failed units, SMART/NVMe wear, ECC error counts, temperatures, pending updates. View with `journalctl -t healthcheck` (the target user is added to the `systemd-journal` group so no sudo is needed). Every probe is guarded, so it's a harmless no-op where a subsystem is absent (e.g. a VM).
 
+### Hardening & reliability (Linux)
+
+`provision.sh` (`configure_hardening`) adds:
+
+- **Host firewall** — nftables, default-deny inbound, allowing only loopback, established/related, ICMP, and the services actually used (SSH, mosh UDP 60000–61000, ZeroTier UDP 9993); outbound is open. Other listening services need an explicit rule added.
+- **Kernel/network hardening** — a conservative `sysctl` drop-in (`kptr_restrict`, `dmesg_restrict`, reverse-path filtering, no redirects/source-routing, syncookies, `fs.protected_*`).
+- **zram** — compressed (zstd) swap sized to 50% of RAM, so memory spikes stay in RAM instead of hitting the (wear-limited) NVMe.
+- **systemd-oomd** — graceful low-memory handling before the machine locks up.
+
+Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 15 min and before sleep), **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, and Qt apps forced dark via `adwaita-qt6`.
+
 ### File Routing
 
 Not every file deploys on every OS:
@@ -195,6 +206,7 @@ Package installs, from-source builds, and file deploys are idempotent.
 | Mod4 + c | Clipboard history picker (Sway) |
 | Mod4 + z | Lock screen |
 | Mod4 + Shift+z | 1Password lock (Sway) |
+| Print / Shift+Print | Screenshot: full / region (Sway) |
 | Mod4 + Shift+q | Kill window |
 | Mod4 + Shift+e | Exit (with confirmation) |
 | Mod4 + Shift+s | Shutdown (with confirmation) |

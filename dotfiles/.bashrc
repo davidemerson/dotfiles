@@ -40,6 +40,8 @@ fi
 # @@IF_LINUX@@
 export XCURSOR_THEME=plan9
 export XCURSOR_SIZE=16
+# Qt apps (VLC, etc.) follow the dark theme via adwaita-qt6.
+export QT_STYLE_OVERRIDE=Adwaita-Dark
 if [ "$(tty)" = "/dev/tty1" ]; then
 	WLR_NO_HARDWARE_CURSORS=1 sway
 fi
@@ -110,6 +112,16 @@ alias top='btop'
 export EDITOR="${EDITOR:-issy}"
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+
+# ---------- fzf (Ctrl-R history, Ctrl-T files) + fd ----------
+command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash 2>/dev/null)"
+# Debian ships fd as 'fdfind'; give it its usual name (and let fzf use it)
+if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
+  alias fd=fdfind
+  export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --exclude .git'
+elif command -v fd >/dev/null 2>&1; then
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+fi
 
 # ---------- colored man/less (palette: light blue / navy / white) ----------
 export LESS=-R

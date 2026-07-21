@@ -10,3 +10,32 @@
 	format = ssh
 [gpg "ssh"]
 	allowedSignersFile = ~/.config/git/allowed_signers
+[init]
+	defaultBranch = main
+[pull]
+	ff = only
+[push]
+	autoSetupRemote = true
+	default = simple
+[fetch]
+	prune = true
+[rebase]
+	autoStash = true
+[merge]
+	conflictStyle = zdiff3
+[diff]
+	colorMoved = default
+	algorithm = histogram
+[commit]
+	verbose = true
+# @@IF_LINUX@@
+# delta is installed from apt on Linux; use it as the diff pager there.
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	line-numbers = true
+	syntax-theme = ansi
+# @@END_IF@@

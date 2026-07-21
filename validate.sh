@@ -62,6 +62,7 @@ check "dotfiles/.config/waybar/loadgraph.sh"
 check "dotfiles/.config/foot/foot.ini"
 check "dotfiles/.config/swaylock/config"
 check "dotfiles/.config/wofi/style.css"
+check "dotfiles/.config/mako/config"
 
 printf "\nOpenBSD (i3):\n"
 check "dotfiles/.config/i3/config"

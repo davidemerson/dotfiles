@@ -35,6 +35,11 @@
 - **Packaging**: Flatpak + Flathub (for Fastmail and any Flatpaks)
 - **Hardware**: fwupd (firmware; not auto-flashed), rasdaemon (ECC/MCE logging, enabled), ethtool, nvme-cli, smartmontools, lm-sensors; non-free firmware (`firmware-realtek` + `firmware-misc-nonfree`, e.g. RTL8761BU Bluetooth)
 - **Maintenance**: unattended-upgrades (all Debian updates, autoremove, no auto-reboot), needrestart (report-only), journald capped at 1G, smartd (SMART monitoring), and a weekly `healthcheck` timer logging to the journal (`journalctl -t healthcheck`)
+- **Hardening**: nftables host firewall (default-deny inbound; SSH/mosh/ZeroTier allowed) + kernel/network sysctl hardening (`/etc/sysctl.d/99-nnix-hardening.conf`)
+- **Reliability**: zram compressed swap (zstd, 50% of RAM) + systemd-oomd for graceful low-memory handling
+- **Notifications**: mako (Wayland; `~/.config/mako/config`, palette-themed)
+- **Screenshots**: grim + slurp via `~/.local/bin/shot` (Wayland-aware; `Print` / `Shift+Print`) → saved to `~/pictures/screenshots` and copied to the clipboard
+- **Shell tools**: fzf (Ctrl-R history, Ctrl-T files), fd (`fdfind`), git-delta (diff pager); Qt apps follow dark via `adwaita-qt6` + `QT_STYLE_OVERRIDE`
 - **Smart card**: pcscd + libccid + opensc + pcsc-tools (pcscd.socket enabled; the stock CCID driver covers readers like the ACR1552)
 - **VM Tools**: open-vm-tools-desktop (auto-detected)
 - **Build**: build-essential
