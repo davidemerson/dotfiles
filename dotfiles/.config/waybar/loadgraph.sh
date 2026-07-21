@@ -2,9 +2,12 @@
 # waybar custom module: a rolling sparkline of the 1-minute load average over
 # roughly the last minute (interval 3s x 20 samples). On-brand gray->blue
 # gradient — taller and bluer means heavier load — colored via pango markup.
-# State is a small rolling buffer in the user's runtime dir. POSIX + mawk-safe
-# (awk only ever touches numbers; the multibyte block glyphs live in the shell,
-# since Debian's default mawk is not UTF-8 aware).
+# The graph is always drawn at full width (N bars): while the history is still
+# filling, the oldest sample is repeated to pad the window, so it starts full
+# instead of visibly growing in over the first minute. State is a small rolling
+# buffer in the user's runtime dir. POSIX + mawk-safe (awk only ever touches
+# numbers; the multibyte block glyphs live in the shell, since Debian's default
+# mawk is not UTF-8 aware).
 
 hist="${XDG_RUNTIME_DIR:-/tmp}/waybar-loadgraph.$(id -u)"
 N=20
@@ -23,8 +26,15 @@ levels=$(awk -v ncpu="$ncpu" '
     l = int(f * 7 + 0.5) + 1; if (l < 1) l = 1; if (l > 8) l = 8
     print l }' "$hist")
 
+# pad to a full N-wide window by repeating the oldest level, so the bar is
+# always full width rather than growing in as history accumulates
+set -- $levels
+while [ "$#" -lt "$N" ] && [ -n "$1" ]; do
+  set -- "$1" "$@"
+done
+
 out=""
-for lvl in $levels; do
+for lvl in "$@"; do
   case $lvl in
     1) g="▁"; c="#666666" ;;
     2) g="▂"; c="#808080" ;;
