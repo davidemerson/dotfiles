@@ -64,9 +64,17 @@ install_packages() {
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
                 audacity vlc \
                 wl-clipboard cliphist \
-                fwupd rasdaemon ethtool \
+                fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
                 pcscd libccid opensc pcsc-tools \
                 flatpak
+
+            # Non-free firmware for peripherals (e.g. the Realtek RTL8761BU
+            # Bluetooth in the ASUS USB-BT500 needs rtl_bt/* from
+            # firmware-realtek). Guarded: these live in the non-free-firmware
+            # component (default on Debian 13) — warn instead of aborting the
+            # whole run if it isn't enabled. Harmless no-ops on a VM.
+            apt-get install -y firmware-realtek firmware-misc-nonfree 2>/dev/null \
+                || log_warn "firmware-realtek/firmware-misc-nonfree unavailable; enable the non-free-firmware apt component."
 
             # Sublime Text
             if ! command -v subl >/dev/null 2>&1; then
