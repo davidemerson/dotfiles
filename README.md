@@ -42,6 +42,7 @@ On Linux/OpenBSD the script prompts for the username to provision (creating it i
 | Component | Linux (Debian) | OpenBSD | macOS |
 |-----------|---------------|---------|-------|
 | Window Manager | Sway (Wayland) | i3 (X11) | |
+| Greeter | greetd + tuigreet | xenodm | |
 | Terminal | foot | st (patched) | WezTerm |
 | Status Bar | waybar | i3bar + i3status | |
 | Launcher | wofi | dmenu (patched) | |
@@ -116,7 +117,7 @@ paths; `workstation <label>` forces one.
 - **NTP (Linux)**: systemd-timesyncd pinned to pool servers with a cloudflare fallback.
 - **NTP (OpenBSD)**: `/etc/ntpd.conf` with pool + cloudflare + the vmt0 host-time sensor + HTTPS constraints, and `ntpd -s` to step at boot. A clock-guard cron job (every 10 minutes) restarts ntpd with an `rdate` step if the vmt0 sensor shows more than 10 seconds of drift, since a running OpenNTPD only slews.
 - **OpenBSD extras**: doas for wheel (`permit persist :wheel`), noatime on all FFS partitions, xenodm enabled (Xorg needs root aperture access on VMware, no DRM), xconsole disabled, solid black greeter background, Spleen 8x16 console font where supported, and a VMware Xorg snippet with a 4K default mode.
-- **Linux extras**: Terminus 14 console font, gdm disabled, Sublime Text from the official apt repo, open-vm-tools-desktop when VMware is detected. Google Chrome is set as the default browser (update-alternatives for `x-www-browser`/`gnome-www-browser`, plus the per-user xdg default). **rasdaemon** is enabled to log ECC/MCE hardware error events (effective wherever the kernel EDAC layer exposes memory controllers; a no-op without ECC). **fwupd** is installed but firmware is never auto-flashed from the script — that is a deliberate, out-of-band action (`fwupdmgr refresh && fwupdmgr update`).
+- **Linux extras**: Terminus 14 console font, gdm masked in favor of a **greetd + tuigreet** greeter (minimal TUI on vt7; sway starts via the `sway-session` login-shell wrapper), Sublime Text from the official apt repo, open-vm-tools-desktop when VMware is detected. Google Chrome is set as the default browser (update-alternatives for `x-www-browser`/`gnome-www-browser`, plus the per-user xdg default). **rasdaemon** is enabled to log ECC/MCE hardware error events (effective wherever the kernel EDAC layer exposes memory controllers; a no-op without ECC). **fwupd** is installed but firmware is never auto-flashed from the script — that is a deliberate, out-of-band action (`fwupdmgr refresh && fwupdmgr update`).
 
 ### ssh-agent
 
@@ -172,7 +173,7 @@ Not every file deploys on every OS:
 
 ### Desktop Flow
 
-- **Linux**: Login on tty1 → `.bashrc` auto-launches sway → foot terminal, waybar, wofi
+- **Linux**: greetd + tuigreet greeter on vt7 → `/usr/local/bin/sway-session` (a login shell, so the session inherits `.bashrc`'s environment) launches sway → foot terminal, waybar, wofi. Fallback: a tty1 console login launches sway from `.bashrc` when greetd isn't running.
 - **OpenBSD**: xenodm greeter → `~/.xsession` launches i3 → st terminal, dmenu, i3bar (a ttyC0 console login still works: `.bashrc` runs `startx`, and `.xinitrc` mirrors `.xsession`)
 - **macOS**: Open WezTerm → `.zshrc` loads prompt, aliases, environment
 

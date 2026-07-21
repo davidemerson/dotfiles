@@ -62,6 +62,7 @@ install_packages() {
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
+                greetd tuigreet \
                 grim slurp mako-notifier libnotify-bin \
                 audacity vlc adwaita-qt6 \
                 wl-clipboard cliphist \
@@ -804,13 +805,36 @@ TSYNC
         systemctl enable systemd-timesyncd 2>/dev/null || true
         systemctl restart systemd-timesyncd 2>/dev/null || true
         timedatectl set-ntp true 2>/dev/null || true
-        # Display manager: we boot to tty1 and hand off to sway from .bashrc.
-        # gdm.service is static (no [Install] section), so `systemctl disable`
-        # is a silent no-op on it. Mask the unit, drop the SysV runlevel links,
-        # and stop booting into graphical.target so getty@tty1 actually runs.
+        # Login manager: greetd + tuigreet — a minimal TUI greeter on vt7. gdm
+        # stays masked. sway is started via /usr/local/bin/sway-session, a login
+        # shell so the graphical session inherits ~/.bashrc's environment
+        # (cursor theme, Qt dark, PATH, ssh-agent socket). getty stays on the
+        # other VTs as a fallback console; .bashrc still launches sway from a
+        # tty1 login *if* greetd isn't running, so a broken greeter never locks
+        # you out of the desktop.
         systemctl mask gdm.service 2>/dev/null || true
         update-rc.d -f gdm3 remove 2>/dev/null || true
-        systemctl set-default multi-user.target 2>/dev/null || true
+        cat > /usr/local/bin/sway-session <<'SWAYSESS'
+#!/bin/bash --login
+# Launch sway as a login shell so the session inherits ~/.bashrc's environment.
+exec sway
+SWAYSESS
+        chmod 0755 /usr/local/bin/sway-session
+        if command -v tuigreet >/dev/null 2>&1 && [ -d /etc/greetd ]; then
+            cat > /etc/greetd/config.toml <<'GREETD'
+[terminal]
+vt = 7
+
+[default_session]
+command = "tuigreet --time --remember --asterisks --cmd /usr/local/bin/sway-session"
+user = "_greetd"
+GREETD
+            systemctl set-default graphical.target 2>/dev/null || true
+            systemctl enable greetd 2>/dev/null || true
+        else
+            # No greeter available — boot to a console; .bashrc launches sway.
+            systemctl set-default multi-user.target 2>/dev/null || true
+        fi
 
         # Set console font to Terminus 14 (small, clean bitmap font)
         sed -i 's/^FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup

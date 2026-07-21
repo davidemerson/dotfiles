@@ -5,9 +5,7 @@
     	"sway/workspaces",
     	"sway/mode",
     	],
-    "modules-center": [
-    	"sway/window",
-    	],
+    "modules-center": [],
     "modules-right": [
     	"network",
     	"cpu",

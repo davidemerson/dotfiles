@@ -12,9 +12,9 @@
 # id_d_nnix.pub naming that otherwise breaks `ssh-keygen -Y sign` is fine once
 # the key is in the agent. This is what makes SSH commit signing and git push
 # over ssh "just work" on this machine. Ctrl+C at the prompt to skip.
+export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/tmp}/ssh-agent-$(id -u).sock"
 case $- in
   *i*)
-    export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/tmp}/ssh-agent-$(id -u).sock"
     ssh-add -l >/dev/null 2>&1
     if [ $? -ge 2 ]; then
       rm -f "$SSH_AUTH_SOCK"
@@ -42,8 +42,12 @@ export XCURSOR_THEME=plan9
 export XCURSOR_SIZE=16
 # Qt apps (VLC, etc.) follow the dark theme via adwaita-qt6.
 export QT_STYLE_OVERRIDE=Adwaita-Dark
-if [ "$(tty)" = "/dev/tty1" ]; then
-	WLR_NO_HARDWARE_CURSORS=1 sway
+export WLR_NO_HARDWARE_CURSORS=1
+# Normally greetd (the login manager) starts sway on vt7 via sway-session.
+# This is only a fallback: from a tty1 console login, launch sway when greetd
+# is not running, so a broken/absent greeter never locks you out of the desktop.
+if [ "$(tty)" = "/dev/tty1" ] && ! systemctl is-active --quiet greetd 2>/dev/null; then
+	exec sway
 fi
 # @@END_IF@@
 
