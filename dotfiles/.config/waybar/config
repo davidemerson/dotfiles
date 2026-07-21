@@ -8,6 +8,7 @@
     "modules-center": [],
     "modules-right": [
     	"network",
+    	"custom/netgraph",
     	"cpu",
     	"custom/loadgraph",
     	"memory",
@@ -42,6 +43,15 @@
     	"exec": "sh $HOME/.config/waybar/loadgraph.sh",
     	"interval": 3,
     	"format": "load {}",
+    	"tooltip": false,
+    },
+    // Two rolling throughput histograms (~last half minute): 10 samples at 3s
+    // each, summed across physical interfaces. Down arrow = in, up = out, drawn
+    // by netgraph.sh at half the width of the load bar.
+    "custom/netgraph": {
+    	"exec": "sh $HOME/.config/waybar/netgraph.sh",
+    	"interval": 3,
+    	"format": "net {}",
     	"tooltip": false,
     },
     "memory": {

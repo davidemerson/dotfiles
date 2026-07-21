@@ -830,7 +830,7 @@ SWAYSESS
 vt = 7
 
 [default_session]
-command = "tuigreet --time --time-format '%Y-%m-%d %H:%M:%S' --asterisks --asterisks-char '※' --greeting '$(hostname)' --cmd /usr/local/bin/sway-session"
+command = "tuigreet --time --time-format '%Y-%m-%d %H:%M:%S' --asterisks --asterisks-char '※' --greeting '$(hostname)' --theme 'action=black;button=black' --cmd /usr/local/bin/sway-session"
 user = "_greetd"
 GREETD
             systemctl set-default graphical.target 2>/dev/null || true
