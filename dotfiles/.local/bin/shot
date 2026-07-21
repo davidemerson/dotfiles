@@ -7,20 +7,28 @@ dir="$HOME/pictures/screenshots"
 mkdir -p "$dir"
 f="$dir/$(date +%Y-%m-%d_%H%M%S).png"
 
+copied=""
 if [ -n "$WAYLAND_DISPLAY" ] && command -v grim >/dev/null 2>&1; then
     case "$1" in
         region) geom=$(slurp) || exit 0; grim -g "$geom" "$f" || exit 0 ;;  # cancelled -> stop
         *)      grim "$f" ;;
     esac
     [ -f "$f" ] || exit 0
-    wl-copy --type image/png < "$f" 2>/dev/null
+    command -v wl-copy >/dev/null 2>&1 && wl-copy --type image/png < "$f" 2>/dev/null && copied=1
 else
     case "$1" in
         region) scrot -s "$f" || exit 0 ;;   # cancelled selection -> quietly stop
         *)      scrot "$f" ;;
     esac
     [ -f "$f" ] || exit 0
-    xclip -selection clipboard -t image/png -i "$f" 2>/dev/null
+    command -v xclip >/dev/null 2>&1 && xclip -selection clipboard -t image/png -i "$f" 2>/dev/null && copied=1
 fi
 
-command -v notify-send >/dev/null 2>&1 && notify-send -t 1500 "screenshot" "$(basename "$f") → clipboard"
+# Only claim "clipboard" in the notification when the copy actually succeeded.
+if command -v notify-send >/dev/null 2>&1; then
+    if [ -n "$copied" ]; then
+        notify-send -t 1500 "screenshot" "$(basename "$f") → clipboard"
+    else
+        notify-send -t 1500 "screenshot" "$(basename "$f")"
+    fi
+fi

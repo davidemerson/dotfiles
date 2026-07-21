@@ -57,6 +57,8 @@ install_packages() {
                 chromium audacity vlc
             ;;
         linux)
+            export DEBIAN_FRONTEND=noninteractive
+            export NEEDRESTART_MODE=a
             apt-get update -qq
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
@@ -64,13 +66,14 @@ install_packages() {
                 sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer foot \
                 greetd tuigreet \
                 grim slurp mako-notifier libnotify-bin \
-                audacity vlc adwaita-qt6 \
+                audacity vlc adwaita-qt6 adwaita-qt \
                 wl-clipboard cliphist \
                 fzf fd-find git-delta \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
                 unattended-upgrades needrestart \
                 nftables zram-tools systemd-oomd \
                 pcscd libccid opensc pcsc-tools \
+                dconf-cli dconf-gsettings-backend \
                 flatpak
 
             # Non-free firmware for peripherals (e.g. the Realtek RTL8761BU
@@ -81,14 +84,20 @@ install_packages() {
             apt-get install -y firmware-realtek firmware-misc-nonfree 2>/dev/null \
                 || log_warn "firmware-realtek/firmware-misc-nonfree unavailable; enable the non-free-firmware apt component."
 
-            # Sublime Text
+            # Sublime Text — dedicated keyring + signed-by scoping (never the
+            # global /etc/apt/trusted.gpg.d, which would trust this key for
+            # every repo). The key/list setup runs on every provision so a
+            # re-run migrates an older global-trust install to the scoped key.
+            install -d -m 0755 /usr/share/keyrings
+            wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg \
+                | gpg --dearmor > /usr/share/keyrings/sublimehq-archive-keyring.gpg
+            printf 'deb [signed-by=/usr/share/keyrings/sublimehq-archive-keyring.gpg] https://download.sublimetext.com/ apt/stable/\n' \
+                > /etc/apt/sources.list.d/sublime-text.list
+            rm -f /etc/apt/trusted.gpg.d/sublimehq-archive.gpg
             if ! command -v subl >/dev/null 2>&1; then
                 log_info "Installing Sublime Text..."
-                wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg \
-                    | gpg --dearmor | tee /etc/apt/trusted.gpg.d/sublimehq-archive.gpg > /dev/null
-                echo "deb https://download.sublimetext.com/ apt/stable/" \
-                    | tee /etc/apt/sources.list.d/sublime-text.list
-                apt-get update -qq && apt-get install -y sublime-text
+                apt-get update -qq && apt-get install -y sublime-text \
+                    || log_warn "Sublime Text install failed."
             fi
 
             # ZeroTier
@@ -102,7 +111,8 @@ install_packages() {
                     | gpg --dearmor > /usr/share/keyrings/zerotier.gpg
                 echo "deb [signed-by=/usr/share/keyrings/zerotier.gpg] https://download.zerotier.com/debian/$ZT_SUITE $ZT_SUITE main" \
                     > /etc/apt/sources.list.d/zerotier.list
-                apt-get update -qq && apt-get install -y zerotier-one
+                apt-get update -qq && apt-get install -y zerotier-one \
+                    || log_warn "ZeroTier install failed."
             fi
 
             # Google Chrome (upstream ships amd64 only)
@@ -113,7 +123,14 @@ install_packages() {
                     | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg
                 echo "deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
                     > /etc/apt/sources.list.d/google-chrome.list
-                apt-get update -qq && apt-get install -y google-chrome-stable
+                apt-get update -qq && apt-get install -y google-chrome-stable \
+                    || log_warn "Google Chrome install failed."
+            fi
+            # The google-chrome-stable package ships its own deb822
+            # google-chrome.sources; drop our bootstrap .list so the repo is
+            # not fetched twice (idempotent cleanup, runs on every provision).
+            if [ -f /etc/apt/sources.list.d/google-chrome.sources ]; then
+                rm -f /etc/apt/sources.list.d/google-chrome.list
             fi
 
             # 1Password (desktop app + CLI). The app requires debsig-verify
@@ -134,7 +151,8 @@ install_packages() {
                 mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
                 wget -qO - https://downloads.1password.com/linux/keys/1password.asc \
                     | gpg --dearmor > /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
-                apt-get update -qq && apt-get install -y 1password 1password-cli
+                apt-get update -qq && apt-get install -y 1password 1password-cli \
+                    || log_warn "1Password install failed."
             fi
 
             # Zoom (official .deb; Zoom publishes no apt repo, so this is a
@@ -144,11 +162,15 @@ install_packages() {
                 && [ "$(dpkg --print-architecture)" = "amd64" ]; then
                 log_info "Installing Zoom..."
                 zoom_deb="/tmp/zoom_amd64.$$.deb"
-                if wget -qO "$zoom_deb" https://zoom.us/client/latest/zoom_amd64.deb; then
+                # Sanity-gate the download (a Debian archive begins "!<arch>")
+                # so a 200-with-error-body never reaches dpkg.
+                if wget -qO "$zoom_deb" https://zoom.us/client/latest/zoom_amd64.deb \
+                    && head -c 8 "$zoom_deb" 2>/dev/null | grep -qa '^!<arch>'; then
                     apt-get install -y "$zoom_deb" || log_warn "Zoom install failed."
                     rm -f "$zoom_deb"
                 else
-                    log_warn "Zoom download failed; skipping."
+                    log_warn "Zoom download failed or not a .deb; skipping."
+                    rm -f "$zoom_deb"
                 fi
             fi
 
@@ -235,8 +257,10 @@ ensure_zig() {
             ;;
         linux)
             case "$(uname -m)" in
-                x86_64)  zig_arch="x86_64" ;;
-                aarch64) zig_arch="aarch64" ;;
+                x86_64)  zig_arch="x86_64"
+                         zig_sha="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;;
+                aarch64) zig_arch="aarch64"
+                         zig_sha="958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f" ;;
                 *) log_warn "No Zig tarball for $(uname -m)."; return 1 ;;
             esac
             tarball="zig-${zig_arch}-linux-${ZIG_VERSION}.tar.xz"
@@ -244,6 +268,15 @@ ensure_zig() {
             tmp="/tmp/zig.tar.xz"
             log_info "Downloading Zig ${ZIG_VERSION}..."
             curl -fsSL -o "$tmp" "$url" || return 1
+            # Verify the pinned SHA-256 before unpacking/building as root.
+            if command -v sha256sum >/dev/null 2>&1; then
+                zig_got="$(sha256sum "$tmp" | awk '{print $1}')"
+                if [ "$zig_got" != "$zig_sha" ]; then
+                    log_error "Zig checksum mismatch (want $zig_sha, got $zig_got); skipping."
+                    rm -f "$tmp"
+                    return 1
+                fi
+            fi
             mkdir -p /opt/zig
             tar xf "$tmp" -C /opt/zig --strip-components=1 || return 1
             ln -sf /opt/zig/zig /usr/local/bin/zig
@@ -351,12 +384,14 @@ install_pfetch() {
 
     log_info "Installing pfetch..."
     url="https://raw.githubusercontent.com/dylanaraps/pfetch/master/pfetch"
-    if curl -fsSL -o /tmp/pfetch.$$ "$url"; then
+    if curl -fsSL -o /tmp/pfetch.$$ "$url" \
+        && head -c 2 /tmp/pfetch.$$ 2>/dev/null | grep -qa '#'; then
         install -m 0755 /tmp/pfetch.$$ /usr/local/bin/pfetch && \
             log_info "pfetch installed at /usr/local/bin/pfetch."
         rm -f /tmp/pfetch.$$
     else
-        log_warn "Could not download pfetch. Skipping."
+        log_warn "Could not download pfetch (or bad content). Skipping."
+        rm -f /tmp/pfetch.$$
     fi
 }
 
@@ -385,13 +420,14 @@ install_herdr() {
             esac
             url="https://github.com/ogulcancelik/herdr/releases/latest/download/herdr-linux-${herdr_arch}"
             log_info "Installing herdr..."
-            if curl -fsSL -o /tmp/herdr.$$ "$url"; then
+            if curl -fsSL -o /tmp/herdr.$$ "$url" \
+                && head -c 4 /tmp/herdr.$$ 2>/dev/null | grep -qa 'ELF'; then
                 install -m 0755 /tmp/herdr.$$ /usr/local/bin/herdr
                 rm -f /tmp/herdr.$$
                 log_info "herdr installed at /usr/local/bin/herdr."
             else
                 rm -f /tmp/herdr.$$
-                log_warn "Could not download herdr. Skipping."
+                log_warn "Could not download herdr (or bad content). Skipping."
             fi
             ;;
         openbsd)
@@ -516,7 +552,8 @@ install_todoist() {
                 mkdir -p /opt/todoist
                 # the /linux_app/appimage endpoint 302-redirects to the latest
                 # versioned build, so this stays version-agnostic across re-runs
-                if wget -qO /opt/todoist/Todoist.AppImage https://todoist.com/linux_app/appimage; then
+                if wget -qO /opt/todoist/Todoist.AppImage https://todoist.com/linux_app/appimage \
+                    && head -c 4 /opt/todoist/Todoist.AppImage 2>/dev/null | grep -qa 'ELF'; then
                     chmod 0755 /opt/todoist/Todoist.AppImage
                     # extract the bundled icon for the launcher (no FUSE needed)
                     td_tmp="$(mktemp -d)"
@@ -607,7 +644,8 @@ install_joplin() {
                     | grep -oE '"tag_name"[ :]*"v[0-9.]+"' | grep -oE '[0-9][0-9.]*' | head -1)
                 if [ -n "$jver" ]; then
                     mkdir -p /opt/joplin
-                    if wget -qO /opt/joplin/Joplin.AppImage "https://objects.joplinusercontent.com/v${jver}/Joplin-${jver}.AppImage"; then
+                    if wget -qO /opt/joplin/Joplin.AppImage "https://objects.joplinusercontent.com/v${jver}/Joplin-${jver}.AppImage" \
+                        && head -c 4 /opt/joplin/Joplin.AppImage 2>/dev/null | grep -qa 'ELF'; then
                         chmod 0755 /opt/joplin/Joplin.AppImage
                         j_tmp="$(mktemp -d)"
                         ( cd "$j_tmp" && /opt/joplin/Joplin.AppImage --appimage-extract >/dev/null 2>&1 ) || true
@@ -817,7 +855,6 @@ TSYNC
         # tty1 login *if* greetd isn't running, so a broken greeter never locks
         # you out of the desktop.
         systemctl mask gdm.service 2>/dev/null || true
-        update-rc.d -f gdm3 remove 2>/dev/null || true
         cat > /usr/local/bin/sway-session <<'SWAYSESS'
 #!/bin/bash --login
 # Launch sway as a login shell so the session inherits ~/.bashrc's environment.
@@ -844,6 +881,18 @@ GREETD
         sed -i 's/^FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
         sed -i 's/^FONTSIZE=.*/FONTSIZE="14"/' /etc/default/console-setup
         setupcon --force 2>/dev/null || true
+
+        # Dark mode for GTK4/libadwaita, the xdg portal, and Chrome/Electron/
+        # web `prefers-color-scheme`. libadwaita ignores the legacy GtkSettings
+        # dark flag and reads org.gnome.desktop.interface color-scheme, so set
+        # it as a system dconf default (headless-safe; no session bus needed).
+        mkdir -p /etc/dconf/db/local.d /etc/dconf/profile
+        [ -f /etc/dconf/profile/user ] || printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
+        cat > /etc/dconf/db/local.d/00-nnix-theme <<'DCONF'
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+DCONF
+        dconf update 2>/dev/null || true
 
         # Make Google Chrome the default browser: system-wide alternatives
         # for CLI callers, plus the per-user xdg default for GUI apps that
@@ -1009,12 +1058,13 @@ NFT
 # Managed by dotfiles provision.sh.
 kernel.kptr_restrict = 1
 kernel.dmesg_restrict = 1
-net.ipv4.conf.all.rp_filter = 1
-net.ipv4.conf.default.rp_filter = 1
+kernel.yama.ptrace_scope = 1
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
 net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
 net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
 net.ipv4.conf.all.accept_source_route = 0
 net.ipv6.conf.all.accept_source_route = 0
 net.ipv4.icmp_echo_ignore_broadcasts = 1
@@ -1163,11 +1213,18 @@ configure_hostname() {
         log_info "Hostname unchanged."
     fi
 
-    # Ensure hostname resolves locally
+    # Ensure hostname resolves locally. Debian convention: the machine's own
+    # name goes on a 127.0.1.1 line (127.0.0.1 stays localhost). Anchor the
+    # guard so a substring of an unrelated entry can't mask a missing name.
     h=$(hostname)
-    if ! grep -q "$h" /etc/hosts 2>/dev/null; then
-        printf "127.0.0.1 %s %s\n" "$h" "${h%%.*}" >> /etc/hosts
-        printf "::1 %s %s\n" "$h" "${h%%.*}" >> /etc/hosts
+    short="${h%%.*}"
+    if [ "$h" = "$short" ]; then names="$h"; else names="$h $short"; fi
+    if ! grep -qE "(^|[[:space:]])${h}([[:space:]]|\$)" /etc/hosts 2>/dev/null; then
+        if [ "$OS_TYPE" = "openbsd" ]; then
+            printf "127.0.0.1 %s\n" "$names" >> /etc/hosts
+        else
+            printf "127.0.1.1 %s\n" "$names" >> /etc/hosts
+        fi
         log_info "Added $h to /etc/hosts."
     fi
 }
@@ -1198,6 +1255,34 @@ configure_sshd() {
 
     log_info "Hardening sshd (key-only auth)..."
     sshd_bin="$(command -v sshd 2>/dev/null || echo /usr/sbin/sshd)"
+
+    # Prefer a drop-in so the packaged sshd_config is never rewritten. On
+    # Debian the base file's `Include /etc/ssh/sshd_config.d/*.conf` sits above
+    # any hand-set directive and sshd is first-match-wins, so a 99- drop-in
+    # also wins over anything a later package drops in. The candidate is
+    # validated with `sshd -t` before it is kept, so it can't lock you out.
+    dropin_dir=/etc/ssh/sshd_config.d
+    if [ "$OS_TYPE" != "openbsd" ] && \
+       grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\.d/' "$conf"; then
+        mkdir -p "$dropin_dir"
+        dst="${dropin_dir}/99-dotfiles-hardening.conf"
+        cat > "$dst" <<'SSHDROP'
+# Managed by dotfiles provision.sh.
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+SSHDROP
+        if "$sshd_bin" -t 2>/dev/null; then
+            systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+            log_info "sshd set to key-only auth (drop-in 99-dotfiles-hardening.conf)."
+        else
+            rm -f "$dst"
+            log_warn "sshd drop-in failed validation; removed, left unchanged."
+        fi
+        return
+    fi
+
+    # OpenBSD (no sshd_config.d Include): patch the main file in place, still
+    # validating the candidate before it replaces the real one.
     tmp="${conf}.dotfiles.$$"
     sed -e 's/^#*[[:space:]]*PasswordAuthentication[[:space:]].*/PasswordAuthentication no/' \
         -e 's/^#*[[:space:]]*KbdInteractiveAuthentication[[:space:]].*/KbdInteractiveAuthentication no/' \
@@ -1254,12 +1339,18 @@ deploy_dotfiles() {
     # Directories to skip per OS
     case "$OS_TYPE" in
         openbsd) SKIP_DIRS="sway swaylock waybar wofi foot mako" ;;
-        linux)   SKIP_DIRS="i3 i3status" ;;
-        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status mako" ;;
+        linux)   SKIP_DIRS="i3 i3status dunst" ;;
+        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status mako dunst" ;;
     esac
 
     cd "$SCRIPT_DIR/dotfiles"
-    find . -type f ! -name .DS_Store | while read -r rel; do
+    # Read the file list from a temp file (not a pipe) so state accumulated in
+    # the loop — the set of top-level home entries we actually wrote — survives
+    # for a targeted chown instead of chowning all of $HOME.
+    file_list="$(mktemp)"
+    find . -type f ! -name .DS_Store > "$file_list"
+    deployed_tops=""
+    while read -r rel; do
         # Skip configs not relevant to this OS
         skip=false
         for d in $SKIP_DIRS; do
@@ -1273,6 +1364,7 @@ deploy_dotfiles() {
             *.bashrc|*.bash_profile) [ "$OS_TYPE" = "macos" ] && skip=true ;;
             *.zshrc) [ "$OS_TYPE" != "macos" ] && skip=true ;;
             *.wezterm.lua) [ "$OS_TYPE" != "macos" ] && skip=true ;;
+            *.local/bin/lock|*.local/bin/volnotify) [ "$OS_TYPE" != "openbsd" ] && skip=true ;;
         esac
         if [ "$skip" = "true" ]; then continue; fi
 
@@ -1311,17 +1403,42 @@ deploy_dotfiles() {
         else
             cp "$src" "$dst"
         fi
-    done
 
-    # Ownership (not needed on macOS — files are already owned by user)
+        # Record the top-level home entry (e.g. .config, .bashrc) so ownership
+        # is fixed only for what we deployed.
+        top="${rel#./}"; top="${top%%/*}"
+        case " $deployed_tops " in
+            *" $top "*) : ;;
+            *) deployed_tops="$deployed_tops $top" ;;
+        esac
+    done < "$file_list"
+    rm -f "$file_list"
+
+    # Ownership: chown only the trees we deployed, not all of $HOME — a full
+    # recursive chown re-stats gigabytes of .cache/.var/Downloads and could
+    # reset the owner of unrelated files. macOS files are already user-owned.
     if [ "$OS_TYPE" != "macos" ]; then
-        chown -R "${username}:${username}" "$home_dir"
+        for top in $deployed_tops; do
+            chown -R "${username}:${username}" "$home_dir/$top" 2>/dev/null || true
+        done
     fi
 
     # SSH permissions
     if [ -d "$home_dir/.ssh" ]; then
         chmod 700 "$home_dir/.ssh"
         chmod 600 "$home_dir/.ssh/config" 2>/dev/null || true
+    fi
+
+    # SSH commit signing uses gpg.format=ssh with signingkey id_d_nnix.pub.
+    # Agentless signing makes ssh-keygen find the private key by stripping the
+    # ".pub" suffix -> id_d_nnix, so give it that name (a symlink to the real
+    # .pem). Without it, commits/tags fail whenever the agent isn't loaded
+    # (cron, sudo, a fresh boot before a terminal starts the shared agent).
+    if [ "$OS_TYPE" != "macos" ] && [ -f "$home_dir/.ssh/id_d_nnix.pem" ] \
+        && [ ! -e "$home_dir/.ssh/id_d_nnix" ]; then
+        ln -s id_d_nnix.pem "$home_dir/.ssh/id_d_nnix"
+        chown -h "${username}:${username}" "$home_dir/.ssh/id_d_nnix" 2>/dev/null || true
+        log_info "Linked ~/.ssh/id_d_nnix -> id_d_nnix.pem for agentless SSH signing."
     fi
 
     # macOS: CoreText doesn't scan ~/.fonts; register the font where the

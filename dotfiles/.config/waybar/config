@@ -27,7 +27,7 @@
     "clock#est": {
     	"interval": 1,
     	"timezone": "America/New_York",
-        "format": "EST {:%Y-%m-%d %H:%M:%S}",
+        "format": "{:%Z %Y-%m-%d %H:%M:%S}",
     },
     "clock#utc": {
     	"interval": 1,

@@ -1,8 +1,8 @@
 * { font-family: "Berkeley Mono Variable NNIX",sans-serif; font-weight: 800; font-size: 20px; }
-window { margin: 0px; border: 4px solid #000000; background-color: #11151c; }
-#input { margin: 5px; border: none; color: #ffffff; background-color: #11151c; }
-#inner-box { margin: 5px; border: none; background-color: #11151c; }
-#outer-box { margin: 5px; border: none; background-color: #11151c; }
+window { margin: 0px; border: 4px solid #000000; background-color: #000000; }
+#input { margin: 5px; border: none; color: #ffffff; background-color: #000000; }
+#inner-box { margin: 5px; border: none; background-color: #000000; }
+#outer-box { margin: 5px; border: none; background-color: #000000; }
 #scroll { margin: 0px; border: none; }
 #text { margin: 5px; border: none; color: #cccccc; }
 #entry:selected { background-color: #1f2d4d; }

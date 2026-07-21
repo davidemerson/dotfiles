@@ -6,6 +6,13 @@ exec swaybg --output "*" --color "#000000"
 # plan9 cursor theme (installed to ~/.icons/plan9 by provision)
 seat * xcursor_theme plan9 16
 
+# input: Caps->Escape and faster key repeat (matches the OpenBSD .xinitrc)
+input * {
+    xkb_options caps:escape
+    repeat_delay 250
+    repeat_rate 30
+}
+
 # idle behavior: lock the screen at 15 min, power the display off at 30 min
 # (never suspends — sleep is masked in provision.sh), and lock before any
 # sleep. -f daemonizes swaylock so the timeout command returns.
@@ -77,7 +84,8 @@ bindsym $mod+n exec pamixer -d 5 && pamixer --get-volume > $WOBSOCK
 bindsym $mod+Shift+q kill
 bindsym $mod+w kill
 bindsym $mod+Shift+c reload
-bindsym $mod+Shift+r restart
+# sway has no `restart` (an i3-ism); reload is the closest equivalent.
+bindsym $mod+Shift+r reload
 bindsym $mod+Shift+j move left
 bindsym $mod+Shift+k move down
 bindsym $mod+Shift+i move up

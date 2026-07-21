@@ -1,3 +1,9 @@
+# Guard against being sourced twice in one shell: .bash_profile sources both
+# the stock ~/.profile (which re-sources .bashrc) and .bashrc directly, which
+# would otherwise double the PATH and print the login banner twice.
+[ -n "${__NNIX_BASHRC:-}" ] && return
+__NNIX_BASHRC=1
+
 # ---------- ssh-agent: one shared agent per user ----------
 # macOS runs an agent via launchd; the bash platforms (Linux/OpenBSD) do
 # not, so start one bound to a fixed socket and reuse it across every shell
@@ -12,7 +18,12 @@
 # id_d_nnix.pub naming that otherwise breaks `ssh-keygen -Y sign` is fine once
 # the key is in the agent. This is what makes SSH commit signing and git push
 # over ssh "just work" on this machine. Ctrl+C at the prompt to skip.
-export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/tmp}/ssh-agent-$(id -u).sock"
+# Point at our fixed shared-agent socket, but don't clobber a working agent
+# already in the environment (e.g. a forwarded `ssh -A` socket) — only default
+# to the fixed path when nothing usable was inherited.
+if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "${SSH_AUTH_SOCK:-}" ]; then
+  export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR:-/tmp}/ssh-agent-$(id -u).sock"
+fi
 case $- in
   *i*)
     ssh-add -l >/dev/null 2>&1
@@ -114,8 +125,13 @@ alias top='btop'
 
 # ---------- Env ----------
 export EDITOR="${EDITOR:-issy}"
-export PATH="$HOME/bin:/usr/local/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
+# Prepend without creating duplicates when a nested shell re-sources this.
+__path_prepend() { case ":$PATH:" in *":$1:"*) : ;; *) PATH="$1:$PATH" ;; esac; }
+__path_prepend /usr/local/bin
+__path_prepend "$HOME/bin"
+__path_prepend "$HOME/.local/bin"
+unset -f __path_prepend
+export PATH
 
 # ---------- fzf (Ctrl-R history, Ctrl-T files) + fd ----------
 command -v fzf >/dev/null 2>&1 && eval "$(fzf --bash 2>/dev/null)"

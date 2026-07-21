@@ -63,6 +63,8 @@ On Linux/OpenBSD the script prompts for the username to provision (creating it i
 | Media | VLC, Audacity | VLC, Audacity | VLC, Audacity |
 | Meetings | Zoom | | Zoom |
 | Git GUI | GitHub Desktop (community) | | GitHub Desktop |
+| Networking | ZeroTier | | |
+| AI CLI | Claude Code | | Claude Code |
 | Clipboard | wl-clipboard + cliphist | clipmenu | |
 | Firmware / ECC | fwupd, rasdaemon | | |
 | Smart card | pcscd + libccid + opensc | | |
@@ -125,7 +127,7 @@ paths; `workstation <label>` forces one.
 
 ### Clipboard (Linux)
 
-On Sway, `wl-paste --primary --watch wl-copy` mirrors the primary selection into the clipboard, so selecting text in any terminal or app makes it pasteable everywhere with Ctrl+Shift+V (matching the OpenBSD st behavior). `wl-paste --watch cliphist store` keeps a history so a selection that clobbers a copied value can be recovered; `$mod+v` opens the history in a wofi picker.
+On Sway, `wl-paste --primary --watch wl-copy` mirrors the primary selection into the clipboard, so selecting text in any terminal or app makes it pasteable everywhere with Ctrl+Shift+V (matching the OpenBSD st behavior). `wl-paste --watch cliphist store` keeps a history so a selection that clobbers a copied value can be recovered; `$mod+c` opens the history in a wofi picker.
 
 ### Desktop applications
 
@@ -149,11 +151,11 @@ Beyond Debian's stock `fstrim`/`logrotate`/`fwupd-refresh` timers, `provision.sh
 `provision.sh` (`configure_hardening`) adds:
 
 - **Host firewall** — nftables, default-deny inbound, allowing only loopback, established/related, ICMP, and the services actually used (SSH, mosh UDP 60000–61000, ZeroTier UDP 9993); outbound is open. Other listening services need an explicit rule added.
-- **Kernel/network hardening** — a conservative `sysctl` drop-in (`kptr_restrict`, `dmesg_restrict`, reverse-path filtering, no redirects/source-routing, syncookies, `fs.protected_*`).
+- **Kernel/network hardening** — a conservative `sysctl` drop-in (`kptr_restrict`, `dmesg_restrict`, `yama.ptrace_scope`, no ICMP redirects or source-routing, syncookies, `fs.protected_*`).
 - **zram** — compressed (zstd) swap sized to 50% of RAM, so memory spikes stay in RAM instead of hitting the (wear-limited) NVMe.
 - **systemd-oomd** — graceful low-memory handling before the machine locks up.
 
-Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 15 min and before sleep), **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, and Qt apps forced dark via `adwaita-qt6`.
+Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 15 min and before sleep), **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, Qt apps forced dark via `adwaita-qt`/`adwaita-qt6`, and GTK4/libadwaita + the xdg portal + Chrome forced dark via a `prefer-dark` dconf default.
 
 ### File Routing
 
@@ -165,9 +167,9 @@ Not every file deploys on every OS:
 | `.zshrc` | — | — | yes |
 | `.wezterm.lua` | — | — | yes |
 | `.xinitrc` | — | yes | — |
-| `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*` | yes | — | — |
-| `.config/i3/*`, `i3status/*` | — | yes | — |
-| Everything else (git, ssh, tmux, issy, fonts, cursors, theming, `.Xresources`, `.local/bin/*`) | yes | yes | yes |
+| `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*`, `mako/*` | yes | — | — |
+| `.config/i3/*`, `i3status/*`, `dunst/*`, `.local/bin/{lock,volnotify}` | — | yes | — |
+| Everything else (git, ssh, tmux, issy, fonts, cursors, theming, `.Xresources`, `.local/bin/{workstation,shot,sysinfo}`) | yes | yes | yes |
 
 `.config/workstation.conf` is seeded once and never overwritten, so per-machine values survive re-provisioning.
 
@@ -209,6 +211,7 @@ Package installs, from-source builds, and file deploys are idempotent.
 | Mod4 + Shift+z | 1Password lock (Sway) |
 | Print / Shift+Print | Screenshot: full / region (Sway) |
 | Mod4 + Shift+q | Kill window |
+| Mod4 + w | Kill window (alias) |
 | Mod4 + Shift+e | Exit (with confirmation) |
 | Mod4 + Shift+s | Shutdown (with confirmation) |
 | Mod4 + j/k/i/l | Focus left/down/up/right |
@@ -220,13 +223,12 @@ Package installs, from-source builds, and file deploys are idempotent.
 | Mod4 + m/n | Volume up/down |
 | Mod4 + r | Resize mode |
 | Mod4 + Shift+c | Reload config |
-| Mod4 + Shift+r | Restart WM |
+| Mod4 + Shift+r | Reload config (alias) |
 
 i3 (OpenBSD) additions:
 
 | Key | Action |
 |-----|--------|
-| Mod4 + w | Kill window (alias) |
 | Mod4 + Shift+m | Mute toggle |
 | Mod4 + c | Clipboard history (clipmenu) |
 | Mod4 + ` | Scratchpad terminal |
@@ -245,12 +247,12 @@ st/config.h, patches.h    # Patched st build config (OpenBSD)
 dmenu/config.h, patches.h # Patched dmenu build config (OpenBSD)
 dotfiles/
 ├── .bashrc               # Bash: prompt, aliases, sway/startx autostart (OS-conditional)
-├── .bash_profile         # Sources .profile then .bashrc
+├── .bash_profile         # Sources ~/.profile (if present) then .bashrc
 ├── .zshrc                # Zsh: same prompt and aliases (macOS)
 ├── .xinitrc              # xrdb, cursor, caps→escape, key repeat, dbus + i3 (OpenBSD)
 ├── .Xresources           # Crisp Xft rendering, plan9 cursor
 ├── .gitconfig            # Identity + SSH commit signing
-├── .ssh/config           # GitHub + Overleaf host entries
+├── .ssh/config           # GitHub host entry (auth key)
 ├── .tmux.conf            # tmux behavior + palette
 ├── .wezterm.lua          # WezTerm config (macOS)
 ├── .issyrc               # issy editor settings
@@ -258,7 +260,7 @@ dotfiles/
 ├── .icons/plan9/         # plan9 cursor theme
 ├── .local/bin/           # workstation, lock, shot, volnotify, sysinfo
 └── .config/
-    ├── sway/, waybar/, foot/, swaylock/, wofi/   # Linux desktop (waybar/loadgraph.sh = load histogram)
+    ├── sway/, waybar/, foot/, swaylock/, wofi/, mako/   # Linux desktop (waybar/{load,net}graph.sh = load/net histograms)
     ├── i3/, i3status/                            # OpenBSD desktop
     ├── dunst/dunstrc                             # Notifications (OpenBSD)
     ├── fontconfig/fonts.conf                     # monospace = Berkeley Mono

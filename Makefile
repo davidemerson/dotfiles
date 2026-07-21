@@ -18,7 +18,7 @@ backup:
 	@echo "Backing up existing dotfiles..."
 	@BDIR="backups/$$(date +%Y%m%d_%H%M%S)"; \
 	mkdir -p "$$BDIR"; \
-	for item in .config .bashrc .bash_profile .zshrc .gitconfig .ssh .wezterm.lua .xinitrc; do \
+	for item in .config .bashrc .bash_profile .zshrc .gitconfig .ssh .wezterm.lua .xinitrc .tmux.conf .issyrc .Xresources .local; do \
 		if [ -e "$$HOME/$$item" ]; then \
 			cp -r "$$HOME/$$item" "$$BDIR/"; \
 		fi; \

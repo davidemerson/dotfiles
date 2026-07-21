@@ -23,7 +23,7 @@ elif [ -n "$newest" ] && [ "$running" != "$newest" ]; then
 fi
 
 # --- disk usage (warn >= 85% on real filesystems); for-loop keeps $issues ---
-for e in $(df -P -x tmpfs -x devtmpfs -x overlay 2>/dev/null | awk 'NR>1 && $5+0>=85 {print $6"="$5}'); do
+for e in $(df -P -x tmpfs -x devtmpfs -x overlay -x iso9660 -x udf -x squashfs 2>/dev/null | awk 'NR>1 && $5+0>=85 {print $6"="$5}'); do
     warn "disk ${e%=*} at ${e#*=}"
 done
 

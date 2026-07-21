@@ -1,5 +1,4 @@
 * { border: none; border-radius: 4px; font-family: "Berkeley Mono Variable NNIX",sans-serif; font-weight: 800; font-size: 20px; min-height: 0; }
-/* `ttf-font-awesome` is required to be installed for icons */
 window#waybar { background-color: rgba(0, 0, 0, 0.9); color: #cccccc; }
 #workspaces button { color: #ffffff; box-shadow: inset 0 -3px transparent; }
 #workspaces button:hover { background: rgba(0, 0, 0, 0.9); box-shadow: inset 0 -3px #cccccc; }
@@ -11,8 +10,6 @@ window#waybar { background-color: rgba(0, 0, 0, 0.9); color: #cccccc; }
 .modules-left > widget:first-child > #workspaces { margin-left: 0; }
 .modules-right > widget:last-child > #workspaces { margin-right: 0; }
 #clock { background-color: #000000; color: #cccccc; }
-@keyframes blink { to { background-color: #ffffff; color: #000000; } }
-label:focus { background-color: #000000; }
 #cpu { background-color: #000000; color: #cccccc; }
 #custom-loadgraph { background-color: #000000; color: #cccccc; }
 #custom-netgraph { background-color: #000000; color: #cccccc; }
@@ -20,4 +17,3 @@ label:focus { background-color: #000000; }
 #network { background-color: #000000; color: #cccccc; }
 #network.disconnected { background-color: #333333; color: #ffffff; }
 #tray { background-color: #1f2d4d; }
-#language { background: #1f2d4d; color: #cccccc; padding: 0 5px; margin: 6px 3px; min-width: 16px; }

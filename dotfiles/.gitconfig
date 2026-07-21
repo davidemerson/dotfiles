@@ -4,6 +4,7 @@
 	signingkey = ~/.ssh/id_d_nnix.pub
 [commit]
 	gpgsign = true
+	verbose = true
 [tag]
 	gpgsign = true
 [gpg]
@@ -16,7 +17,6 @@
 	ff = only
 [push]
 	autoSetupRemote = true
-	default = simple
 [fetch]
 	prune = true
 [rebase]
@@ -26,8 +26,6 @@
 [diff]
 	colorMoved = default
 	algorithm = histogram
-[commit]
-	verbose = true
 # @@IF_LINUX@@
 # delta is installed from apt on Linux; use it as the diff pager there.
 [core]

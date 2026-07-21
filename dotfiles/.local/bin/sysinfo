@@ -38,13 +38,22 @@ fi
 
 # Disk: totals per physical disk (sum of its mounted partitions).
 case "$(uname -s)" in
-    OpenBSD) psuf='[a-p]$' ;;          # wd0a   -> wd0
-    Darwin)  psuf='s[0-9][0-9]*$' ;;   # disk1s1 -> disk1
-    *)       psuf='p?[0-9][0-9]*$' ;;  # sda1 -> sda, nvme0n1p1 -> nvme0n1
+    OpenBSD) osk=obsd ;;
+    Darwin)  osk=mac ;;
+    *)       osk=linux ;;
 esac
 hum() { awk -v k="$1" 'BEGIN{split("K M G T P",x);i=1;v=k;while(v>=1024&&i<5){v/=1024;i++}printf "%.1f%s",v,x[i]}'; }
-df -k 2>/dev/null | awk -v p="$psuf" '
-    $1 ~ /^\/dev\// { d=$1; sub(/^\/dev\//,"",d); sub(p,"",d); u[d]+=$3; s[d]+=$2 }
+df -k 2>/dev/null | awk -v osk="$osk" '
+    $1 ~ /^\/dev\// {
+        d=$1; sub(/^\/dev\//,"",d)
+        # Group by whole disk without eating a namespace digit off an
+        # unpartitioned whole-disk mount:
+        #   nvme0n1p1 -> nvme0n1   nvme0n1 -> nvme0n1   sda1 -> sda   wd0a -> wd0
+        if (osk=="linux") { if (d ~ /^(nvme|mmcblk|loop)/) sub(/p[0-9]+$/,"",d); else sub(/[0-9]+$/,"",d) }
+        else if (osk=="mac") { sub(/s[0-9]+$/,"",d) }
+        else { sub(/[a-p]$/,"",d) }
+        u[d]+=$3; s[d]+=$2
+    }
     END { for (k in u) printf "%s %d %d\n", k, u[k], s[k] }' | sort | {
     first=1
     while read -r disk usedk sizek; do
