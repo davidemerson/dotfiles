@@ -825,12 +825,12 @@ exec sway
 SWAYSESS
         chmod 0755 /usr/local/bin/sway-session
         if command -v tuigreet >/dev/null 2>&1 && [ -d /etc/greetd ]; then
-            cat > /etc/greetd/config.toml <<'GREETD'
+            cat > /etc/greetd/config.toml <<GREETD
 [terminal]
 vt = 7
 
 [default_session]
-command = "tuigreet --time --remember --asterisks --cmd /usr/local/bin/sway-session"
+command = "tuigreet --time --time-format '%Y-%m-%d %H:%M:%S' --asterisks --asterisks-char '※' --greeting '$(hostname)' --cmd /usr/local/bin/sway-session"
 user = "_greetd"
 GREETD
             systemctl set-default graphical.target 2>/dev/null || true
