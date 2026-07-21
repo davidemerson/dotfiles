@@ -879,6 +879,12 @@ GREETD
 [Service]
 ExecStartPre=/usr/bin/setfont /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz -C /dev/tty7
 GFONT
+            # Rename the prompt-box title "Authenticate into <hostname>" to
+            # "Login": the hostname is already in the --greeting line, so the
+            # title is redundant. tuigreet has no flag for this, so we patch the
+            # binary's embedded locale (reverts on tuigreet upgrade; re-run the
+            # script by hand then, or just re-run provision.sh).
+            sh "$SCRIPT_DIR/scripts/patch-tuigreet-title.sh" || true
             systemctl set-default graphical.target 2>/dev/null || true
             systemctl enable greetd 2>/dev/null || true
         else
