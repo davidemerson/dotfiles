@@ -13,10 +13,10 @@ input * {
     repeat_rate 30
 }
 
-# idle behavior: lock the screen at 15 min, power the display off at 30 min
+# idle behavior: lock the screen at 1 hr, power the display off at 2 hr
 # (never suspends — sleep is masked in provision.sh), and lock before any
 # sleep. -f daemonizes swaylock so the timeout command returns.
-exec swayidle -w timeout 900 'swaylock -f --config ~/.config/swaylock/config' timeout 1800 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' before-sleep 'swaylock -f --config ~/.config/swaylock/config'
+exec swayidle -w timeout 3600 'swaylock -f --config ~/.config/swaylock/config' timeout 7200 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' before-sleep 'swaylock -f --config ~/.config/swaylock/config'
 
 # notification daemon (palette-themed via ~/.config/mako/config)
 exec mako
