@@ -86,7 +86,9 @@ cursor_style = underline
 # ── PDF / Print ──
 
 # Path to a TTF or OTF font file. Required for Ctrl+P and --print.
-# @@HOME@@ is substituted with the target user's home directory by provision.sh.
+# provision.sh rewrites the home-directory prefix below for the target user.
+# (The placeholder is deliberately not named here: the substitution is a plain
+# textual replace, so spelling the token in a comment rewrites the comment too.)
 font_file = "@@HOME@@/.fonts/bmv.otf"
 
 # Font size in points

@@ -18,6 +18,12 @@ cd /tmp/dotfiles
 sh provision.sh
 ```
 
+On a server, or to be explicit about it:
+
+```
+sh provision.sh --headless
+```
+
 ### OpenBSD
 
 ```
@@ -38,6 +44,9 @@ sh provision.sh    # as your normal user
 On Linux/OpenBSD the script prompts for the username to provision (creating it if needed, adding it to sudo/wheel, and setting bash as the login shell) and for a hostname. Reboot when it finishes.
 
 ## What Gets Installed
+
+Everything in the desktop rows below is skipped on a **headless** Linux host —
+see [Headless hosts](#headless-hosts-linux).
 
 | Component | Linux (Debian) | OpenBSD | macOS |
 |-----------|---------------|---------|-------|
@@ -146,11 +155,32 @@ Beyond Debian's stock `fstrim`/`logrotate`/`fwupd-refresh` timers, `provision.sh
 - **SMART monitoring** — `smartmontools` (`smartd`) watches drive health.
 - **Weekly health check** — `/usr/local/bin/healthcheck` (from `scripts/healthcheck`) runs via `healthcheck.timer` and logs a summary to the journal: reboot-required, disk usage, failed units, SMART/NVMe wear, ECC error counts, temperatures, pending updates. View with `journalctl -t healthcheck` (the target user is added to the `systemd-journal` group so no sudo is needed). Every probe is guarded, so it's a harmless no-op where a subsystem is absent (e.g. a VM).
 
+### Headless hosts (Linux)
+
+This is a workstation config, but the same repo provisions servers. `provision.sh` detects a **headless** host by reading the DRM connectors — if every connector reports `disconnected` (or the machine has none), nothing is attached — and then skips the parts that only make sense with a display:
+
+- the desktop package set (sway, waybar, wofi, foot, greetd/tuigreet, mako, media apps, GTK/Qt theming, flatpak);
+- the GUI applications (Chrome, Sublime Text, Zoom, GitHub Desktop, Todoist, Fastmail, Joplin desktop, and the 1Password *app* — the `op` CLI is still installed, since scripts need it);
+- the greeter and the Berkeley Mono console font. This one matters: the greeter's `setfont` step exits `71/OSERR` on a machine with no framebuffer, which leaves `greetd.service` permanently failed and trips every health check on the box. Headless hosts boot to `multi-user.target` instead. On desktops the font load is now advisory (`ExecStartPre=-`), so a font that the kernel rejects can never stop the greeter from starting;
+- every desktop dotfile. `deploy_dotfiles` additionally skips `sway`, `swaylock`, `waybar`, `wofi`, `foot`, `mako`, `gtk-3.0`, `gtk-4.0`, `fontconfig` and `sublime-text-3`, plus `.Xresources`, `.icons/` and `.local/bin/shot`. A headless host receives 15 files — shell, prompt, git, ssh, tmux, micro, btop, issy, `~/.local/bin` — and `.fonts/bmv.otf`, which stays because issy renders PDFs with it;
+- the interactive hostname prompt. Renaming a host that other machines, certificates and monitoring refer to by name is not something to do by accident, and a bare `read` against a closed stdin would abort the run under `set -e`. Set `NNIX_HOSTNAME` to rename deliberately.
+
+What a headless host *does* still get: timezone and NTP, the sshd hardening, the sysctl drop-in, unattended-upgrades with `Automatic-Reboot "false"`, needrestart in report-only mode, the 1 GB journal cap, SMART monitoring, the weekly healthcheck timer, zram, and the CLI tools (issy, pfetch, herdr, `op`, ZeroTier, Claude Code).
+
+The tty autostart in `.bashrc` and `.xinitrc` is also now guarded by `command -v sway` / `command -v startx`. Both are `exec` calls: on a machine without the compositor installed they would have replaced the login shell with a failing command and dropped the console session.
+
+Detection is by *attached display*, so a workstation provisioned with its monitor off or unplugged would be misread. Override it in either direction:
+
+```sh
+NNIX_HEADLESS=0 ./provision.sh   # force the full desktop
+NNIX_HEADLESS=1 ./provision.sh   # force server mode
+```
+
 ### Hardening & reliability (Linux)
 
 `provision.sh` (`configure_hardening`) adds:
 
-- **Host firewall** — nftables, default-deny inbound, allowing only loopback, established/related, ICMP, and the services actually used (SSH, mosh UDP 60000–61000, ZeroTier UDP 9993); outbound is open. Other listening services need an explicit rule added.
+- **Host firewall** — nftables, default-deny inbound, allowing only loopback, established/related, ICMP, and the services actually used (SSH, mosh UDP 60000–61000, ZeroTier UDP 9993); outbound is open. Per-host exceptions go in **`/etc/nnix/firewall.conf`** (`EXTRA_TCP_PORTS`, `EXTRA_UDP_PORTS`, `TRUSTED_SUBNETS`), which is seeded once and never overwritten on re-provision. Three deliberate safeguards: the whole section is **skipped when ufw or firewalld is already active** (two firewall managers means the stricter one wins, silently); only the script's own `inet nnix` table is replaced, never `flush ruleset`, so ufw's and Docker's tables survive; and the **forward hook is left open when a container runtime is present** — Docker publishes ports via DNAT, which is *forwarded* rather than input, so a forward drop blackholes every container's networking. The rendered ruleset is `nft -c`-checked before it goes live.
 - **Kernel/network hardening** — a conservative `sysctl` drop-in (`kptr_restrict`, `dmesg_restrict`, `yama.ptrace_scope`, no ICMP redirects or source-routing, syncookies, `fs.protected_*`).
 - **zram** — compressed (zstd) swap sized to 50% of RAM, so memory spikes stay in RAM instead of hitting the (wear-limited) NVMe.
 - **systemd-oomd** — graceful low-memory handling before the machine locks up.

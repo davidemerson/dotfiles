@@ -44,7 +44,7 @@ esac
 # @@IF_OPENBSD@@
 export LANG=en_US.UTF-8
 export LC_CTYPE=en_US.UTF-8
-if [ "$(tty)" = "/dev/ttyC0" ]; then
+if [ "$(tty)" = "/dev/ttyC0" ] && command -v startx >/dev/null 2>&1; then
 	startx
 fi
 # @@END_IF@@
@@ -57,7 +57,11 @@ export WLR_NO_HARDWARE_CURSORS=1
 # Normally greetd (the login manager) starts sway on vt7 via sway-session.
 # This is only a fallback: from a tty1 console login, launch sway when greetd
 # is not running, so a broken/absent greeter never locks you out of the desktop.
-if [ "$(tty)" = "/dev/tty1" ] && ! systemctl is-active --quiet greetd 2>/dev/null; then
+# The `command -v` test matters: this is an `exec`, so on a machine without
+# sway (a headless host, or a desktop mid-purge) it would replace the login
+# shell with a failing command and drop the console session immediately.
+if [ "$(tty)" = "/dev/tty1" ] && command -v sway >/dev/null 2>&1 \
+    && ! systemctl is-active --quiet greetd 2>/dev/null; then
 	exec sway
 fi
 # @@END_IF@@

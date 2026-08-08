@@ -20,11 +20,30 @@ check() {
     fi
 }
 
+check_syntax() {
+    if sh -n "$SCRIPT_DIR/$1" 2>/dev/null; then
+        printf "${GREEN}✓${NC} %s parses\n" "$1"
+        pass=$((pass + 1))
+    else
+        printf "${RED}✗${NC} %s has a SYNTAX ERROR\n" "$1"
+        sh -n "$SCRIPT_DIR/$1" 2>&1 | sed 's/^/    /'
+        fail=$((fail + 1))
+    fi
+}
+
 printf "Validating dotfiles...\n\n"
 
 printf "Core:\n"
 check "provision.sh"
 check "scripts/healthcheck"
+
+# A provisioning script that does not parse is worse than a missing one: it
+# fails partway through, having already changed some of the system.
+printf "\nScript syntax:\n"
+check_syntax "provision.sh"
+check_syntax "scripts/healthcheck"
+check_syntax "dotfiles/.bashrc"
+check_syntax "dotfiles/.bash_profile"
 
 printf "\nShell:\n"
 check "dotfiles/.bashrc"

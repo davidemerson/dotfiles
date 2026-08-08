@@ -22,6 +22,14 @@
 - **Tools**: nano, htop, btop, nmap, lsd; curl + wget (Linux/OpenBSD; macOS uses the system `curl`)
 
 ### Linux (Sway Desktop)
+
+> Everything in this section is **skipped on a headless host** — see
+> [Headless hosts](README.md#headless-hosts-linux). A server gets the "All
+> Platforms" set above plus the maintenance/hardening packages
+> (`unattended-upgrades`, `needrestart`, `nftables`, `zram-tools`,
+> `systemd-oomd`, `smartmontools`, `fwupd`, `rasdaemon`) and `1password-cli`,
+> but no compositor, greeter, browser or GUI application.
+
 - **Compositor**: Sway, swaybg, swayidle, xwayland
 - **Terminal**: foot
 - **Status Bar**: waybar

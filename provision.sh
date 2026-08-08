@@ -13,6 +13,7 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OS_TYPE=""
+IS_HEADLESS=""
 
 log_info()  { printf "${GREEN}[INFO]${NC} %s\n" "$1"; }
 log_warn()  { printf "${YELLOW}[WARN]${NC} %s\n" "$1"; }
@@ -30,6 +31,57 @@ detect_os() {
     esac
     log_info "Detected OS: $OS_TYPE"
 }
+
+# -------------------------------------------------------------------
+# Headless detection
+# -------------------------------------------------------------------
+# A host with nothing plugged into it gets no desktop: no GUI packages, no
+# greeter, no console font. Those three are the parts of this script that are
+# actively harmful on a server — the greeter's setfont ExecStartPre fails hard
+# on a box with no framebuffer and leaves greetd.service permanently failed.
+#
+# Detected from the DRM connectors: if every connector reads "disconnected"
+# (or the machine has none at all), nothing is attached. A workstation
+# provisioned with its monitor unplugged would trip this, so it is logged
+# loudly and NNIX_HEADLESS overrides it in either direction.
+detect_headless() {
+    case "${NNIX_HEADLESS:-}" in
+        1|yes|true)
+            IS_HEADLESS=1
+            log_info "Headless: yes (forced by NNIX_HEADLESS)"
+            return
+            ;;
+        0|no|false)
+            IS_HEADLESS=0
+            log_info "Headless: no (forced by NNIX_HEADLESS)"
+            return
+            ;;
+    esac
+
+    if [ "$OS_TYPE" != "linux" ]; then
+        IS_HEADLESS=0
+        return
+    fi
+
+    IS_HEADLESS=1
+    for status in /sys/class/drm/card*-*/status; do
+        [ -e "$status" ] || continue
+        if [ "$(cat "$status" 2>/dev/null)" = "connected" ]; then
+            IS_HEADLESS=0
+            break
+        fi
+    done
+
+    if [ "$IS_HEADLESS" = "1" ]; then
+        log_warn "Headless: yes (no connected display) — skipping desktop packages, greeter, and console font."
+        log_warn "  If this machine has a monitor that is merely off or unplugged, re-run with NNIX_HEADLESS=0."
+    else
+        log_info "Headless: no (display attached)"
+    fi
+}
+
+# Guard for the desktop-only sections.
+headless() { [ "$IS_HEADLESS" = "1" ]; }
 
 check_root() {
     if [ "$OS_TYPE" = "macos" ]; then
@@ -60,21 +112,32 @@ install_packages() {
             export DEBIAN_FRONTEND=noninteractive
             export NEEDRESTART_MODE=a
             apt-get update -qq
+            # Base set — everything a machine needs whether or not it has a
+            # display. Kept separate from the desktop set so a headless host
+            # doesn't pull in a Wayland compositor and a greeter.
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
-                sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer pavucontrol foot \
-                greetd tuigreet \
-                grim slurp mako-notifier libnotify-bin \
-                audacity vlc adwaita-qt6 adwaita-qt \
-                wl-clipboard cliphist \
                 fzf fd-find git-delta \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
                 unattended-upgrades needrestart \
                 nftables zram-tools systemd-oomd \
-                pcscd libccid opensc pcsc-tools \
-                dconf-cli dconf-gsettings-backend \
-                flatpak
+                pcscd libccid opensc pcsc-tools
+
+            # Desktop set — compositor, bar, launcher, greeter, notifications,
+            # clipboard, media, GTK/Qt theming. Skipped on headless hosts.
+            if headless; then
+                log_info "Headless — skipping desktop packages."
+            else
+                apt-get install -y \
+                    sway swaybg swaylock swayidle xwayland waybar wofi wob pamixer pavucontrol foot \
+                    greetd tuigreet \
+                    grim slurp mako-notifier libnotify-bin \
+                    audacity vlc adwaita-qt6 adwaita-qt \
+                    wl-clipboard cliphist \
+                    dconf-cli dconf-gsettings-backend \
+                    flatpak
+            fi
 
             # Non-free firmware for peripherals (e.g. the Realtek RTL8761BU
             # Bluetooth in the ASUS USB-BT500 needs rtl_bt/* from
@@ -84,20 +147,25 @@ install_packages() {
             apt-get install -y firmware-realtek firmware-misc-nonfree 2>/dev/null \
                 || log_warn "firmware-realtek/firmware-misc-nonfree unavailable; enable the non-free-firmware apt component."
 
+            install -d -m 0755 /usr/share/keyrings
+
             # Sublime Text — dedicated keyring + signed-by scoping (never the
             # global /etc/apt/trusted.gpg.d, which would trust this key for
             # every repo). The key/list setup runs on every provision so a
             # re-run migrates an older global-trust install to the scoped key.
-            install -d -m 0755 /usr/share/keyrings
-            wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg \
-                | gpg --dearmor > /usr/share/keyrings/sublimehq-archive-keyring.gpg
-            printf 'deb [signed-by=/usr/share/keyrings/sublimehq-archive-keyring.gpg] https://download.sublimetext.com/ apt/stable/\n' \
-                > /etc/apt/sources.list.d/sublime-text.list
-            rm -f /etc/apt/trusted.gpg.d/sublimehq-archive.gpg
-            if ! command -v subl >/dev/null 2>&1; then
-                log_info "Installing Sublime Text..."
-                apt-get update -qq && apt-get install -y sublime-text \
-                    || log_warn "Sublime Text install failed."
+            if headless; then
+                log_info "Headless — skipping Sublime Text."
+            else
+                wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg \
+                    | gpg --dearmor > /usr/share/keyrings/sublimehq-archive-keyring.gpg
+                printf 'deb [signed-by=/usr/share/keyrings/sublimehq-archive-keyring.gpg] https://download.sublimetext.com/ apt/stable/\n' \
+                    > /etc/apt/sources.list.d/sublime-text.list
+                rm -f /etc/apt/trusted.gpg.d/sublimehq-archive.gpg
+                if ! command -v subl >/dev/null 2>&1; then
+                    log_info "Installing Sublime Text..."
+                    apt-get update -qq && apt-get install -y sublime-text \
+                        || log_warn "Sublime Text install failed."
+                fi
             fi
 
             # ZeroTier
@@ -116,7 +184,9 @@ install_packages() {
             fi
 
             # Google Chrome (upstream ships amd64 only)
-            if ! command -v google-chrome >/dev/null 2>&1 \
+            if headless; then
+                log_info "Headless — skipping Google Chrome."
+            elif ! command -v google-chrome >/dev/null 2>&1 \
                 && [ "$(dpkg --print-architecture)" = "amd64" ]; then
                 log_info "Installing Google Chrome..."
                 wget -qO - https://dl.google.com/linux/linux_signing_key.pub \
@@ -138,27 +208,44 @@ install_packages() {
             # second copy of the signing key under /etc/debsig + /usr/share/debsig.
             # "stable" is 1Password's own suite (distro-agnostic), so there is
             # nothing codename-specific to track. Repo serves amd64 and arm64.
-            if ! command -v 1password >/dev/null 2>&1; then
-                log_info "Installing 1Password..."
+            # On a headless host the CLI still earns its place (scripts read
+            # secrets with a service-account token) but the GUI app does not,
+            # so only the desktop build is skipped there.
+            if headless; then
+                op_pkgs="1password-cli"
+                op_have="op"
+            else
+                op_pkgs="1password 1password-cli"
+                op_have="1password"
+            fi
+            if ! command -v "$op_have" >/dev/null 2>&1; then
+                log_info "Installing 1Password ($op_pkgs)..."
                 OP_ARCH="$(dpkg --print-architecture)"
                 wget -qO - https://downloads.1password.com/linux/keys/1password.asc \
                     | gpg --dearmor > /usr/share/keyrings/1password-archive-keyring.gpg
                 echo "deb [arch=$OP_ARCH signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$OP_ARCH stable main" \
                     > /etc/apt/sources.list.d/1password.list
-                mkdir -p /etc/debsig/policies/AC2D62742012EA22
-                wget -qO - https://downloads.1password.com/linux/debian/debsig/1password.pol \
-                    > /etc/debsig/policies/AC2D62742012EA22/1password.pol
-                mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
-                wget -qO - https://downloads.1password.com/linux/keys/1password.asc \
-                    | gpg --dearmor > /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
-                apt-get update -qq && apt-get install -y 1password 1password-cli \
+                # debsig per-package signature checking is a requirement of the
+                # desktop package only; the CLI installs without it.
+                if ! headless; then
+                    mkdir -p /etc/debsig/policies/AC2D62742012EA22
+                    wget -qO - https://downloads.1password.com/linux/debian/debsig/1password.pol \
+                        > /etc/debsig/policies/AC2D62742012EA22/1password.pol
+                    mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+                    wget -qO - https://downloads.1password.com/linux/keys/1password.asc \
+                        | gpg --dearmor > /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+                fi
+                # shellcheck disable=SC2086
+                apt-get update -qq && apt-get install -y $op_pkgs \
                     || log_warn "1Password install failed."
             fi
 
             # Zoom (official .deb; Zoom publishes no apt repo, so this is a
             # one-shot install and Zoom self-updates in-app). amd64 only. Runs
             # under XWayland on Sway. Downloaded over HTTPS from zoom.us.
-            if ! command -v zoom >/dev/null 2>&1 \
+            if headless; then
+                log_info "Headless — skipping Zoom."
+            elif ! command -v zoom >/dev/null 2>&1 \
                 && [ "$(dpkg --print-architecture)" = "amd64" ]; then
                 log_info "Installing Zoom..."
                 zoom_deb="/tmp/zoom_amd64.$$.deb"
@@ -179,7 +266,9 @@ install_packages() {
             # has recurring TLS-cert breakage, so we use the maintained @mwt
             # mirror instead. Wrapped so a broken third-party repo only warns
             # and never aborts the rest of provisioning. amd64 only.
-            if ! command -v github-desktop >/dev/null 2>&1 \
+            if headless; then
+                log_info "Headless — skipping GitHub Desktop."
+            elif ! command -v github-desktop >/dev/null 2>&1 \
                 && [ "$(dpkg --print-architecture)" = "amd64" ]; then
                 log_info "Installing GitHub Desktop (community shiftkey build, @mwt mirror)..."
                 ghd_key="/tmp/ghd-key.$$"
@@ -195,9 +284,14 @@ install_packages() {
                 fi
             fi
 
-            # VMware tools (auto-detected)
+            # VMware tools (auto-detected). The -desktop variant pulls in X11
+            # integration, so a headless guest takes the plain package.
             if grep -q VMware /sys/class/dmi/id/sys_vendor 2>/dev/null; then
-                apt-get install -y open-vm-tools-desktop
+                if headless; then
+                    apt-get install -y open-vm-tools
+                else
+                    apt-get install -y open-vm-tools-desktop
+                fi
             fi
             ;;
         macos)
@@ -541,6 +635,7 @@ install_dmenu() {
 # re-downloaded when absent; the wrapper + launcher are rewritten each run.
 # -------------------------------------------------------------------
 install_todoist() {
+    headless && { log_info "Headless — skipping Todoist."; return 0; }
     case "$OS_TYPE" in
         linux)
             # upstream publishes x86_64 only
@@ -604,6 +699,7 @@ TDDESK
 # in a browser). Flatpak itself is installed via apt in install_packages.
 # -------------------------------------------------------------------
 install_fastmail() {
+    headless && { log_info "Headless — skipping Fastmail."; return 0; }
     case "$OS_TYPE" in
         linux)
             command -v flatpak >/dev/null 2>&1 || { log_warn "flatpak missing; skipping Fastmail."; return 0; }
@@ -634,6 +730,9 @@ install_fastmail() {
 # No OpenBSD build.
 # -------------------------------------------------------------------
 install_joplin() {
+    # Desktop client only — unrelated to a self-hosted Joplin *server*, which
+    # this script does not manage.
+    headless && { log_info "Headless — skipping Joplin desktop."; return 0; }
     case "$OS_TYPE" in
         linux)
             [ "$(dpkg --print-architecture)" = "amd64" ] || { log_warn "Joplin AppImage is x86_64-only; skipping."; return 0; }
@@ -854,6 +953,16 @@ TSYNC
         # other VTs as a fallback console; .bashrc still launches sway from a
         # tty1 login *if* greetd isn't running, so a broken greeter never locks
         # you out of the desktop.
+        #
+        # None of this applies to a headless host: there is no display to greet
+        # anyone on, and the console-font ExecStartPre below fails hard on a box
+        # with no framebuffer (setfont exits 71/OSERR against the dummy console
+        # driver), which leaves greetd.service permanently failed and trips
+        # every health check on the machine.
+        if headless; then
+            log_info "Headless — skipping greeter and console font; booting to multi-user.target."
+            systemctl set-default multi-user.target 2>/dev/null || true
+        else
         systemctl mask gdm.service 2>/dev/null || true
         cat > /usr/local/bin/sway-session <<'SWAYSESS'
 #!/bin/bash --login
@@ -875,9 +984,13 @@ GREETD
             # tuigreet draws. (Mask char is • not ※ — Berkeley Mono has no
             # U+203B glyph, so ※ would render as tofu in the console font.)
             mkdir -p /etc/systemd/system/greetd.service.d
+            # The leading "-" makes the font load advisory: setfont fails on any
+            # console the kernel won't accept a font for (no framebuffer, dummy
+            # console driver, an oversized glyph cell), and a cosmetic font is
+            # never a reason to refuse to start the login greeter.
             cat > /etc/systemd/system/greetd.service.d/console-font.conf <<'GFONT'
 [Service]
-ExecStartPre=/usr/bin/setfont /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz -C /dev/tty7
+ExecStartPre=-/usr/bin/setfont /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz -C /dev/tty7
 GFONT
             # Rename the prompt-box title "Authenticate into <hostname>" to
             # "Login": the hostname is already in the --greeting line, so the
@@ -919,18 +1032,23 @@ APTHOOK
             printf 'FONT="BerkeleyMonoNNIX.psf.gz"\n' >> /etc/default/console-setup
         fi
         setupcon --force 2>/dev/null || true
+        fi  # end: not headless (greeter + console font)
 
         # Dark mode for GTK4/libadwaita, the xdg portal, and Chrome/Electron/
         # web `prefers-color-scheme`. libadwaita ignores the legacy GtkSettings
         # dark flag and reads org.gnome.desktop.interface color-scheme, so set
         # it as a system dconf default (headless-safe; no session bus needed).
-        mkdir -p /etc/dconf/db/local.d /etc/dconf/profile
-        [ -f /etc/dconf/profile/user ] || printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
-        cat > /etc/dconf/db/local.d/00-nnix-theme <<'DCONF'
+        # (Skipped on headless hosts — dconf-cli is not installed there and
+        # there is no GTK app to theme.)
+        if ! headless; then
+            mkdir -p /etc/dconf/db/local.d /etc/dconf/profile
+            [ -f /etc/dconf/profile/user ] || printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
+            cat > /etc/dconf/db/local.d/00-nnix-theme <<'DCONF'
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 DCONF
-        dconf update 2>/dev/null || true
+            dconf update 2>/dev/null || true
+        fi
 
         # Make Google Chrome the default browser: system-wide alternatives
         # for CLI callers, plus the per-user xdg default for GUI apps that
@@ -1060,18 +1178,103 @@ HCT
 # conservative kernel/network sysctls, zram compressed swap, and graceful
 # OOM handling. Idempotent. The firewall preserves SSH / mosh / ZeroTier.
 # -------------------------------------------------------------------
-configure_hardening() {
-    [ "$OS_TYPE" = "linux" ] || return 0
-    log_info "Configuring hardening + reliability..."
+# -------------------------------------------------------------------
+# Host firewall
+# -------------------------------------------------------------------
+# Default-deny inbound: loopback, established/related, ICMP, and the services
+# we always want (SSH, mosh, ZeroTier). Outbound stays open.
+#
+# Three rules learned the hard way on a server:
+#
+#   1. Never touch the firewall if ufw or firewalld is already running. Two
+#      managers means every packet is judged by both and the stricter one wins
+#      silently, which looks exactly like a broken application.
+#   2. Never `flush ruleset`. That wipes ufw's and Docker's tables too, on every
+#      single start of nftables.service. Replace only our own table.
+#   3. Never drop in the forward hook on a machine with a container runtime.
+#      Docker publishes ports by DNAT, and DNAT'd traffic is *forwarded*, not
+#      input — a forward drop blackholes every container's networking,
+#      including its outbound path to the internet.
+#
+# Per-host open ports live in /etc/nnix/firewall.conf, seeded once and never
+# overwritten on re-provision (same contract as ~/.config/workstation.conf).
+configure_firewall() {
+    if systemctl is-active --quiet ufw 2>/dev/null; then
+        log_warn "ufw is active — leaving the firewall to it (set of record). Skipping nftables."
+        return 0
+    fi
+    if systemctl is-active --quiet firewalld 2>/dev/null; then
+        log_warn "firewalld is active — leaving the firewall to it. Skipping nftables."
+        return 0
+    fi
 
-    # Host firewall: default-deny inbound; allow loopback, established/related,
-    # ICMP, and only the services we use (SSH, mosh, ZeroTier). Outbound open.
-    cat > /etc/nftables.conf <<'NFT'
+    if [ ! -f /etc/nnix/firewall.conf ]; then
+        log_info "Seeding /etc/nnix/firewall.conf (edit it to open per-host ports)."
+        mkdir -p /etc/nnix
+        cat > /etc/nnix/firewall.conf <<'FWCONF'
+# Per-host inbound exceptions, on top of the always-open SSH / mosh / ZeroTier.
+# Seeded once by provision.sh and never overwritten, so edits here survive a
+# re-provision. Space-separated; ranges are allowed ("9100-9200").
+# Apply changes with: nft -f /etc/nftables.conf
+
+EXTRA_TCP_PORTS=""
+EXTRA_UDP_PORTS=""
+
+# Subnets allowed to reach *any* port on this host — the practical answer for
+# a LAN server whose services use dynamic or hard-to-enumerate ports.
+# e.g. TRUSTED_SUBNETS="10.62.14.0/24 10.142.26.0/24"
+TRUSTED_SUBNETS=""
+FWCONF
+        chmod 0644 /etc/nnix/firewall.conf
+    fi
+
+    EXTRA_TCP_PORTS=""
+    EXTRA_UDP_PORTS=""
+    TRUSTED_SUBNETS=""
+    # shellcheck disable=SC1091
+    . /etc/nnix/firewall.conf
+
+    extra_rules=""
+    for subnet in $TRUSTED_SUBNETS; do
+        case "$subnet" in
+            *:*) extra_rules="$extra_rules
+        ip6 saddr $subnet accept" ;;
+            *)   extra_rules="$extra_rules
+        ip saddr $subnet accept" ;;
+        esac
+    done
+    for port in $EXTRA_TCP_PORTS; do
+        extra_rules="$extra_rules
+        tcp dport $port accept"
+    done
+    for port in $EXTRA_UDP_PORTS; do
+        extra_rules="$extra_rules
+        udp dport $port accept"
+    done
+
+    if command -v dockerd >/dev/null 2>&1 || command -v podman >/dev/null 2>&1; then
+        forward_policy="accept"
+        log_info "Container runtime detected — forward hook left open for it."
+    else
+        forward_policy="drop"
+    fi
+
+    # "table ... / delete table ..." is the atomic replace-our-own-table idiom:
+    # the bare declaration creates it when absent so the delete never errors,
+    # and nothing outside table inet nnix is touched.
+    # Render to a temp file and syntax-check it before it becomes the live
+    # config: a typo in the hand-edited per-host port list must not be able to
+    # leave the machine with a half-loaded or unloadable ruleset.
+    fw_tmp="$(mktemp)"
+    cat > "$fw_tmp" <<NFT
 #!/usr/sbin/nft -f
-# Managed by dotfiles provision.sh.
-flush ruleset
+# Managed by dotfiles provision.sh. Per-host ports: /etc/nnix/firewall.conf
+# Only the "nnix" table is replaced — ufw/Docker/podman tables are left alone.
 
-table inet filter {
+table inet nnix
+delete table inet nnix
+
+table inet nnix {
     chain input {
         type filter hook input priority filter; policy drop;
         iif "lo" accept
@@ -1081,15 +1284,35 @@ table inet filter {
         ip protocol icmp accept
         tcp dport 22 accept
         udp dport 60000-61000 accept
-        udp dport 9993 accept
+        udp dport 9993 accept$extra_rules
     }
-    chain forward { type filter hook forward priority filter; policy drop; }
+    chain forward { type filter hook forward priority filter; policy $forward_policy; }
     chain output  { type filter hook output priority filter; policy accept; }
 }
 NFT
+    if ! nft -c -f "$fw_tmp"; then
+        rm -f "$fw_tmp"
+        log_error "Generated nftables ruleset is invalid — check EXTRA_*_PORTS/TRUSTED_SUBNETS in /etc/nnix/firewall.conf."
+        log_warn "Leaving the existing firewall untouched."
+        return 0
+    fi
+
+    cat "$fw_tmp" > /etc/nftables.conf
+    rm -f "$fw_tmp"
     chmod 0755 /etc/nftables.conf
     systemctl enable nftables 2>/dev/null || true
-    nft -f /etc/nftables.conf 2>/dev/null || log_warn "nftables ruleset failed to load."
+    if nft -f /etc/nftables.conf; then
+        log_info "Firewall loaded (forward: $forward_policy)."
+    else
+        log_warn "nftables ruleset failed to load."
+    fi
+}
+
+configure_hardening() {
+    [ "$OS_TYPE" = "linux" ] || return 0
+    log_info "Configuring hardening + reliability..."
+
+    configure_firewall
 
     # Conservative kernel/network hardening.
     cat > /etc/sysctl.d/99-nnix-hardening.conf <<'SYSCTL'
@@ -1236,8 +1459,20 @@ configure_hostname() {
 
     current_hostname=$(hostname)
     log_info "Current hostname: $current_hostname"
-    printf "${GREEN}[INFO]${NC} Press [enter] to keep, or type new hostname: "
-    read new_hostname
+
+    # Never prompt on a server or an unattended run: renaming a host that other
+    # machines, certificates and monitoring refer to by name is not something to
+    # do by accident, and a bare `read` against a closed stdin would abort the
+    # whole script under `set -e`. Set NNIX_HOSTNAME to rename deliberately.
+    if headless || [ ! -t 0 ]; then
+        new_hostname="${NNIX_HOSTNAME:-}"
+        if [ -z "$new_hostname" ]; then
+            log_info "Non-interactive — keeping hostname (set NNIX_HOSTNAME to change it)."
+        fi
+    else
+        printf "${GREEN}[INFO]${NC} Press [enter] to keep, or type new hostname: "
+        read new_hostname || new_hostname=""
+    fi
 
     if [ -n "$new_hostname" ] && [ "$new_hostname" != "$current_hostname" ]; then
         if [ "$OS_TYPE" = "openbsd" ]; then
@@ -1381,6 +1616,13 @@ deploy_dotfiles() {
         macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status mako dunst" ;;
     esac
 
+    # A headless host gets no desktop configuration at all. What it does keep is
+    # the part that is useful over SSH: shell, prompt, git, ssh, tmux, editors,
+    # btop, and ~/.local/bin. Fonts stay too — issy renders PDFs with bmv.otf.
+    if headless; then
+        SKIP_DIRS="$SKIP_DIRS sway swaylock waybar wofi foot mako gtk-3.0 gtk-4.0 fontconfig sublime-text-3"
+    fi
+
     cd "$SCRIPT_DIR/dotfiles"
     # Read the file list from a temp file (not a pipe) so state accumulated in
     # the loop — the set of top-level home entries we actually wrote — survives
@@ -1404,6 +1646,13 @@ deploy_dotfiles() {
             *.wezterm.lua) [ "$OS_TYPE" != "macos" ] && skip=true ;;
             *.local/bin/lock|*.local/bin/volnotify) [ "$OS_TYPE" != "openbsd" ] && skip=true ;;
         esac
+        # Desktop-only leaf files (X resources, cursor themes, screenshot
+        # helper) — nothing on a headless host can use them.
+        if headless; then
+            case "$rel" in
+                *.Xresources|*.icons/*|*.local/bin/shot) skip=true ;;
+            esac
+        fi
         if [ "$skip" = "true" ]; then continue; fi
 
         src="$SCRIPT_DIR/dotfiles/$rel"
@@ -1513,10 +1762,34 @@ update_fonts() {
 # -------------------------------------------------------------------
 # Main
 # -------------------------------------------------------------------
+usage() {
+    cat <<'USAGE'
+Usage: provision.sh [--headless | --desktop]
+
+  --headless   Server mode: no desktop packages, no GUI apps, no greeter,
+               no console font, and only the SSH-useful dotfiles.
+  --desktop    Force the full desktop build.
+
+With neither flag the mode is auto-detected from the attached display (see
+detect_headless). NNIX_HEADLESS=1/0 does the same thing as the flags.
+USAGE
+}
+
 main() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --headless) NNIX_HEADLESS=1; export NNIX_HEADLESS ;;
+            --desktop)  NNIX_HEADLESS=0; export NNIX_HEADLESS ;;
+            -h|--help)  usage; exit 0 ;;
+            *)          log_error "Unknown option: $1"; usage; exit 1 ;;
+        esac
+        shift
+    done
+
     log_info "Starting dotfiles provisioning..."
 
     detect_os
+    detect_headless
     check_root
     install_packages
     install_issy
@@ -1538,7 +1811,25 @@ main() {
     deploy_dotfiles
     update_fonts
 
+    # Say plainly what was and wasn't touched. A provisioner that silently
+    # skips half its work — or silently declines to manage the firewall — is
+    # indistinguishable from one that did everything, until something breaks.
     log_info "Provisioning completed for user $username!"
+    printf '\n'
+    log_info "Summary:"
+    log_info "  host mode  : $(headless && echo 'headless (no desktop)' || echo 'desktop')"
+    if [ "$OS_TYPE" = "linux" ]; then
+        if systemctl is-active --quiet ufw 2>/dev/null; then
+            log_info "  firewall   : left to ufw (nftables section skipped)"
+        elif systemctl is-active --quiet firewalld 2>/dev/null; then
+            log_info "  firewall   : left to firewalld (nftables section skipped)"
+        else
+            log_info "  firewall   : nftables, ports from /etc/nnix/firewall.conf"
+        fi
+        if headless; then
+            log_info "  greeter    : none (boots to multi-user.target)"
+        fi
+    fi
     if [ "$OS_TYPE" != "macos" ]; then
         log_info "Reboot recommended for all changes to take effect."
     fi
