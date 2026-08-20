@@ -18,4 +18,11 @@ window#waybar { background-color: rgba(0, 0, 0, 0.9); color: #cccccc; }
 #pulseaudio.muted { background-color: #333333; color: #ffffff; }
 #network { background-color: #000000; color: #cccccc; }
 #network.disconnected { background-color: #333333; color: #ffffff; }
-#tray { background-color: #1f2d4d; }
+/* Tray icons are supplied by each app as raw pixmaps, and waybar cannot
+   recolour them (0.12 exposes only #tray / .passive / .active /
+   .needs-attention -- no per-item selector). Apps disagree about polarity:
+   1Password ships a light icon, Tresorit a near-black one. On the old
+   #1f2d4d the Tresorit icon sat at a 1.01 contrast ratio -- invisible.
+   #666666 (the unfocused-border grey) is the mid-tone that keeps both
+   readable: ~2.4 against the dark icon, ~3.1 against the light one. */
+#tray { background-color: #666666; }

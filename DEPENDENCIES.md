@@ -41,7 +41,7 @@
 - **Browser**: Google Chrome (upstream apt repo) — set as the default browser via update-alternatives + xdg
 - **Clipboard**: wl-clipboard + cliphist — Sway autostarts `wl-paste --primary --watch wl-copy` (selection→clipboard) and `wl-paste --watch cliphist store` (history, `$mod+v` picker)
 - **Password manager**: 1Password + `1password-cli` (`op`) — upstream apt repo with debsig-verify; `$mod+p`/`$mod+Shift+p`/`$mod+Shift+z`
-- **Apps**: Todoist (official AppImage → `/opt/todoist`, `$mod+t`), Joplin (official AppImage → `/opt/joplin`), Fastmail (official Flatpak `com.fastmail.Fastmail`, `$mod+e`), VLC, Audacity, Zoom (official `.deb`), GitHub Desktop (community `shiftkey` build)
+- **Apps**: Todoist (official AppImage → `/opt/todoist`, `$mod+t`), Joplin (official AppImage → `/opt/joplin`), Fastmail (official Flatpak `com.fastmail.Fastmail`, `$mod+e`), Tresorit (official signed `.run` → `~/.local/share/tresorit`; per-user, so it installs as the target user, not root), VLC, Audacity, Zoom (official `.deb`), GitHub Desktop (community `shiftkey` build)
 - **Packaging**: Flatpak + Flathub (for Fastmail and any Flatpaks)
 - **Networking**: ZeroTier (`zerotier-one`; upstream apt repo, UDP 9993 opened in the firewall)
 - **Hardware**: fwupd (firmware; not auto-flashed), rasdaemon (ECC/MCE logging, enabled), ethtool, nvme-cli, smartmontools, lm-sensors, alsa-utils; non-free firmware (`firmware-realtek` + `firmware-misc-nonfree`, e.g. RTL8761BU Bluetooth)

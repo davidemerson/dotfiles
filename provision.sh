@@ -1474,6 +1474,76 @@ install_claude() {
 }
 
 # -------------------------------------------------------------------
+# Tresorit — end-to-end encrypted file sync. Upstream ships a signed
+# self-extracting .run installer for Linux and a cask on macOS; there is
+# no OpenBSD build.
+#
+# This is a per-user install (the payload lands in ~/.local/share/tresorit
+# and the launcher in ~/.local/share/applications), so like install_claude
+# it must run as the target user rather than root, and therefore after
+# get_username. Running it as root would install into /root and leave the
+# real user unable to log in — which is exactly what upstream's own
+# installer warns about when it detects root.
+#
+# Idempotent: skipped entirely when the binary is already present.
+# Upstream also accepts `--update-v2 <dir>` for in-place upgrades, which
+# is left to Tresorit's own updater rather than driven from here.
+# -------------------------------------------------------------------
+install_tresorit() {
+    headless && { log_info "Headless — skipping Tresorit."; return 0; }
+    case "$OS_TYPE" in
+        linux)
+            # upstream ships x86_64 and i686 only — no arm64 build
+            [ "$(dpkg --print-architecture)" = "amd64" ] \
+                || { log_warn "Tresorit is x86_64-only; skipping."; return 0; }
+
+            if [ -x "/home/$username/.local/share/tresorit/tresorit" ]; then
+                log_info "Tresorit already installed."
+                return 0
+            fi
+
+            log_info "Installing Tresorit for $username..."
+            tr_run="$(mktemp /tmp/tresorit_installer.XXXXXX.run)"
+            if ! wget -qO "$tr_run" https://installer.tresorit.com/tresorit_installer.run; then
+                log_warn "Tresorit download failed; skipping."
+                rm -f "$tr_run"
+                return 0
+            fi
+
+            # Make sure we got the installer and not an HTML error page or a
+            # truncated transfer. The .run is a shell script carrying a signed
+            # payload; it self-verifies with an embedded cksum and refuses to
+            # run on mismatch, so this only needs to catch the obvious cases.
+            if ! head -c 2 "$tr_run" | grep -qa '#!' \
+                || ! grep -qam1 '^SIGNATURE=' "$tr_run"; then
+                log_warn "Tresorit installer looks malformed; skipping."
+                rm -f "$tr_run"
+                return 0
+            fi
+
+            chmod 0755 "$tr_run"
+            # The installer is interactive on a fresh install: it asks whether
+            # to change the install directory, then whether to launch the GUI.
+            # Answer N (keep the default ~/.local/share/tresorit) and n (do not
+            # start a GUI from a provisioning run).
+            if su - "$username" -c "printf 'N\nn\n' | '$tr_run'" >/dev/null 2>&1 \
+                && [ -x "/home/$username/.local/share/tresorit/tresorit" ]; then
+                log_info "Tresorit installed (~/.local/share/tresorit)."
+            else
+                log_warn "Tresorit install failed."
+            fi
+            rm -f "$tr_run"
+            ;;
+        macos)
+            brew install --cask tresorit || true
+            ;;
+        openbsd)
+            log_info "No Tresorit build for OpenBSD; skipping."
+            ;;
+    esac
+}
+
+# -------------------------------------------------------------------
 # User and group (Linux/OpenBSD only — macOS uses existing user)
 # -------------------------------------------------------------------
 get_username() {
@@ -1970,6 +2040,7 @@ main() {
     install_joplin
     get_username
     install_claude
+    install_tresorit
     configure_hostname
     configure_doas
     configure_sshd
