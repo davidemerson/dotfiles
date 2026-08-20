@@ -982,6 +982,14 @@ TSYNC
 #     always attached. wlroots can pick that headless device as primary and
 #     render the session to a screen nobody is looking at. Prefer a real GPU
 #     when one is present.
+#
+#     WLR_DRM_DEVICES is a *colon*-separated list, so the value handed to it
+#     must be the resolved /dev/dri/cardN node and never the /dev/dri/by-path
+#     symlink: by-path names embed the PCI address, which contains colons
+#     ("pci-0000:01:00.0-card"), and wlroots would split that into three
+#     nonexistent paths and find no GPU at all. by-path is still the right
+#     thing to *enumerate*, because card numbering is not stable across
+#     boots; it is only unusable as the exported value.
 
 # --- 1. NVIDIA proprietary driver needs --unsupported-gpu -------------------
 sway_args=()
@@ -997,12 +1005,15 @@ if [ -z "$WLR_DRM_DEVICES" ] && [ -d /dev/dri/by-path ]; then
     preferred=() fallback=()
     for dev in /dev/dri/by-path/*-card; do
         [ -e "$dev" ] || continue
-        card=$(basename "$(readlink -f "$dev")")
+        # Resolve to /dev/dri/cardN here: that node is colon-free and is what
+        # WLR_DRM_DEVICES can actually carry (see note above).
+        node=$(readlink -f "$dev")
+        card=$(basename "$node")
         drv=$(basename "$(readlink -f "/sys/class/drm/$card/device/driver")" 2>/dev/null)
         if printf '%s' "$drv" | grep -qE "^($bmc_drivers)$"; then
-            fallback+=("$dev")
+            fallback+=("$node")
         else
-            preferred+=("$dev")
+            preferred+=("$node")
         fi
     done
     # Only pin when we actually found a real GPU *and* something to exclude;
