@@ -136,7 +136,11 @@ install_packages() {
                     audacity vlc adwaita-qt6 adwaita-qt \
                     wl-clipboard cliphist \
                     dconf-cli dconf-gsettings-backend \
-                    flatpak
+                    flatpak \
+                    bluez rfkill \
+                    pipewire pipewire-pulse wireplumber libspa-0.2-bluetooth \
+                    xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk \
+                    alsa-utils
             fi
 
             # Non-free firmware for peripherals (e.g. the Realtek RTL8761BU
@@ -967,7 +971,49 @@ TSYNC
         cat > /usr/local/bin/sway-session <<'SWAYSESS'
 #!/bin/bash --login
 # Launch sway as a login shell so the session inherits ~/.bashrc's environment.
-exec sway
+#
+# Two pieces of hardware adaptation happen here, both detected at runtime so
+# this same wrapper works unchanged on every machine these dotfiles build:
+#
+#  1. sway refuses to start on the proprietary NVIDIA driver unless it is
+#     passed --unsupported-gpu.
+#  2. On server boards the BMC (ASPEED/Matrox) exposes a DRM device whose
+#     output always reads "connected", because the IPMI virtual KVM is
+#     always attached. wlroots can pick that headless device as primary and
+#     render the session to a screen nobody is looking at. Prefer a real GPU
+#     when one is present.
+
+# --- 1. NVIDIA proprietary driver needs --unsupported-gpu -------------------
+sway_args=()
+if [ -d /proc/driver/nvidia ] || lsmod 2>/dev/null | grep -q '^nvidia_drm'; then
+    sway_args+=(--unsupported-gpu)
+fi
+
+# --- 2. Prefer a real GPU over BMC display hardware ------------------------
+# Drivers that are BMC/management video rather than a usable desktop GPU.
+bmc_drivers='ast|mgag200|hyperv_drm'
+
+if [ -z "$WLR_DRM_DEVICES" ] && [ -d /dev/dri/by-path ]; then
+    preferred=() fallback=()
+    for dev in /dev/dri/by-path/*-card; do
+        [ -e "$dev" ] || continue
+        card=$(basename "$(readlink -f "$dev")")
+        drv=$(basename "$(readlink -f "/sys/class/drm/$card/device/driver")" 2>/dev/null)
+        if printf '%s' "$drv" | grep -qE "^($bmc_drivers)$"; then
+            fallback+=("$dev")
+        else
+            preferred+=("$dev")
+        fi
+    done
+    # Only pin when we actually found a real GPU *and* something to exclude;
+    # on a single-GPU machine leave wlroots to its own defaults.
+    if [ ${#preferred[@]} -gt 0 ] && [ ${#fallback[@]} -gt 0 ]; then
+        WLR_DRM_DEVICES=$(IFS=:; printf '%s' "${preferred[*]}")
+        export WLR_DRM_DEVICES
+    fi
+fi
+
+exec sway "${sway_args[@]}"
 SWAYSESS
         chmod 0755 /usr/local/bin/sway-session
         if command -v tuigreet >/dev/null 2>&1 && [ -d /etc/greetd ]; then
@@ -1074,6 +1120,47 @@ DCONF
         # driver) work on demand. Harmless if no reader is attached.
         if dpkg -s pcscd >/dev/null 2>&1; then
             systemctl enable --now pcscd.socket 2>/dev/null || true
+        fi
+
+        # Admin tools live in /usr/sbin and /sbin, which Debian leaves off a
+        # non-root PATH — so rfkill, swapon, smartctl, nvme and ethtool are all
+        # "command not found" for the very user who provisioned the box. Add
+        # them back, but only for users who can actually use them.
+        cat > /etc/profile.d/zz-sbin-path.sh <<'SBINPATH'
+# Admin tools live in /usr/sbin and /sbin. Debian omits these from a non-root
+# PATH, which hides rfkill, swapon, smartctl, nvme, ethtool, etc.
+if id -nG 2>/dev/null | tr ' ' '\n' | grep -qx sudo; then
+    case ":$PATH:" in
+        *:/usr/sbin:*) ;;
+        *) PATH="$PATH:/usr/sbin:/sbin" ;;
+    esac
+fi
+SBINPATH
+        chmod 0644 /etc/profile.d/zz-sbin-path.sh
+
+        # Bluetooth: the kernel brings the adapter up on its own, but without
+        # the BlueZ userspace there is no bluetoothd and no bluetoothctl, so
+        # nothing can ever pair — a BT mouse or headset simply never appears.
+        # Desktop-only: a headless host has no use for it.
+        if ! headless && dpkg -s bluez >/dev/null 2>&1; then
+            systemctl enable --now bluetooth.service 2>/dev/null || true
+        fi
+
+        # Audio + screen capture: PipeWire, not PulseAudio.
+        #
+        # Debian pulls the PulseAudio daemon in as a dependency of the desktop
+        # set, and both it and pipewire-pulse ship enabled user units that fight
+        # over the same socket — whichever wins, the other is dead weight. Pin
+        # this to PipeWire, which is the Debian 13 default and is also what
+        # xdg-desktop-portal-wlr needs for ScreenCast (Chrome/Zoom screen share,
+        # OBS). Without it those silently fail on sway.
+        #
+        # --global writes to /etc/systemd/user, so this applies to every user
+        # without needing a login session to be running while provisioning.
+        if ! headless && dpkg -s pipewire >/dev/null 2>&1; then
+            systemctl --global mask pulseaudio.service pulseaudio.socket 2>/dev/null || true
+            systemctl --global enable pipewire.socket pipewire.service \
+                wireplumber.service pipewire-pulse.socket pipewire-pulse.service 2>/dev/null || true
         fi
 
         # Never suspend/sleep (this is a workstation). Mask the sleep targets so
@@ -1750,6 +1837,87 @@ deploy_dotfiles() {
 }
 
 # -------------------------------------------------------------------
+# GPU
+# -------------------------------------------------------------------
+# Debian installs nouveau for NVIDIA cards. On anything Turing or newer that
+# means the GPU is stuck at boot clocks (nouveau cannot reclock Ampere), with
+# no CUDA and no NVENC. Swap in the proprietary driver when an NVIDIA GPU is
+# actually present.
+#
+# Everything here is conditional on detecting NVIDIA hardware, so the function
+# is a no-op on AMD/Intel/VM machines and on headless hosts.
+configure_gpu() {
+    [ "$OS_TYPE" = "linux" ] || return 0
+    if headless; then
+        log_info "Headless — skipping GPU driver."
+        return 0
+    fi
+    command -v lspci >/dev/null 2>&1 || return 0
+    if ! lspci -nn 2>/dev/null | grep -qiE 'VGA|3D controller' \
+        || ! lspci -nn 2>/dev/null | grep -iE 'VGA|3D controller' | grep -qi nvidia; then
+        log_info "No NVIDIA GPU detected — leaving graphics drivers alone."
+        return 0
+    fi
+
+    log_info "NVIDIA GPU detected — installing the proprietary driver."
+
+    # nvidia-driver lives in contrib + non-free. A stock Debian 13 install
+    # enables only "main non-free-firmware", so the driver is not merely
+    # missing, it is uninstallable. Add the components idempotently, to
+    # whichever source format this machine uses (one-line .list or deb822).
+    local changed=0
+    if [ -f /etc/apt/sources.list ]; then
+        if grep -qE '^deb(-src)? .* main non-free-firmware$' /etc/apt/sources.list; then
+            cp -n /etc/apt/sources.list /etc/apt/sources.list.nnix-bak 2>/dev/null || true
+            sed -i -E '/^deb(-src)? /s/ main non-free-firmware$/ main contrib non-free non-free-firmware/' \
+                /etc/apt/sources.list
+            changed=1
+        fi
+    fi
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+        if grep -q '^Components: main non-free-firmware$' /etc/apt/sources.list.d/debian.sources; then
+            cp -n /etc/apt/sources.list.d/debian.sources \
+                  /etc/apt/sources.list.d/debian.sources.nnix-bak 2>/dev/null || true
+            sed -i 's/^Components: main non-free-firmware$/Components: main contrib non-free non-free-firmware/' \
+                /etc/apt/sources.list.d/debian.sources
+            changed=1
+        fi
+    fi
+    [ "$changed" = "1" ] && apt-get update -qq
+
+    # The driver builds via DKMS, which needs kernel headers. A stock install
+    # has neither, and without them the module silently never gets built.
+    apt-get install -y linux-headers-"$(dpkg --print-architecture)" dkms \
+        || { log_warn "Kernel headers/DKMS unavailable; skipping NVIDIA driver."; return 0; }
+
+    # nvidia-legacy-check aborts this install if the card is too old for the
+    # current driver series, which is the correct outcome — do not force it.
+    if ! apt-get install -y nvidia-driver; then
+        log_warn "nvidia-driver install failed (card may need a legacy series); staying on nouveau."
+        return 0
+    fi
+
+    # Wayland requires DRM kernel modesetting, and nvidia-drm ships with
+    # modeset=0 by default — sway simply fails to start without this. fbdev=1
+    # keeps a usable framebuffer console on the NVIDIA output, so a text VT is
+    # still reachable if the graphical session breaks.
+    #
+    # Debian renames the module to nvidia-current-drm; set both names so this
+    # survives a switch of the nvidia alternative.
+    cat > /etc/modprobe.d/nvidia-modeset.conf <<'NVMODESET'
+# Wayland compositors (sway/wlroots) require DRM kernel modesetting on NVIDIA.
+options nvidia-current-drm modeset=1 fbdev=1
+options nvidia-drm modeset=1 fbdev=1
+NVMODESET
+
+    # The nouveau blacklist and the modeset options both have to be in the
+    # initramfs, or nouveau wins the race for the card on the next boot.
+    update-initramfs -u -k all 2>/dev/null || log_warn "update-initramfs failed."
+
+    log_warn "NVIDIA driver installed — reboot required to switch off nouveau."
+}
+
+# -------------------------------------------------------------------
 # Font cache
 # -------------------------------------------------------------------
 update_fonts() {
@@ -1808,6 +1976,7 @@ main() {
     configure_services
     configure_maintenance
     configure_hardening
+    configure_gpu
     deploy_dotfiles
     update_fonts
 

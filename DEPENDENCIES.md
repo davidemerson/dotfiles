@@ -35,6 +35,7 @@
 - **Status Bar**: waybar
 - **Launcher**: wofi
 - **Lock Screen**: swaylock
+- **Audio**: PipeWire + WirePlumber + `pipewire-pulse` (PulseAudio is masked; the `pulseaudio` waybar module and `pamixer`/`pavucontrol` talk to the compatibility socket). `libspa-0.2-bluetooth` adds A2DP/HFP for Bluetooth headsets.
 - **Volume**: pamixer + wob (OSD); waybar `pulseaudio` module + `pavucontrol` — scroll = volume, left-click opens the output-device / per-app picker, right-click = mute
 - **Editors**: micro, Sublime Text
 - **Browser**: Google Chrome (upstream apt repo) — set as the default browser via update-alternatives + xdg
@@ -43,7 +44,10 @@
 - **Apps**: Todoist (official AppImage → `/opt/todoist`, `$mod+t`), Joplin (official AppImage → `/opt/joplin`), Fastmail (official Flatpak `com.fastmail.Fastmail`, `$mod+e`), VLC, Audacity, Zoom (official `.deb`), GitHub Desktop (community `shiftkey` build)
 - **Packaging**: Flatpak + Flathub (for Fastmail and any Flatpaks)
 - **Networking**: ZeroTier (`zerotier-one`; upstream apt repo, UDP 9993 opened in the firewall)
-- **Hardware**: fwupd (firmware; not auto-flashed), rasdaemon (ECC/MCE logging, enabled), ethtool, nvme-cli, smartmontools, lm-sensors; non-free firmware (`firmware-realtek` + `firmware-misc-nonfree`, e.g. RTL8761BU Bluetooth)
+- **Hardware**: fwupd (firmware; not auto-flashed), rasdaemon (ECC/MCE logging, enabled), ethtool, nvme-cli, smartmontools, lm-sensors, alsa-utils; non-free firmware (`firmware-realtek` + `firmware-misc-nonfree`, e.g. RTL8761BU Bluetooth)
+- **Bluetooth**: bluez + rfkill, `bluetooth.service` enabled. The kernel brings the adapter up on its own, but without the BlueZ userspace there is no `bluetoothd` and no `bluetoothctl`, so nothing can ever pair.
+- **GPU**: when an NVIDIA card is detected, `contrib`/`non-free` are enabled and the proprietary `nvidia-driver` is installed over nouveau (which cannot reclock Turing/Ampere and has no CUDA or NVENC), along with kernel headers + DKMS. `nvidia-drm` is given `modeset=1 fbdev=1` — Wayland will not start without KMS. Requires a reboot. Skipped entirely on non-NVIDIA and headless hosts.
+- **Screen capture**: xdg-desktop-portal + `-wlr` + `-gtk`. The wlroots backend is what makes the ScreenCast portal work on sway (Chrome/Zoom screen share, OBS); it needs PipeWire, and captures whole outputs rather than individual windows.
 - **Maintenance**: unattended-upgrades (all Debian updates, autoremove, no auto-reboot), needrestart (report-only), journald capped at 1G, smartd (SMART monitoring), and a weekly `healthcheck` timer logging to the journal (`journalctl -t healthcheck`)
 - **Hardening**: nftables host firewall (default-deny inbound; SSH/mosh/ZeroTier allowed) + kernel/network sysctl hardening (`/etc/sysctl.d/99-nnix-hardening.conf`)
 - **Reliability**: zram compressed swap (zstd, 50% of RAM, via `zram-tools`) + systemd-oomd for graceful low-memory handling
