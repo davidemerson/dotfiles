@@ -1,5 +1,23 @@
 include /etc/sway/config.d/*
 
+# XDG autostart. sway has no autostart handling of its own, and greetd execs
+# it directly rather than through a session .desktop file, so nothing ever
+# activates xdg-desktop-autostart.target -- which means the .desktop files
+# applications install into ~/.config/autostart (1Password, Tresorit) are
+# generated into systemd units and then never started. Chain the activation
+# onto the same import that /etc/sway/config.d/50-systemd-user.conf performs
+# rather than issuing it as a separate exec, so the units it pulls in are
+# guaranteed to inherit WAYLAND_DISPLAY instead of racing that import.
+#
+# The autostart target sets RefuseManualStart, so it cannot be named here
+# directly; sway-session.target (written by provision.sh to /etc/systemd/user)
+# exists purely to pull it in as a dependency. Entries carrying
+# OnlyShowIn=/NotShowIn= are filtered by desktop name, which is why the
+# wrapper exports XDG_CURRENT_DESKTOP=sway before starting sway -- without it
+# the three gnome-keyring entries would start a second keyring daemon.
+exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP && \
+     systemctl --user start --no-block sway-session.target
+
 # set a background
 exec swaybg --output "*" --color "#000000"
 

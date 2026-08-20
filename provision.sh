@@ -1024,9 +1024,43 @@ if [ -z "$WLR_DRM_DEVICES" ] && [ -d /dev/dri/by-path ]; then
     fi
 fi
 
+# --- 3. Advertise the session identity a display manager would have set ----
+# greetd execs this wrapper directly instead of going through a
+# wayland-sessions .desktop file, so nothing sets the variables a Wayland
+# session is expected to publish. Without XDG_CURRENT_DESKTOP the portal
+# falls back to its default backend and every XDG autostart entry that
+# filters on desktop name is evaluated against an empty name; several
+# Electron apps read XDG_SESSION_TYPE to decide whether to run natively on
+# Wayland, and pam sets it to "tty" for a VT login.
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+
 exec sway "${sway_args[@]}"
 SWAYSESS
         chmod 0755 /usr/local/bin/sway-session
+
+        # sway has no XDG autostart handling, and greetd execs the wrapper
+        # directly rather than through a wayland-sessions .desktop file, so
+        # nothing activates xdg-desktop-autostart.target and every .desktop an
+        # application drops into ~/.config/autostart is generated into a
+        # systemd unit that is then never started. That target sets
+        # RefuseManualStart, so it can only be reached as a dependency: this
+        # is the session target that pulls it in.
+        #
+        # It deliberately does NOT BindTo graphical-session.target, which is
+        # the more usual shape. On Debian that target already wants
+        # mako.service, waybar.service and foot-server.socket, while the sway
+        # config starts mako and waybar itself with exec -- pulling it in here
+        # would give every login two bars and two notification daemons.
+        mkdir -p /etc/systemd/user
+        cat > /etc/systemd/user/sway-session.target <<'SWAYTGT'
+[Unit]
+Description=sway session
+Documentation=man:systemd.special(7)
+Wants=xdg-desktop-autostart.target
+Before=xdg-desktop-autostart.target
+SWAYTGT
+        chmod 0644 /etc/systemd/user/sway-session.target
         if command -v tuigreet >/dev/null 2>&1 && [ -d /etc/greetd ]; then
             cat > /etc/greetd/config.toml <<GREETD
 [terminal]
@@ -1170,6 +1204,14 @@ SBINPATH
         # without needing a login session to be running while provisioning.
         if ! headless && dpkg -s pipewire >/dev/null 2>&1; then
             systemctl --global mask pulseaudio.service pulseaudio.socket 2>/dev/null || true
+            # The PulseAudio package also ships /etc/xdg/autostart/pulseaudio
+            # .desktop, which systemd-xdg-autostart-generator turns into a unit
+            # that masking the service above does not cover. It runs
+            # start-pulseaudio-x11, which asks the sound server to load
+            # module-x11-*; pipewire-pulse does not implement those, so it exits
+            # 1 and leaves a failed unit behind on every login -- which the
+            # weekly healthcheck then reports. Mask the generated unit too.
+            systemctl --global mask app-pulseaudio@autostart.service 2>/dev/null || true
             systemctl --global enable pipewire.socket pipewire.service \
                 wireplumber.service pipewire-pulse.socket pipewire-pulse.service 2>/dev/null || true
         fi
