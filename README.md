@@ -99,6 +99,7 @@ with the fallbacks below.
 |---|---|
 | `bmv.otf`, `BerkeleyMonoNNIX.psf.gz` | commercial font, licensed per person |
 | `id_d_nnix.pem`, `id_d_nnix.pub` | the SSH identity used for GitHub auth **and** commit signing |
+| `workstation.conf` | per-machine hosts and key for the `workstation` command |
 
 The sealed copy of `id_d_nnix.pem` is the **passphrase-protected** one, and that
 is deliberate. It means the bundle passphrase alone does not yield the key: an
@@ -114,6 +115,34 @@ that leaks years from now retroactively exposes the key, and rotating the
 bundle does nothing for copies already taken. Treat the bundle passphrase as
 being exactly as sensitive as the key inside it, and rotate the key itself if
 the passphrase is ever in doubt.
+
+### Where it's hosted
+
+`assets.nnix.com` is a **bucket of its own**, deliberately not part of the
+website:
+
+| Piece | Value |
+|---|---|
+| Bucket | `assets.nnix.com` (us-east-1), **private**, public ACLs blocked |
+| CloudFront | `E2HQGXXWKWBIQN`, TLS 1.2_2021, HTTP→HTTPS |
+| Origin access | OAC `E3IO4U9OLVFCCM`; bucket policy scoped to that distribution ARN alone |
+| Logging | enabled → `nnix.com-cdn-logs`, prefix `assets_nnix_com_` |
+
+The bundle briefly lived under the website's own bucket. That worked, but its
+survival depended on an `--exclude` pattern in the site's deploy workflow that
+nobody would recognise as load-bearing. A separate bucket makes it
+unreachable-by-accident rather than merely filtered.
+
+It is **not** committed to the `nnix.com` repo either, though it would be
+tracked neatly there. That repo is public, and a git commit is permanent: it
+would be mirrored by every clone and fork and ingested by archives that crawl
+public repos. An S3 object can be *deleted* — which is the only lever you have
+if the passphrase is ever in doubt. Encrypted-at-rest is not a licence to
+publish into immutable history.
+
+Access logging is not boilerplate. This bundle contains an SSH identity key, and
+that log is the only detection that exists for it being fetched. Worth reading
+occasionally.
 
 ### Adding a secret
 
@@ -153,6 +182,31 @@ through CloudFront via an Origin Access Control, so the object is reachable at
 the URL and nowhere else. Downloads are logged to `nnix.com-cdn-logs` under the
 `assets_nnix_com_` prefix — worth actually looking at occasionally, given what
 the bundle contains.
+
+### If the passphrase is lost, or compromised
+
+**Lost.** The bundle is unrecoverable — that is what the KDF is for. Nothing is
+fatal, though: every file in it still exists on the machines that already have
+it. Re-seal from a host that does (`sh scripts/seal-secrets.sh` reads each file
+from the destination the manifest names), publish, and pick a new passphrase.
+
+**Compromised.** Treat everything in the bundle as exposed, because a published
+ciphertext cannot be un-published — anyone who fetched it keeps it, and a new
+passphrase does nothing for copies already taken. In order:
+
+1. Delete the object so no *further* copies can be taken:
+   `aws --profile <p> s3 rm s3://assets.nnix.com/provisioning/nnix-secrets.tar.gpg`
+2. **Rotate the SSH key.** Generate a new one, add it to GitHub as both an
+   authentication and a signing key, remove the old one there, and update
+   `dotfiles/.config/git/allowed_signers`. The old key must be assumed usable by
+   whoever holds the ciphertext and the passphrase.
+3. Re-seal with a new passphrase and republish.
+4. Check `nnix.com-cdn-logs` under `assets_nnix_com_` for who fetched the
+   bundle and when. This is the only forensic trail there is.
+
+The key's *own* passphrase buys time here rather than safety: it means the
+bundle passphrase alone is not sufficient, so an attacker needs both. Do not
+treat it as a reason to skip rotation.
 
 ### Why gpg and not age
 
