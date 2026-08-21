@@ -1148,6 +1148,63 @@ APTHOOK
             printf 'FONT="BerkeleyMonoNNIX.psf.gz"\n' >> /etc/default/console-setup
         fi
         setupcon --force 2>/dev/null || true
+
+        # console-setup runs at sysinit, but on a machine whose GPU driver is a
+        # module (NVIDIA here) fbcon is handed over to the DRM framebuffer a few
+        # seconds LATER, and that handover resets every VT to the kernel's
+        # built-in font. The configured font therefore never survived on tty1-6:
+        # the greeter only looked right because its own drop-in re-runs setfont
+        # on vt7 afterwards. Re-apply once the handover has happened.
+        cat > /etc/systemd/system/console-font.service <<'CFONT'
+[Unit]
+Description=Re-apply the console font after a DRM driver takes over fbcon
+Documentation=man:setupcon(1)
+After=console-setup.service systemd-user-sessions.service plymouth-quit-wait.service
+ConditionPathExists=/etc/default/console-setup
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=-/usr/bin/setupcon --force
+
+[Install]
+WantedBy=multi-user.target
+CFONT
+        systemctl daemon-reload 2>/dev/null || true
+        systemctl enable console-font.service 2>/dev/null || true
+
+        # Boot-console resolution. The firmware hands the kernel whatever EFI
+        # framebuffer it feels like -- on this Supermicro board that is
+        # 1024x768, which a 4K panel then scales up 3.75x, so early boot text is
+        # enormous and soft while everything after the DRM handover is sharp.
+        # Ask GRUB to set a real mode and keep it across the handoff so the
+        # early console renders natively instead of being magnified. The modes
+        # are tried in order and fall back to `auto`, so firmware that cannot do
+        # 4K simply gets the next one down.
+        #
+        # fbcon=font: pins the kernel's built-in console font, which is the only
+        # font the very earliest messages can use -- before console-setup exists.
+        # Without it fbcon auto-selects TER16x32 on a large framebuffer, which
+        # undoes half the point. VGA8x16 matches the 8x16 Berkeley Mono cell
+        # installed above, so the console keeps one size from power-on onward.
+        # It is a no-op on 1080p and below, where 8x16 is already the default.
+        if [ -f /etc/default/grub ]; then
+            grub_set() {
+                if grep -qE "^#?$1=" /etc/default/grub; then
+                    sed -i -E "s|^#?$1=.*|$1=\"$2\"|" /etc/default/grub
+                else
+                    printf '%s="%s"\n' "$1" "$2" >> /etc/default/grub
+                fi
+            }
+            grub_set GRUB_GFXMODE '3840x2160,1920x1080,auto'
+            grub_set GRUB_GFXPAYLOAD_LINUX 'keep'
+            if ! grep -q 'fbcon=font:' /etc/default/grub; then
+                sed -i -E 's|^(GRUB_CMDLINE_LINUX_DEFAULT=")([^"]*)(")|\1\2 fbcon=font:VGA8x16\3|' \
+                    /etc/default/grub
+                sed -i -E 's|^(GRUB_CMDLINE_LINUX_DEFAULT=") |\1|' /etc/default/grub
+            fi
+            update-grub 2>/dev/null || true
+        fi
         fi  # end: not headless (greeter + console font)
 
         # Dark mode for GTK4/libadwaita, the xdg portal, and Chrome/Electron/
