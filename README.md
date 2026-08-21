@@ -348,6 +348,31 @@ intentionally blank (this repo is public); fill in real values per machine —
 the script refuses to run until you do. `workstation -h` shows the configured
 paths; `workstation <label>` forces one.
 
+Since the blank-by-design conf and the seeded-once-never-overwritten rule
+together mean a **rebuilt** host silently gets the template back, the filled-in
+copy travels in the encrypted bundle (see "Secrets, and how a bare machine gets
+them"). Any file with that seed-once shape wants the same treatment.
+
+**The far end needs UDP 60000–61000 open, and this is the failure you will
+actually hit.** The host firewall section below opens mosh inbound on machines
+*this script provisions* — but the admin box you connect **to** is a different
+machine, and if it runs ufw or firewalld the whole nftables section is skipped
+there by design. The symptom is unhelpful: SSH succeeds, `mosh-server` starts
+on the far end, and then the client simply hangs, because the UDP return path
+is what is blocked rather than the connection setup. On a ufw host, scope the
+rule to the interface the traffic actually arrives on:
+
+```
+ufw allow in on <iface> from <subnet> to any port 60000:61000 proto udp \
+    comment 'mosh'
+```
+
+Test it with a real packet rather than by reading `ufw status` — a listener on
+one side (`nc -u -l -p 60001`) and a probe from the other
+(`nc -u -w2 <host> 60001`). Rule renderings are easy to misread, and a blanket
+UDP allow added for something unrelated can make one path work while another
+silently does not.
+
 ### System Configuration (Linux/OpenBSD)
 
 - **sshd**: key-only auth (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`); the candidate config is validated with `sshd -t` before replacing the real one.

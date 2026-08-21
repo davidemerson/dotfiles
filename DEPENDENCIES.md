@@ -16,7 +16,7 @@
 - **Version Control**: git
 - **Multiplexer**: tmux (in base on OpenBSD; via apt/brew elsewhere) — config at `~/.tmux.conf`
 - **Agent multiplexer**: [herdr](https://herdr.dev) — homebrew-core on macOS, prebuilt release binary on Linux (x86_64/aarch64) at `/usr/local/bin/herdr`; no OpenBSD builds upstream, skipped there
-- **Remote shell**: mosh (all platforms) + `~/.local/bin/workstation` — probes/falls back between overlay paths and moshes into the admin workstation; per-machine targets configured in `~/.config/workstation.conf` (seeded once by provisioning, never overwritten)
+- **Remote shell**: mosh (all platforms) + `~/.local/bin/workstation` — probes/falls back between overlay paths and moshes into the admin workstation; per-machine targets configured in `~/.config/workstation.conf` (seeded once by provisioning, never overwritten, and carried in the encrypted bundle so a rebuild does not silently revert it to the blank template). **The admin box at the far end must allow UDP 60000–61000 from wherever you connect** — that machine is not provisioned by this script, so its firewall is not this script's to configure
 - **System fetch**: [pfetch](https://github.com/dylanaraps/pfetch) — minimal, dependency-free; runs on interactive shell login (outside tmux)
 - **AI CLI**: [Claude Code](https://claude.com/claude-code) — per-user install via the upstream script → `~/.local/bin/claude` (Linux + macOS; skipped on OpenBSD)
 - **Tools**: nano, htop, btop, nmap, lsd; curl + wget (Linux/OpenBSD; macOS uses the system `curl`)
