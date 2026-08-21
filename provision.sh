@@ -822,9 +822,11 @@ JOPDESK
 #   2. $NNIX_ASSET_DIR/<file> -- a checkout, a mounted volume, a USB stick;
 #      this is the unattended/headless path, since it needs no 1Password
 #      session
-#   3. `op document get`, run as the invoking user -- the interactive path,
-#      and the reason it is not run as root: op talks to the desktop app or a
-#      human's service account, never to root's environment
+#   3. `op document get`. With $OP_SERVICE_ACCOUNT_TOKEN set, op runs directly
+#      -- a service account has no user session to attach to, and this is the
+#      only form that works unattended. Without one, it drops to the invoking
+#      human's own 1Password session via $SUDO_USER, because op then needs to
+#      reach the desktop app, which root cannot do
 #
 # Absence is not an error. Every consumer downstream degrades to a warning:
 # fontconfig falls back on its own, and the console keeps its stock face.
@@ -848,14 +850,32 @@ fetch_private_asset() {
         fi
     fi
 
-    _op_user="${SUDO_USER:-${username:-}}"
-    if [ -n "$_op_user" ] && [ "$_op_user" != "root" ] && command -v op >/dev/null 2>&1; then
-        # op writes as the user, so stage in a file that user can write and
-        # let root put it in place afterwards -- the tree may be root-owned.
+    if command -v op >/dev/null 2>&1; then
         _tmp="$(mktemp)"
-        chown "$_op_user" "$_tmp" 2>/dev/null || true
-        if su - "$_op_user" -c "op document get \"$_item\" --out-file \"$_tmp\" --force" \
-                >/dev/null 2>&1 && [ -s "$_tmp" ]; then
+        _got=0
+        if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+            # A service account has no user session and no desktop app to talk
+            # to, so run op as whoever we already are. This is the unattended
+            # path: it is the only way `op` works during a non-interactive
+            # provision.
+            if op document get "$_item" --out-file "$_tmp" --force \
+                    >/dev/null 2>&1 && [ -s "$_tmp" ]; then
+                _got=1
+            fi
+        else
+            # No token: fall back to the invoking human's own 1Password
+            # session. op writes as that user, so stage in a file they can
+            # write and let root put it in place -- the tree may be root-owned.
+            _op_user="${SUDO_USER:-${username:-}}"
+            if [ -n "$_op_user" ] && [ "$_op_user" != "root" ]; then
+                chown "$_op_user" "$_tmp" 2>/dev/null || true
+                if su - "$_op_user" -c "op document get \"$_item\" --out-file \"$_tmp\" --force" \
+                        >/dev/null 2>&1 && [ -s "$_tmp" ]; then
+                    _got=1
+                fi
+            fi
+        fi
+        if [ "$_got" = 1 ]; then
             mkdir -p "$(dirname "$_dest")"
             install -m 0644 "$_tmp" "$_dest"
             rm -f "$_tmp"

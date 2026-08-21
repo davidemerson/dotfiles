@@ -65,11 +65,20 @@ Two files are affected:
 2. **`$NNIX_ASSET_DIR/<file>`** — a checkout, a mounted volume, a USB stick.
    This is the unattended path: it needs no 1Password session, so it is what
    to use for headless or scripted provisioning;
-3. **1Password**, via `op document get`, run as the *invoking* user rather
-   than root — `op` talks to the desktop app or to a human's service account,
-   and root has neither. Document titles default to `Berkeley Mono Variable
-   NNIX` and `Berkeley Mono NNIX console PSF`, overridable with
-   `NNIX_FONT_OP_ITEM` and `NNIX_CONSOLE_FONT_OP_ITEM`.
+3. **1Password**, via `op document get`. Two forms, and which one runs
+   depends on the environment:
+   - with **`OP_SERVICE_ACCOUNT_TOKEN`** set, `op` runs directly as whoever
+     invoked the script. A service account has no user session and no desktop
+     app to attach to, so this is the only form that works **unattended** —
+     it is what a scripted or headless provision should use;
+   - **without** one, it drops to the invoking human's own 1Password session
+     via `$SUDO_USER`, since `op` then has to reach the desktop app and root
+     cannot.
+
+   Document titles default to `Berkeley Mono Variable NNIX` and `Berkeley Mono
+   NNIX console PSF`, overridable with `NNIX_FONT_OP_ITEM` and
+   `NNIX_CONSOLE_FONT_OP_ITEM`. No `--vault` is passed, so the documents
+   resolve from whichever vaults the caller can see.
 
 **None of this is fatal.** If no source resolves, provisioning says so and
 carries on: fontconfig falls back to whatever monospace the system has, and
@@ -77,7 +86,8 @@ console-setup is left entirely alone rather than pointed at a font file that
 does not exist.
 
 To populate 1Password the first time, from a machine that already has the
-font and a signed-in `op`:
+font and a signed-in `op` (add `--vault <name>` to place them somewhere
+specific):
 
 ```
 op document create ~/.fonts/bmv.otf \
@@ -85,6 +95,10 @@ op document create ~/.fonts/bmv.otf \
 op document create scripts/BerkeleyMonoNNIX.psf.gz \
     --title "Berkeley Mono NNIX console PSF"
 ```
+
+To re-upload after `scripts/build-console-font.sh` regenerates the bitmap, use
+`op document edit "<title>" <file>` rather than `create`, so the item keeps its
+identity.
 
 If you have no Berkeley Mono licence, either buy one at
 <https://usgraphics.com> or change the font name in
