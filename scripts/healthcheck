@@ -1,17 +1,37 @@
 #!/bin/sh
-# nnix system health check — logs a one-shot health summary to the journal.
-# Installed to /usr/local/bin/healthcheck and run weekly by healthcheck.timer
+# nnix system health check — logs a one-shot health summary to the journal and
+# leaves a machine-readable result behind for monitoring to pick up.
+# Installed to /usr/local/bin/healthcheck and run daily by healthcheck.timer
 # (provision.sh, Linux only). View history:  journalctl -t healthcheck
+#
+# The result is also written to $STATE, which check_healthcheck.sh turns into a
+# Nagios-style probe for snmpd's `extend`, so LibreNMS sees the same verdict
+# rather than a second, divergent definition of "healthy".
 #
 # Every probe is guarded, so this is a harmless no-op wherever a subsystem is
 # absent (e.g. no ECC / SMART / sensors on a VM).
 
 tag=healthcheck
+STATE=/var/lib/nnix/healthcheck.state
 issues=0
+worst=0
+summary=""
 say()  { logger -t "$tag" -p "daemon.$1" -- "$2"; }
 note() { say info "$1"; }
-warn() { say warning "$1"; issues=$((issues + 1)); }
-crit() { say err "$1"; issues=$((issues + 1)); }
+warn() {
+    say warning "$1"
+    issues=$((issues + 1))
+    [ "$worst" -lt 1 ] && worst=1
+    summary="${summary}${summary:+; }$1"
+    return 0
+}
+crit() {
+    say err "$1"
+    issues=$((issues + 1))
+    worst=2
+    summary="${summary}${summary:+; }$1"
+    return 0
+}
 
 # --- reboot required (new kernel installed, or flagged by apt/needrestart) ---
 running=$(uname -r)
@@ -52,14 +72,74 @@ if command -v nvme >/dev/null 2>&1; then
     done
 fi
 
-# --- ECC memory errors (EDAC sysfs) ---
+# --- ECC memory ------------------------------------------------------------
+# An ECC error can surface in three independent places, and on some hardware
+# only one of them works at all. Check all three, and -- the part that matters --
+# say so when the machine HAS ECC memory but nothing is actually watching it.
+#
+# The earlier version of this check just looped over /sys/devices/system/edac/
+# mc/mc* and silently passed when that was empty. An empty directory is exactly
+# what a machine with no EDAC driver looks like, so it reported "ECC nominal"
+# indefinitely while nothing at all was monitoring ECC. A check that cannot
+# distinguish "no errors" from "not looking" is worse than no check.
+ecc_hw=no
+if command -v dmidecode >/dev/null 2>&1; then
+    dmidecode -t 16 2>/dev/null | grep -q 'Error Correction Type:.*ECC' && ecc_hw=yes
+fi
+ecc_watched=no
+
+# 1. EDAC sysfs counters. Needs an in-tree driver for this memory controller;
+#    plenty of workstation/entry-server chipsets have none.
 for mc in /sys/devices/system/edac/mc/mc*; do
     [ -d "$mc" ] || continue
+    ecc_watched=yes
     ue=$(cat "$mc/ue_count" 2>/dev/null)
     ce=$(cat "$mc/ce_count" 2>/dev/null)
     [ "${ue:-0}" -gt 0 ] 2>/dev/null && crit "ECC uncorrectable on $(basename "$mc"): $ue"
     [ "${ce:-0}" -gt 0 ] 2>/dev/null && warn "ECC corrected on $(basename "$mc"): $ce"
 done
+
+# 2. rasdaemon, in-band via the MCE/CMCI path. Works without EDAC, though
+#    without EDAC it cannot say which DIMM. Only counts as "watching" if the
+#    daemon is actually running.
+if command -v ras-mc-ctl >/dev/null 2>&1 && systemctl is-active --quiet rasdaemon 2>/dev/null; then
+    ecc_watched=yes
+    if ! ras-mc-ctl --errors 2>/dev/null | grep -q '^No Memory errors'; then
+        warn "rasdaemon recorded memory error(s) — see: ras-mc-ctl --errors"
+    fi
+fi
+
+# 3. The BMC's IPMI event log. On a server board this is the authoritative
+#    record and the only one that still works when the chipset has no EDAC
+#    driver -- but the SEL is a FIXED-SIZE ring that stops accepting entries
+#    once full, so a log flooded by some unrelated sensor silently costs you
+#    ECC visibility. Check its occupancy as well as its contents.
+if command -v ipmitool >/dev/null 2>&1 && [ -e /dev/ipmi0 ]; then
+    ecc_watched=yes
+    sel=$(ipmitool sel info 2>/dev/null)
+    over=$(printf '%s\n' "$sel" | awk -F': *' '/^Overflow/{print $2; exit}')
+    ents=$(printf '%s\n' "$sel" | awk -F': *' '/^Entries/{print $2; exit}')
+    free=$(printf '%s\n' "$sel" | awk -F': *' '/^Free Space/{print $2; exit}' | grep -o '^[0-9]*')
+    if [ "$over" = "true" ]; then
+        crit "BMC event log has OVERFLOWED ($ents entries) — new hardware events, ECC included, are being DROPPED. Archive and clear it: ipmitool sel list > file; ipmitool sel clear"
+    elif [ -n "$free" ] && [ "$free" -lt 1000 ] 2>/dev/null; then
+        warn "BMC event log nearly full ($ents entries, $free bytes free) — clear it before it stops recording"
+    fi
+    mem=$(ipmitool sel list 2>/dev/null | grep -icE 'memory|ecc|correctable|dimm')
+    [ "${mem:-0}" -gt 0 ] 2>/dev/null && crit "BMC event log holds $mem memory/ECC event(s) — ipmitool sel list"
+
+    # Any sensor the BMC itself considers critical. 'ns' (no reading) is
+    # skipped: unpopulated fan headers and absent drive/GPU sensors report it
+    # permanently and are not faults.
+    bad=$(ipmitool sdr list 2>/dev/null | awk -F'|' '
+        { st=$3; gsub(/[[:space:]]/,"",st)
+          if (st=="cr" || st=="nr" || st=="nc") { n=$1; gsub(/[[:space:]]+$/,"",n); printf "%s ", n } }')
+    [ -n "$bad" ] && warn "BMC reports sensor(s) in a critical state: $bad"
+fi
+
+if [ "$ecc_hw" = yes ] && [ "$ecc_watched" = no ]; then
+    crit "ECC memory is present but NOTHING is monitoring it — no EDAC driver, no rasdaemon, no IPMI"
+fi
 
 # --- thermals (warn if any real temp reading >= 85C). Use `sensors -u` and
 # read only temp*_input lines, so threshold values (high/crit, and bogus NVMe
@@ -77,7 +157,23 @@ if command -v apt-get >/dev/null 2>&1; then
 fi
 
 if [ "$issues" -eq 0 ]; then
-    note "OK — disk, SMART, NVMe wear, ECC, units, temps, reboot all nominal"
+    ok_msg="OK — disk, SMART, NVMe wear, ECC, BMC/SEL, units, temps, reboot all nominal"
+    note "$ok_msg"
+    summary="$ok_msg"
 else
     warn "finished with $issues issue(s) — see entries above"
+fi
+
+# Machine-readable result for monitoring. Written last so a crash mid-run
+# leaves the previous (now stale) state rather than a falsely clean one —
+# check_healthcheck.sh treats staleness as UNKNOWN.
+if mkdir -p "$(dirname "$STATE")" 2>/dev/null; then
+    tmp="$STATE.$$"
+    {
+        printf 'ts=%s\n'      "$(date +%s)"
+        printf 'worst=%s\n'   "$worst"
+        printf 'issues=%s\n'  "$issues"
+        printf 'summary=%s\n' "$summary"
+    } > "$tmp" 2>/dev/null && mv "$tmp" "$STATE" 2>/dev/null
+    chmod 0644 "$STATE" 2>/dev/null
 fi

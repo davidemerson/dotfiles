@@ -115,11 +115,19 @@ install_packages() {
             # Base set — everything a machine needs whether or not it has a
             # display. Kept separate from the desktop set so a headless host
             # doesn't pull in a Wayland compositor and a greeter.
+            #
+            # ipmitool is in here rather than the desktop set because a board
+            # with a BMC is exactly as likely to be headless. The healthcheck
+            # uses it for the one ECC path that still works on chipsets with no
+            # EDAC driver -- and to notice when the BMC's fixed-size event log
+            # has filled up, which silently costs you that visibility. It is a
+            # no-op on hardware with no /dev/ipmi0.
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
                 fzf fd-find git-delta \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
+                ipmitool \
                 unattended-upgrades needrestart \
                 nftables zram-tools systemd-oomd \
                 pcscd libccid opensc pcsc-tools
@@ -1366,9 +1374,19 @@ JRN
     systemctl enable --now smartmontools.service 2>/dev/null \
         || systemctl enable --now smartd.service 2>/dev/null || true
 
-    # Weekly health check -> journal (journalctl -t healthcheck).
+    # Daily health check -> journal (journalctl -t healthcheck) plus a state
+    # file at /var/lib/nnix/healthcheck.state. Daily rather than weekly because
+    # the state file is what monitoring reads: a weekly result is stale for six
+    # days out of seven and tells you nothing about now.
     if [ -f "$SCRIPT_DIR/scripts/healthcheck" ]; then
         install -m 0755 "$SCRIPT_DIR/scripts/healthcheck" /usr/local/bin/healthcheck
+        # Nagios-style view of that same state file, for snmpd `extend` ->
+        # LibreNMS. It re-reads the result rather than re-running the probes, so
+        # an SNMP poll never sets ipmitool/smartctl going, and monitoring can
+        # never disagree with the journal about this host's health.
+        [ -f "$SCRIPT_DIR/scripts/check_healthcheck.sh" ] && \
+            install -m 0755 "$SCRIPT_DIR/scripts/check_healthcheck.sh" \
+                /usr/local/bin/check_healthcheck.sh
         cat > /etc/systemd/system/healthcheck.service <<'HCS'
 [Unit]
 Description=nnix system health check
@@ -1379,10 +1397,11 @@ ExecStart=/usr/local/bin/healthcheck
 HCS
         cat > /etc/systemd/system/healthcheck.timer <<'HCT'
 [Unit]
-Description=Weekly nnix system health check
+Description=Daily nnix system health check
 
 [Timer]
-OnCalendar=weekly
+OnCalendar=daily
+RandomizedDelaySec=15m
 Persistent=true
 
 [Install]
@@ -1390,6 +1409,109 @@ WantedBy=timers.target
 HCT
         systemctl daemon-reload 2>/dev/null || true
         systemctl enable healthcheck.timer 2>/dev/null || true
+        # Seed the state file so monitoring has an answer before the first
+        # timer firing, which may be up to a day away.
+        /usr/local/bin/healthcheck 2>/dev/null || true
+    fi
+
+    # --- Monitoring: syslog forwarding + SNMP -----------------------------
+    # Where logs go and what community string to answer to are properties of a
+    # SITE, not of this repo, so both are opt-in through
+    # /etc/nnix/monitoring.conf — seeded once and never overwritten, the same
+    # idiom as firewall.conf. A machine that leaves it empty gets neither,
+    # which is what a laptop or a throwaway VM wants.
+    if [ ! -f /etc/nnix/monitoring.conf ]; then
+        log_info "Seeding /etc/nnix/monitoring.conf (edit it to enable syslog/SNMP)."
+        mkdir -p /etc/nnix
+        cat > /etc/nnix/monitoring.conf <<'MONCONF'
+# Per-host monitoring. Seeded once by provision.sh and never overwritten, so
+# edits here survive a re-provision. Leave a value empty to disable that half.
+
+# Central syslog collector (LibreNMS, Graylog, ...). Host or host:port;
+# the default port is 514/tcp.
+SYSLOG_TARGET=""
+
+# SNMP v2c read-only community. Setting this installs and configures snmpd.
+SNMP_COMMUNITY=""
+
+# Space-separated addresses/subnets snmpd will answer. Keep this tight: the
+# community string is the only other thing standing in front of the agent.
+SNMP_ALLOWED_FROM="127.0.0.1"
+
+# NOTE: opening the port is deliberately NOT done here. Add 161 to
+# EXTRA_UDP_PORTS in /etc/nnix/firewall.conf so there is exactly one place
+# that decides what this host accepts.
+MONCONF
+        # Holds the SNMP community, so not world-readable like firewall.conf.
+        chmod 0600 /etc/nnix/monitoring.conf
+    fi
+
+    SYSLOG_TARGET=""; SNMP_COMMUNITY=""; SNMP_ALLOWED_FROM="127.0.0.1"
+    # shellcheck disable=SC1091
+    . /etc/nnix/monitoring.conf
+
+    if [ -n "$SYSLOG_TARGET" ]; then
+        # Debian 13 installs journald-only; a syslog daemon is what speaks the
+        # wire protocol a collector expects.
+        dpkg -s rsyslog >/dev/null 2>&1 || apt-get install -y rsyslog
+        syslog_host=${SYSLOG_TARGET%:*}
+        syslog_port=${SYSLOG_TARGET##*:}
+        [ "$syslog_port" = "$SYSLOG_TARGET" ] && syslog_port=514
+        # TCP, so messages are not silently dropped under load. The
+        # disk-assisted queue keeps logging local and non-blocking while the
+        # collector is unreachable and replays on reconnect: a monitoring host
+        # being down must never be able to wedge logging on this machine.
+        cat > /etc/rsyslog.d/60-nnix-syslog.conf <<RSYS
+# Managed by dotfiles provision.sh — target from /etc/nnix/monitoring.conf
+*.* action(type="omfwd"
+           target="$syslog_host" port="$syslog_port" protocol="tcp"
+           queue.type="linkedlist"
+           queue.filename="nnix_syslog_fwd"
+           queue.maxdiskspace="64m"
+           queue.saveonshutdown="on"
+           action.resumeRetryCount="-1")
+RSYS
+        if rsyslogd -N1 >/dev/null 2>&1; then
+            systemctl restart rsyslog 2>/dev/null || true
+            log_info "Syslog forwarding to $syslog_host:$syslog_port enabled."
+        else
+            log_warn "rsyslog config failed validation — forwarding not applied."
+            rm -f /etc/rsyslog.d/60-nnix-syslog.conf
+        fi
+    fi
+
+    if [ -n "$SNMP_COMMUNITY" ]; then
+        dpkg -s snmpd >/dev/null 2>&1 || apt-get install -y snmpd snmp
+        # LibreNMS's own distro helper, used by its "Distro" display.
+        if [ ! -x /usr/bin/distro ]; then
+            curl -fsSL -o /usr/bin/distro \
+                https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro \
+                2>/dev/null && chmod 0755 /usr/bin/distro
+        fi
+        {
+            printf '# Managed by dotfiles provision.sh — see /etc/nnix/monitoring.conf\n'
+            printf 'agentAddress udp:161\n\n'
+            for a in $SNMP_ALLOWED_FROM; do
+                printf 'rocommunity %s %s\n' "$SNMP_COMMUNITY" "$a"
+            done
+            printf '\nsysLocation    "%s"\n' "${SNMP_LOCATION:-unset}"
+            printf 'sysContact     "%s"\n' "${SNMP_CONTACT:-admin@localhost}"
+            printf 'sysServices    72\n'
+            printf 'sysDescr       "%s"\n\n' "$(hostname) - $(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
+            printf 'includeAllDisks 10%%\n'
+            printf 'load 12 10 5\n\n'
+            printf 'extend distro /usr/bin/distro\n'
+            printf "extend hardware '/bin/cat /sys/devices/virtual/dmi/id/product_name'\n"
+            printf "extend manufacturer '/bin/cat /sys/devices/virtual/dmi/id/sys_vendor'\n"
+            # Same verdict the journal gets: monitoring and the log can never
+            # disagree about this host's health.
+            [ -x /usr/local/bin/check_healthcheck.sh ] && \
+                printf 'extend healthcheck /usr/local/bin/check_healthcheck.sh\n'
+        } > /etc/snmp/snmpd.conf
+        chmod 0600 /etc/snmp/snmpd.conf
+        systemctl enable snmpd 2>/dev/null || true
+        systemctl restart snmpd 2>/dev/null || true
+        log_info "snmpd configured (answering $SNMP_ALLOWED_FROM)."
     fi
 
     log_info "System maintenance configured."

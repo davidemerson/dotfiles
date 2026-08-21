@@ -36,12 +36,14 @@ printf "Validating dotfiles...\n\n"
 printf "Core:\n"
 check "provision.sh"
 check "scripts/healthcheck"
+check "scripts/check_healthcheck.sh"
 
 # A provisioning script that does not parse is worse than a missing one: it
 # fails partway through, having already changed some of the system.
 printf "\nScript syntax:\n"
 check_syntax "provision.sh"
 check_syntax "scripts/healthcheck"
+check_syntax "scripts/check_healthcheck.sh"
 check_syntax "dotfiles/.bashrc"
 check_syntax "dotfiles/.bash_profile"
 
