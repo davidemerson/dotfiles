@@ -957,14 +957,37 @@ unseal_secrets() {
     fi
 
     _n=0
-    while read -r _name _dest _mode _rest; do
+    while read -r _name _dest _mode _owner _rest; do
         case "${_name:-}" in ""|\#*) continue ;; esac
         [ -n "${_dest:-}" ] && [ -n "${_mode:-}" ] || continue
         [ -f "$_stage/payload/$_name" ] || { log_warn "  $_name listed but not in the bundle."; continue; }
         _target="$(printf "%s" "$_dest" \
             | sed -e "s|@@TREE@@|$SCRIPT_DIR|g" -e "s|@@HOME@@|$_home|g")"
-        mkdir -p "$(dirname "$_target")"
+        case "${_owner:-root}" in
+            @@USER@@) _own="${username:-root}" ;;
+            "")       _own="root" ;;
+            *)        _own="$_owner" ;;
+        esac
+        # Take the group from the account's own passwd entry rather than
+        # assuming user-private groups. chown with a bare user leaves the group
+        # as root, which ssh tolerates on a 0600 key but which is wrong
+        # everywhere else in $HOME and looks like a mistake forever after.
+        _gid="$(getent passwd "$_own" 2>/dev/null | cut -d: -f4)"
+        [ -n "$_gid" ] && _own="$_own:$_gid"
+
+        # A 0600 file implies a directory only its owner may traverse. Getting
+        # this wrong is not cosmetic: sshd and ssh both refuse to use a key
+        # whose directory is group- or world-accessible, so a 0755 ~/.ssh turns
+        # a correctly-installed key into a silent authentication failure.
+        _dir="$(dirname "$_target")"
+        if [ ! -d "$_dir" ]; then
+            mkdir -p "$_dir"
+            case "$_mode" in 0600|600) chmod 0700 "$_dir" ;; *) chmod 0755 "$_dir" ;; esac
+        fi
+        [ "$_own" = root ] || chown "$_own" "$_dir" 2>/dev/null || true
+
         install -m "$_mode" "$_stage/payload/$_name" "$_target"
+        [ "$_own" = root ] || chown "$_own" "$_target" 2>/dev/null || true
         _n=$((_n + 1))
     done < "$_stage/manifest"
 
@@ -975,7 +998,7 @@ unseal_secrets() {
     printf "%s\n" "$_sum" > "$NNIX_SECRETS_STATE"
     chmod 0644 "$NNIX_SECRETS_STATE"
     log_info "Unsealed $_n file(s) from the provisioning secrets bundle."
-    unset _n _sum _stage _target _name _dest _mode _rest _fetch _c _d _sp _home
+    unset _n _sum _stage _target _name _dest _mode _rest _fetch _c _d _sp _home _owner _own _dir _gid
     return 0
 }
 

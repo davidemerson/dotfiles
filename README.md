@@ -93,6 +93,28 @@ bundle is genuinely new to the host. And nothing here is fatal — if the bundle
 cannot be fetched or decrypted, provisioning says so plainly and carries on
 with the fallbacks below.
 
+### What's in it
+
+| File | Why it can't be committed |
+|---|---|
+| `bmv.otf`, `BerkeleyMonoNNIX.psf.gz` | commercial font, licensed per person |
+| `id_d_nnix.pem`, `id_d_nnix.pub` | the SSH identity used for GitHub auth **and** commit signing |
+
+The sealed copy of `id_d_nnix.pem` is the **passphrase-protected** one, and that
+is deliberate. It means the bundle passphrase alone does not yield the key: an
+attacker holding the ciphertext needs *both* it and the key's own passphrase.
+Replacing it with a passphraseless copy for convenience would throw away the
+only defence in depth this arrangement has, so don't.
+
+Be clear-eyed about the tradeoff you are accepting by putting an identity key
+here at all. The cryptography is not the risk — six words with this KDF is not
+brute-forceable by anyone. The risk is that **a published ciphertext cannot be
+un-published**: anyone who fetches the bundle keeps it forever, so a passphrase
+that leaks years from now retroactively exposes the key, and rotating the
+bundle does nothing for copies already taken. Treat the bundle passphrase as
+being exactly as sensitive as the key inside it, and rotate the key itself if
+the passphrase is ever in doubt.
+
 ### Adding a secret
 
 Add a line to `scripts/secrets.manifest` and re-seal. No code changes:
@@ -103,8 +125,11 @@ bmv.otf                    @@TREE@@/dotfiles/.fonts/bmv.otf            0644
 BerkeleyMonoNNIX.psf.gz    @@TREE@@/scripts/BerkeleyMonoNNIX.psf.gz    0644
 ```
 
-`@@TREE@@` is the repository root as `provision.sh` sees it; `@@HOME@@` is the
-target user's home. Then, from a machine where every listed file is already in
+`@@TREE@@` is the repository root as `provision.sh` sees it, `@@HOME@@` is the
+target user's home, and the fourth column is the owner (`@@USER@@` for the
+target user; omit it for root). A `0600` mode also gets its parent directory
+created `0700` — which `~/.ssh` needs, since ssh silently refuses a key whose
+directory is group- or world-accessible. Then, from a machine where every listed file is already in
 place:
 
 ```
@@ -333,7 +358,7 @@ Package installs, from-source builds, and file deploys are idempotent.
 
 ## Manual Steps After Installation
 
-1. Place the SSH key at `~/.ssh/id_d_nnix.pem` (plus matching `.pub`). Both `.ssh/config` and `.gitconfig` reference that path for auth and commit signing — copy the key from another machine, or generate a new one and register it on GitHub as both an authentication key and a signing key. If you use a different key, edit `dotfiles/.gitconfig`, `dotfiles/.ssh/config`, and `dotfiles/.config/git/allowed_signers` to match before running `provision.sh`. If the private key has no sibling `.pub`, generate one (`ssh-keygen -y -f <key> > <key>.pub`) so `workstation` can tell when it's already loaded.
+1. **Usually automatic** — the SSH key ships in the encrypted bundle (see "Secrets, and how a bare machine gets them"), so unsealing puts it at `~/.ssh/id_d_nnix.pem` with the right mode and owner. Do this by hand only if you skipped the bundle. Place the SSH key at `~/.ssh/id_d_nnix.pem` (plus matching `.pub`). Both `.ssh/config` and `.gitconfig` reference that path for auth and commit signing — copy the key from another machine, or generate a new one and register it on GitHub as both an authentication key and a signing key. If you use a different key, edit `dotfiles/.gitconfig`, `dotfiles/.ssh/config`, and `dotfiles/.config/git/allowed_signers` to match before running `provision.sh`. If the private key has no sibling `.pub`, generate one (`ssh-keygen -y -f <key> > <key>.pub`) so `workstation` can tell when it's already loaded.
 2. Fill in `~/.config/workstation.conf` if you want the `workstation` command.
 3. Sign in to 1Password, then enable its browser integration in Chrome (Chrome is allow-listed by default).
 4. If `provision.sh` warned that the secrets bundle could not be unsealed, re-run it with the passphrase to hand (see "Secrets, and how a bare machine gets them"), or set `NNIX_ASSET_DIR` to a directory holding the files. Everything works without them; it just won't look right.
