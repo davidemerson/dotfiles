@@ -7,7 +7,7 @@
     	],
     "modules-center": [],
     "modules-right": [
-    	"network",
+    	"custom/network",
     	"custom/netgraph",
     	"cpu",
     	"custom/loadgraph",
@@ -71,11 +71,15 @@
     	"on-click-right": "pamixer -t",
     	"tooltip-format": "{desc} — {volume}%",
     },
-    "network": {
-        "format-wifi": "{essid} ({signalStrength}%)",
-        "format-ethernet": "{ifname}: {ipaddr}/{cidr}",
-        "format-linked": "{ifname} (No IP)",
-        "format-disconnected": "Disconnected ",
-        "format-alt": "{ifname}: {ipaddr}/{cidr}",
+    // Address of the interface carrying the default route. This is a custom
+    // module rather than waybar's built-in "network" because that one renders
+    // the IPv6 ULA the router advertises instead of the v4 lease, and its
+    // documented "family": "ipv4" option does not change it -- see the header
+    // comment in netaddr.sh.
+    "custom/network": {
+    	"exec": "sh $HOME/.config/waybar/netaddr.sh",
+    	"return-type": "json",
+    	"interval": 5,
+    	"tooltip": false,
     },
 }
