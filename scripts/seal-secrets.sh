@@ -55,10 +55,10 @@ cp "$MANIFEST" "$STAGE/manifest"
 
 missing=0
 count=0
-# `owner` is read only to consume that manifest column -- it is provision.sh,
-# not this script, that acts on it.
+# `owner` and `scope` are read only to consume those manifest columns -- it is
+# provision.sh, not this script, that acts on them.
 # shellcheck disable=SC2034
-while read -r name dest mode owner rest; do
+while read -r name dest mode owner scope rest; do
     case "${name:-}" in ''|\#*) continue ;; esac
     [ -n "${dest:-}" ] && [ -n "${mode:-}" ] || { echo "malformed manifest line: $name" >&2; exit 1; }
     # On the sealing host, each file already sits at its own destination.
@@ -67,6 +67,18 @@ while read -r name dest mode owner rest; do
         echo "  MISSING  $name  (expected at $src)" >&2
         missing=$((missing + 1))
         continue
+    fi
+    # A payload may legitimately have more than one destination -- authorized_keys
+    # is byte-for-byte the public key, so it is carried once and installed
+    # twice. Sealing it twice would be harmless; sealing two DIFFERENT files
+    # under one name would silently publish whichever came last, so refuse that.
+    if [ -f "$STAGE/payload/$name" ]; then
+        if cmp -s "$src" "$STAGE/payload/$name"; then
+            printf '  reused   %-28s -> %s\n' "$name" "$dest"
+            continue
+        fi
+        echo "manifest reuses the name '$name' for files that differ; refusing" >&2
+        exit 1
     fi
     cp "$src" "$STAGE/payload/$name"
     printf '  sealed   %-28s %s\n' "$name" "$(sha256sum "$src" | cut -c1-16)…"
