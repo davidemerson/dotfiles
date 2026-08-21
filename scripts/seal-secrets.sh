@@ -55,10 +55,10 @@ cp "$MANIFEST" "$STAGE/manifest"
 
 missing=0
 count=0
-# `owner` and `scope` are read only to consume those manifest columns -- it is
-# provision.sh, not this script, that acts on them.
+# `owner` is read only to consume that manifest column -- it is provision.sh,
+# not this script, that acts on it.
 # shellcheck disable=SC2034
-while read -r name dest mode owner scope rest; do
+while read -r name dest mode owner rest; do
     case "${name:-}" in ''|\#*) continue ;; esac
     [ -n "${dest:-}" ] && [ -n "${mode:-}" ] || { echo "malformed manifest line: $name" >&2; exit 1; }
     # On the sealing host, each file already sits at its own destination.

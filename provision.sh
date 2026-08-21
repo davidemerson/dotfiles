@@ -957,21 +957,9 @@ unseal_secrets() {
     fi
 
     _n=0
-    _host="$(hostname -s 2>/dev/null || hostname)"
-    while read -r _name _dest _mode _owner _scope _rest; do
+    while read -r _name _dest _mode _owner _rest; do
         case "${_name:-}" in ""|\#*) continue ;; esac
         [ -n "${_dest:-}" ] && [ -n "${_mode:-}" ] || continue
-        # Host scoping. The default is every host, which is right for things
-        # that belong to the USER -- their font, their SSH identity. It is
-        # wrong for anything identifying a MACHINE: two hosts sharing one
-        # ZeroTier identity collide and break the network for both, and a
-        # shared host key lets either impersonate the other. Such entries name
-        # their host and are skipped everywhere else.
-        case "${_scope:-@@ANY@@}" in
-            @@ANY@@|"") : ;;
-            "$_host")   : ;;
-            *)          continue ;;
-        esac
         [ -f "$_stage/payload/$_name" ] || { log_warn "  $_name listed but not in the bundle."; continue; }
         _target="$(printf "%s" "$_dest" \
             | sed -e "s|@@TREE@@|$SCRIPT_DIR|g" -e "s|@@HOME@@|$_home|g")"
@@ -1010,7 +998,7 @@ unseal_secrets() {
     printf "%s\n" "$_sum" > "$NNIX_SECRETS_STATE"
     chmod 0644 "$NNIX_SECRETS_STATE"
     log_info "Unsealed $_n file(s) from the provisioning secrets bundle."
-    unset _n _sum _stage _target _name _dest _mode _rest _fetch _c _d _sp _home _owner _own _dir _gid _scope _host
+    unset _n _sum _stage _target _name _dest _mode _rest _fetch _c _d _sp _home _owner _own _dir _gid
     return 0
 }
 

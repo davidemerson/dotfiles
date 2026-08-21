@@ -158,7 +158,37 @@ BerkeleyMonoNNIX.psf.gz    @@TREE@@/scripts/BerkeleyMonoNNIX.psf.gz    0644
 target user's home, and the fourth column is the owner (`@@USER@@` for the
 target user; omit it for root). A `0600` mode also gets its parent directory
 created `0700` — which `~/.ssh` needs, since ssh silently refuses a key whose
-directory is group- or world-accessible. Then, from a machine where every listed file is already in
+directory is group- or world-accessible.
+
+A payload may have **more than one destination**: `authorized_keys` is
+byte-for-byte the public key, so it is carried once and installed twice rather
+than sealed as a second copy. Repeating a name whose source *differs* is a hard
+error, since otherwise whichever line the loop read last would silently win.
+
+### What belongs in the bundle — and what doesn't
+
+This bundle answers exactly one question: **what does any machine built from
+these dotfiles need that cannot be public?** It is not a backup of one host.
+Those are different questions, and conflating them is how a shared artifact
+every machine downloads fills up with one particular machine's state.
+
+So it carries things belonging to the **user**, true on every machine they
+build — the font, the SSH identity. It deliberately does not carry things
+identifying a **machine**:
+
+| Excluded | Why |
+|---|---|
+| ZeroTier `identity.secret` | two hosts sharing one identity collide and break the network for both |
+| `/etc/ssh/ssh_host_*_key` | a shared host key lets either machine impersonate the other |
+| `/etc/nnix/monitoring.conf` | wanted on some hosts, not most; the SNMP community lives in 1Password |
+| `/etc/nnix/firewall.conf` | per-host, and its seeded defaults are usually right |
+
+The cost of excluding them is a one-time manual step on the few hosts that want
+them, against a shared artifact that stays honest about its purpose.
+
+If a per-host secret is ever genuinely needed, it does **not** want a scoping
+column here — it wants its own bundle. `$NNIX_SECRETS_URL` is already
+overridable, so pointing one host at a different URL needs no code at all. Then, from a machine where every listed file is already in
 place:
 
 ```
