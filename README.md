@@ -185,7 +185,7 @@ NNIX_HEADLESS=1 ./provision.sh   # force server mode
 - **zram** — compressed (zstd) swap sized to 50% of RAM, so memory spikes stay in RAM instead of hitting the (wear-limited) NVMe.
 - **systemd-oomd** — graceful low-memory handling before the machine locks up.
 
-Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 15 min and before sleep), **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, Qt apps forced dark via `adwaita-qt`/`adwaita-qt6`, and GTK4/libadwaita + the xdg portal + Chrome forced dark via a `prefer-dark` dconf default. A **waybar volume module** (right of memory) shows the level — scroll to change, left-click opens `pavucontrol` to choose the output device, right-click mutes.
+Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 1 h, display power-off at 2 h, and lock before sleep), **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, Qt apps forced dark via `adwaita-qt`/`adwaita-qt6`, and GTK4/libadwaita + the xdg portal + Chrome forced dark via a `prefer-dark` dconf default. A **waybar volume module** (right of memory) shows the level — scroll to change, left-click opens `pavucontrol` to choose the output device, right-click mutes.
 
 ### File Routing
 
@@ -205,7 +205,7 @@ Not every file deploys on every OS:
 
 ### Desktop Flow
 
-- **Linux**: greetd + tuigreet greeter on vt7 → `/usr/local/bin/sway-session` (a login shell, so the session inherits `.bashrc`'s environment) launches sway → foot terminal, waybar, wofi. Fallback: a tty1 console login launches sway from `.bashrc` when greetd isn't running.
+- **Linux**: greetd + tuigreet greeter on vt7 → `/usr/local/bin/sway-session` (a login shell, so the session inherits `.bashrc`'s environment) launches sway → foot terminal, waybar, wofi. Because greetd execs that wrapper directly rather than going through a `wayland-sessions` .desktop file, the wrapper also does what a display manager would otherwise do: it exports `XDG_CURRENT_DESKTOP=sway` and `XDG_SESSION_TYPE=wayland`, and the sway config starts `sway-session.target`, which exists solely to pull in `xdg-desktop-autostart.target` — without it, the `.desktop` files apps install into `~/.config/autostart` (1Password, Tresorit) are generated into systemd units and then never started. On exit the wrapper stops those units again, since they are `PartOf=graphical-session.target` and nothing else would. Fallback: a tty1 console login runs the same wrapper from `.bashrc` when greetd isn't running.
 - **OpenBSD**: xenodm greeter → `~/.xsession` launches i3 → st terminal, dmenu, i3bar (a ttyC0 console login still works: `.bashrc` runs `startx`, and `.xinitrc` mirrors `.xsession`)
 - **macOS**: Open WezTerm → `.zshrc` loads prompt, aliases, environment
 

@@ -60,9 +60,22 @@ export WLR_NO_HARDWARE_CURSORS=1
 # The `command -v` test matters: this is an `exec`, so on a machine without
 # sway (a headless host, or a desktop mid-purge) it would replace the login
 # shell with a failing command and drop the console session immediately.
-if [ "$(tty)" = "/dev/tty1" ] && command -v sway >/dev/null 2>&1 \
+#
+# Go through sway-session rather than calling sway directly. The wrapper is
+# what adds --unsupported-gpu on the proprietary NVIDIA driver, keeps wlroots
+# off BMC display hardware, and sets up the session's XDG identity and
+# autostart -- so a bare `exec sway` here would fail outright on exactly the
+# machines this fallback exists to rescue. The wrapper is itself a login shell
+# and so re-reads this file; SWAY_SESSION stops that second pass from
+# short-circuiting straight back to sway and skipping the wrapper's work.
+if [ "$(tty)" = "/dev/tty1" ] && [ -z "$SWAY_SESSION" ] \
+    && command -v sway >/dev/null 2>&1 \
     && ! systemctl is-active --quiet greetd 2>/dev/null; then
-	exec sway
+	if [ -x /usr/local/bin/sway-session ]; then
+		SWAY_SESSION=1 exec /usr/local/bin/sway-session
+	else
+		exec sway
+	fi
 fi
 # @@END_IF@@
 

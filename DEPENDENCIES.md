@@ -84,4 +84,4 @@
 - **Colored man/less**: `LESS_TERMCAP` in the shell rc (light-blue headings, navy/white standout) — all platforms
 - **GTK** (Linux/OpenBSD): `~/.config/gtk-{3,4}.0/settings.ini` — dark theme preference + plan9 cursor; on Linux `color-scheme='prefer-dark'` is also set as a system dconf default so libadwaita, the xdg portal, and Chrome honor dark
 - **btop**: `~/.config/btop/themes/nnix.theme` (grayscale + navy/blue), selected in `btop.conf`
-- **waybar**: on-brand gray→blue load + network histograms (`~/.config/waybar/{loadgraph,netgraph}.sh`) plus labeled ET/UTC clocks (`%Z` auto-labels EST/EDT)
+- **waybar**: on-brand gray→blue load + network histograms (`~/.config/waybar/{loadgraph,netgraph}.sh`) plus labeled ET/UTC clocks (`%Z` auto-labels EST/EDT). The address readout is also a custom module (`netaddr.sh`) rather than the built-in `network` one, which renders an IPv6 ULA in preference to the v4 lease and ignores its own `family` option — see that script's header.

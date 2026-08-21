@@ -1035,7 +1035,32 @@ fi
 export XDG_CURRENT_DESKTOP=sway
 export XDG_SESSION_TYPE=wayland
 
-exec sway "${sway_args[@]}"
+sway "${sway_args[@]}"
+rc=$?
+
+# --- 4. Tear the session down ----------------------------------------------
+# Session-scoped user units here are PartOf=graphical-session.target, which
+# this session deliberately never starts (see the sway-session.target comment
+# in provision.sh), so nothing stops them when the compositor goes away.
+#
+# Left alone the XDG autostart units outlive it: 1Password keeps running
+# headless and Tresorit is reduced to a daemon with no GUI -- and because the
+# units are still nominally active, the next login's target activation is a
+# no-op and neither app comes back. The portals are the same story with a
+# smaller blast radius: they die with the compositor and are left `failed`
+# until something D-Bus-activates them again.
+#
+# So stop both explicitly, then clear the non-zero exit that terminating a GUI
+# app produces, to keep the next session from starting with failed units
+# already sitting in `systemctl --user --failed`.
+session_units='app-*@autostart.service xdg-desktop-portal*.service'
+systemctl --user stop sway-session.target 2>/dev/null || true
+# shellcheck disable=SC2086  # deliberate word-splitting: these are glob patterns
+systemctl --user stop $session_units 2>/dev/null || true
+# shellcheck disable=SC2086
+systemctl --user reset-failed $session_units 2>/dev/null || true
+
+exit $rc
 SWAYSESS
         chmod 0755 /usr/local/bin/sway-session
 
