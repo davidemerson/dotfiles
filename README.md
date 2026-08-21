@@ -65,20 +65,33 @@ Two files are affected:
 2. **`$NNIX_ASSET_DIR/<file>`** — a checkout, a mounted volume, a USB stick.
    This is the unattended path: it needs no 1Password session, so it is what
    to use for headless or scripted provisioning;
-3. **1Password**, via `op document get`. Two forms, and which one runs
-   depends on the environment:
-   - with **`OP_SERVICE_ACCOUNT_TOKEN`** set, `op` runs directly as whoever
-     invoked the script. A service account has no user session and no desktop
-     app to attach to, so this is the only form that works **unattended** —
-     it is what a scripted or headless provision should use;
-   - **without** one, it drops to the invoking human's own 1Password session
-     via `$SUDO_USER`, since `op` then has to reach the desktop app and root
-     cannot.
+3. **1Password**, via `op document get` — but only if this host has a
+   credential, and *where that credential comes from is the whole trick*:
+   - a **service-account token**, read from `$OP_SERVICE_ACCOUNT_TOKEN` or,
+     failing that, from **`/etc/nnix/op-token`** or `/etc/openclaw/op-token`
+     (root-only, mode `0600`; a looser mode is ignored with a warning). `op`
+     then runs directly, because a service account has no user session to
+     attach to. **The file is not a nicety.** The documented way to run this
+     script is `su -` (or `sudo`), and *both reset the environment* — an
+     exported `OP_SERVICE_ACCOUNT_TOKEN` does **not** survive into the script.
+     Either put it in the file, or pass it explicitly:
+     `sudo -E sh provision.sh`, or `sudo OP_SERVICE_ACCOUNT_TOKEN=… sh provision.sh`;
+   - with **no token at all**, it falls back to the invoking human's own
+     1Password session via `$SUDO_USER`, since `op` then has to reach the
+     desktop app and root cannot.
 
    Document titles default to `Berkeley Mono Variable NNIX` and `Berkeley Mono
    NNIX console PSF`, overridable with `NNIX_FONT_OP_ITEM` and
    `NNIX_CONSOLE_FONT_OP_ITEM`. No `--vault` is passed, so the documents
    resolve from whichever vaults the caller can see.
+
+**Mind the bootstrap order.** A brand-new machine has no token file *and* no
+signed-in `op`, so 1Password cannot help with the very first build of a host —
+that one is an `NNIX_ASSET_DIR` (or hand-placement) job, and it always will be.
+What 1Password buys you is that every *later* rebuild of an established host is
+self-service. Do not read step 3 as "provisioning fetches the font from
+nowhere"; read it as "a host that has been given a credential can re-fetch its
+own assets".
 
 **None of this is fatal.** If no source resolves, provisioning says so and
 carries on: fontconfig falls back to whatever monospace the system has, and

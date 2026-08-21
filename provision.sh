@@ -822,11 +822,22 @@ JOPDESK
 #   2. $NNIX_ASSET_DIR/<file> -- a checkout, a mounted volume, a USB stick;
 #      this is the unattended/headless path, since it needs no 1Password
 #      session
-#   3. `op document get`. With $OP_SERVICE_ACCOUNT_TOKEN set, op runs directly
-#      -- a service account has no user session to attach to, and this is the
-#      only form that works unattended. Without one, it drops to the invoking
-#      human's own 1Password session via $SUDO_USER, because op then needs to
-#      reach the desktop app, which root cannot do
+#   3. `op document get`, if this host has a credential. A service-account
+#      token is read from $OP_SERVICE_ACCOUNT_TOKEN, or failing that from
+#      /etc/nnix/op-token or /etc/openclaw/op-token (root-only, mode 0600),
+#      and op then runs directly -- a service account has no user session to
+#      attach to, and this is the only form that works unattended. The file
+#      is not belt-and-braces: `su -` and sudo both reset the environment, so
+#      on the documented invocation the env var does NOT survive into this
+#      script and the file is the only channel that does. With no token at
+#      all, fall back to the invoking human's own 1Password session via
+#      $SUDO_USER, since op then needs the desktop app, which root cannot
+#      reach.
+#
+#      Note the bootstrap order: a brand-new machine has no token file and no
+#      signed-in op either, so the FIRST build of a host is an NNIX_ASSET_DIR
+#      (or hand-placement) job. 1Password is what keeps later rebuilds of an
+#      established host self-service.
 #
 # Absence is not an error. Every consumer downstream degrades to a warning:
 # fontconfig falls back on its own, and the console keeps its stock face.
@@ -851,6 +862,27 @@ fetch_private_asset() {
     fi
 
     if command -v op >/dev/null 2>&1; then
+        # Find a service-account token if one was not handed to us in the
+        # environment. This matters more than it looks: the documented way to
+        # run this script is `su -` (or sudo), and BOTH reset the environment,
+        # so an exported OP_SERVICE_ACCOUNT_TOKEN silently does not survive
+        # into the script. A root-only file is the reliable channel; the env
+        # var still wins when it is genuinely present.
+        if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+            for _tf in /etc/nnix/op-token /etc/openclaw/op-token; do
+                [ -r "$_tf" ] || continue
+                # A credential readable by anyone but root is not a credential.
+                # Say so rather than quietly trusting it.
+                if [ "$(stat -c %a "$_tf" 2>/dev/null || echo 600)" != "600" ]; then
+                    log_warn "$_tf is not mode 0600 — ignoring it."
+                    continue
+                fi
+                OP_SERVICE_ACCOUNT_TOKEN="$(cat "$_tf")"
+                export OP_SERVICE_ACCOUNT_TOKEN
+                break
+            done
+            unset _tf
+        fi
         _tmp="$(mktemp)"
         _got=0
         if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
@@ -886,8 +918,10 @@ fetch_private_asset() {
     fi
 
     log_warn "$_name not available -- skipping the steps that need it."
-    log_warn "  Provide it with NNIX_ASSET_DIR=/path/to/assets, or store it in"
-    log_warn "  1Password as a document titled \"$_item\" and sign in to \`op\`."
+    log_warn "  Copy it from another machine and re-run with"
+    log_warn "    NNIX_ASSET_DIR=/path/to/assets sh provision.sh"
+    log_warn "  or, to pull it from 1Password (document \"$_item\"), give this"
+    log_warn "  host a service-account token at /etc/nnix/op-token (mode 0600)."
     return 1
 }
 
