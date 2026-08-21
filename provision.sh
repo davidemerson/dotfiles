@@ -1494,10 +1494,13 @@ RSYS
             for a in $SNMP_ALLOWED_FROM; do
                 printf 'rocommunity %s %s\n' "$SNMP_COMMUNITY" "$a"
             done
-            printf '\nsysLocation    "%s"\n' "${SNMP_LOCATION:-unset}"
-            printf 'sysContact     "%s"\n' "${SNMP_CONTACT:-admin@localhost}"
+            # No quotes around these values: net-snmp takes the rest of the
+            # line verbatim, so quoting them puts literal quote characters
+            # inside the SNMP string and LibreNMS renders \"Home Lab\".
+            printf '\nsysLocation    %s\n' "${SNMP_LOCATION:-unset}"
+            printf 'sysContact     %s\n' "${SNMP_CONTACT:-admin@localhost}"
             printf 'sysServices    72\n'
-            printf 'sysDescr       "%s"\n\n' "$(hostname) - $(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
+            printf 'sysDescr       %s\n\n' "$(hostname) - $(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-Linux}")"
             printf 'includeAllDisks 10%%\n'
             printf 'load 12 10 5\n\n'
             printf 'extend distro /usr/bin/distro\n'

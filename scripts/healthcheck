@@ -141,6 +141,18 @@ if [ "$ecc_hw" = yes ] && [ "$ecc_watched" = no ]; then
     crit "ECC memory is present but NOTHING is monitoring it — no EDAC driver, no rasdaemon, no IPMI"
 fi
 
+# --- syslog forwarding backlog ---------------------------------------------
+# The forwarder deliberately does not log transient connect failures (it starts
+# before the network and the queue replays), so a collector that is genuinely
+# unreachable would otherwise be silent. It shows up here instead: the on-disk
+# spool only grows when messages cannot be delivered.
+for spool in /var/spool/rsyslog; do
+    [ -d "$spool" ] || continue
+    kb=$(du -sk "$spool" 2>/dev/null | awk '{print $1+0}')
+    [ "${kb:-0}" -gt 8192 ] 2>/dev/null && \
+        warn "syslog forward spool at ${kb}KB — is the collector reachable?"
+done
+
 # --- thermals (warn if any real temp reading >= 85C). Use `sensors -u` and
 # read only temp*_input lines, so threshold values (high/crit, and bogus NVMe
 # limit readings like +65261C) and fan/voltage inputs are never mistaken for
