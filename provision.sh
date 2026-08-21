@@ -804,6 +804,83 @@ JOPDESK
 # -------------------------------------------------------------------
 # Services
 # -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Private assets
+#
+# The Berkeley Mono font is NOT in this repository and must not be. It is a
+# commercial face (U.S. Graphics LT-02, "Personal" classification) and the
+# binary is watermarked with the licensee's own license ID, so committing it
+# to a public repo would republish a paid personal licence to everyone who
+# clones. It lives in 1Password instead and is fetched at provision time into
+# the paths the rest of this script already expects:
+#
+#   dotfiles/.fonts/bmv.otf            the vector face (st, dmenu, waybar, ...)
+#   scripts/BerkeleyMonoNNIX.psf.gz    the 8x16 console bitmap built from it
+#
+# Resolution order per asset, first hit wins:
+#   1. already in the tree  -- a previous run, or placed by hand
+#   2. $NNIX_ASSET_DIR/<file> -- a checkout, a mounted volume, a USB stick;
+#      this is the unattended/headless path, since it needs no 1Password
+#      session
+#   3. `op document get`, run as the invoking user -- the interactive path,
+#      and the reason it is not run as root: op talks to the desktop app or a
+#      human's service account, never to root's environment
+#
+# Absence is not an error. Every consumer downstream degrades to a warning:
+# fontconfig falls back on its own, and the console keeps its stock face.
+# -------------------------------------------------------------------
+NNIX_FONT_OP_ITEM="${NNIX_FONT_OP_ITEM:-Berkeley Mono Variable NNIX}"
+NNIX_CONSOLE_FONT_OP_ITEM="${NNIX_CONSOLE_FONT_OP_ITEM:-Berkeley Mono NNIX console PSF}"
+
+fetch_private_asset() {
+    # $1 = destination path in the tree, $2 = 1Password document title
+    _dest="$1"
+    _item="$2"
+    _name="$(basename "$_dest")"
+
+    [ -s "$_dest" ] && return 0
+
+    if [ -n "${NNIX_ASSET_DIR:-}" ] && [ -s "${NNIX_ASSET_DIR}/${_name}" ]; then
+        mkdir -p "$(dirname "$_dest")"
+        if install -m 0644 "${NNIX_ASSET_DIR}/${_name}" "$_dest" 2>/dev/null; then
+            log_info "Fetched $_name from \$NNIX_ASSET_DIR."
+            return 0
+        fi
+    fi
+
+    _op_user="${SUDO_USER:-${username:-}}"
+    if [ -n "$_op_user" ] && [ "$_op_user" != "root" ] && command -v op >/dev/null 2>&1; then
+        # op writes as the user, so stage in a file that user can write and
+        # let root put it in place afterwards -- the tree may be root-owned.
+        _tmp="$(mktemp)"
+        chown "$_op_user" "$_tmp" 2>/dev/null || true
+        if su - "$_op_user" -c "op document get \"$_item\" --out-file \"$_tmp\" --force" \
+                >/dev/null 2>&1 && [ -s "$_tmp" ]; then
+            mkdir -p "$(dirname "$_dest")"
+            install -m 0644 "$_tmp" "$_dest"
+            rm -f "$_tmp"
+            log_info "Fetched $_name from 1Password (\"$_item\")."
+            return 0
+        fi
+        rm -f "$_tmp"
+    fi
+
+    log_warn "$_name not available -- skipping the steps that need it."
+    log_warn "  Provide it with NNIX_ASSET_DIR=/path/to/assets, or store it in"
+    log_warn "  1Password as a document titled \"$_item\" and sign in to \`op\`."
+    return 1
+}
+
+fetch_private_assets() {
+    log_info "Resolving private assets..."
+    fetch_private_asset "$SCRIPT_DIR/dotfiles/.fonts/bmv.otf" \
+        "$NNIX_FONT_OP_ITEM" || true
+    # Desktop-only: a headless host has no VT console worth restyling.
+    headless || fetch_private_asset \
+        "$SCRIPT_DIR/scripts/BerkeleyMonoNNIX.psf.gz" \
+        "$NNIX_CONSOLE_FONT_OP_ITEM" || true
+}
+
 configure_services() {
     if [ "$OS_TYPE" = "macos" ]; then return; fi
 
@@ -1146,16 +1223,24 @@ APTHOOK
         # here: otf2bdf/bdf2psf need a fiddly XLFD fixup, and the result is
         # deterministic. setupcon uses FONT= directly when set; clearing
         # FONTFACE/FONTSIZE keeps it from falling back to a stock face.
-        install -m 0644 "$SCRIPT_DIR/scripts/BerkeleyMonoNNIX.psf.gz" \
-            /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz
-        sed -i 's/^FONTFACE=.*/FONTFACE=""/' /etc/default/console-setup
-        sed -i 's/^FONTSIZE=.*/FONTSIZE=""/' /etc/default/console-setup
-        if grep -q '^FONT=' /etc/default/console-setup; then
-            sed -i 's|^FONT=.*|FONT="BerkeleyMonoNNIX.psf.gz"|' /etc/default/console-setup
+        # The .psf.gz is a private asset (see fetch_private_assets): if it
+        # could not be resolved, leave console-setup entirely alone rather
+        # than pointing FONT= at a file that is not there, which would leave
+        # the console with no font at all.
+        if [ -s "$SCRIPT_DIR/scripts/BerkeleyMonoNNIX.psf.gz" ]; then
+            install -m 0644 "$SCRIPT_DIR/scripts/BerkeleyMonoNNIX.psf.gz" \
+                /usr/share/consolefonts/BerkeleyMonoNNIX.psf.gz
+            sed -i 's/^FONTFACE=.*/FONTFACE=""/' /etc/default/console-setup
+            sed -i 's/^FONTSIZE=.*/FONTSIZE=""/' /etc/default/console-setup
+            if grep -q '^FONT=' /etc/default/console-setup; then
+                sed -i 's|^FONT=.*|FONT="BerkeleyMonoNNIX.psf.gz"|' /etc/default/console-setup
+            else
+                printf 'FONT="BerkeleyMonoNNIX.psf.gz"\n' >> /etc/default/console-setup
+            fi
+            setupcon --force 2>/dev/null || true
         else
-            printf 'FONT="BerkeleyMonoNNIX.psf.gz"\n' >> /etc/default/console-setup
+            log_warn "Console font not available; leaving console-setup at its defaults."
         fi
-        setupcon --force 2>/dev/null || true
 
         # console-setup runs at sysinit, but on a machine whose GPU driver is a
         # module (NVIDIA here) fbcon is handed over to the DRM framebuffer a few
@@ -1250,6 +1335,28 @@ DCONF
             systemctl enable --now rasdaemon.service 2>/dev/null || true
         fi
 
+        # IPMI: on a board with a BMC the kernel finds it by ACPI/DMI and loads
+        # ipmi_si + ipmi_devintf + ipmi_msghandler itself during early boot --
+        # /dev/ipmi0 exists seconds before any init script could run. Debian's
+        # openipmi package nonetheless ships a SysV init script that re-
+        # modprobes the same modules; it buys nothing, logs lsmod errors of its
+        # own, and makes systemd-sysv-generator print a deprecation warning
+        # ("expect removal soon") three times on every boot. Declare the
+        # modules instead and retire the script. Gated on /dev/ipmi0 so a
+        # machine with no BMC is left alone.
+        if [ -e /dev/ipmi0 ] && dpkg -s openipmi >/dev/null 2>&1; then
+            cat > /etc/modules-load.d/ipmi.conf <<'IPMIMOD'
+# Managed by dotfiles provision.sh -- replaces the openipmi SysV init script.
+# Normally redundant: the kernel autoprobes these via ACPI/DMI. Kept as
+# insurance for boards that only expose the BMC over SMBIOS.
+ipmi_msghandler
+ipmi_devintf
+ipmi_si
+IPMIMOD
+            chmod 0644 /etc/modules-load.d/ipmi.conf
+            systemctl disable openipmi 2>/dev/null || true
+        fi
+
         # Smart card daemon: pcscd is socket-activated, so ensure its socket is
         # enabled and readers (e.g. the ACR1552, supported by the stock CCID
         # driver) work on demand. Harmless if no reader is attached.
@@ -1278,6 +1385,11 @@ SBINPATH
         # nothing can ever pair — a BT mouse or headset simply never appears.
         # Desktop-only: a headless host has no use for it.
         if ! headless && dpkg -s bluez >/dev/null 2>&1; then
+            # bluetooth.service declares ConfigurationDirectoryMode=0555, but
+            # the bluez package ships /etc/bluetooth as 0755. systemd will not
+            # change the mode of a directory that already exists, so it just
+            # logs "mode is different" on every start. Match the unit.
+            [ -d /etc/bluetooth ] && chmod 0555 /etc/bluetooth
             systemctl enable --now bluetooth.service 2>/dev/null || true
         fi
 
@@ -1302,8 +1414,53 @@ SBINPATH
             # 1 and leaves a failed unit behind on every login -- which the
             # weekly healthcheck then reports. Mask the generated unit too.
             systemctl --global mask app-pulseaudio@autostart.service 2>/dev/null || true
-            systemctl --global enable pipewire.socket pipewire.service \
-                wireplumber.service pipewire-pulse.socket pipewire-pulse.service 2>/dev/null || true
+            # ...and drop the .wants symlink the package left behind, which the
+            # mask makes inert but which still reads as live config.
+            rm -f /etc/systemd/user/default.target.wants/pulseaudio.service
+
+            # Sockets, not services.
+            #
+            # Enabling pipewire.service/pipewire-pulse.service puts them in
+            # default.target, which *every* login reaches -- including a bare
+            # `ssh host true`. That starts and then tears down the entire audio
+            # stack (pipewire, wireplumber, rtkit, and their dbus churn) for a
+            # session that will never play a sound: ~65 log lines per
+            # connection, forwarded to the collector, on a host that may be
+            # scripted over SSH hundreds of times a day.
+            #
+            # The sockets start pipewire on the first audio client instead, and
+            # wireplumber follows it on its own (BindsTo=/WantedBy=
+            # pipewire.service), so a desktop session is unaffected.
+            # Order matters: both .service units carry Also=<their socket>, so
+            # a disable *after* the enable would strip the sockets right back
+            # out again. Disable first, then enable what should stay.
+            systemctl --global disable pipewire.service \
+                pipewire-pulse.service 2>/dev/null || true
+            systemctl --global enable pipewire.socket pipewire-pulse.socket \
+                wireplumber.service 2>/dev/null || true
+
+            # filter-chain and mpris-proxy ship WantedBy=default.target from
+            # Debian and so ride in on an SSH login too. Both only mean
+            # anything with a desktop up (mpris-proxy bridges Bluetooth AVRCP
+            # to MPRIS, i.e. headset media keys), so move them to
+            # sway-session.target, which sway starts from its own config.
+            for _pwu in filter-chain mpris-proxy; do
+                [ -f "/usr/lib/systemd/user/$_pwu.service" ] || continue
+                systemctl --global disable "$_pwu.service" 2>/dev/null || true
+                mkdir -p "/etc/systemd/user/$_pwu.service.d"
+                cat > "/etc/systemd/user/$_pwu.service.d/nnix-session.conf" <<'PWSESS'
+# Managed by dotfiles provision.sh -- desktop-only, not on every login.
+[Install]
+WantedBy=sway-session.target
+PWSESS
+                chmod 0644 "/etc/systemd/user/$_pwu.service.d/nnix-session.conf"
+                systemctl --global enable "$_pwu.service" 2>/dev/null || true
+                # A drop-in [Install] *adds* to the unit's own WantedBy, it does
+                # not replace it, so the enable above recreates the
+                # default.target link as well. Drop that one; keep the session.
+                rm -f "/etc/systemd/user/default.target.wants/$_pwu.service"
+            done
+            unset _pwu
         fi
 
         # Never suspend/sleep (this is a workstation). Mask the sleep targets so
@@ -1371,8 +1528,44 @@ JRN
 
     # SMART drive-health monitoring (unit is smartmontools.service on Debian;
     # smartd.service is only a linked alias, which systemctl refuses to enable).
+    #
+    # The unit runs `smartd -n $smartd_opts` against an EnvironmentFile that
+    # ships the variable commented out, so systemd logs "Referenced but unset
+    # environment variable" on every start. Set it in a drop-in rather than
+    # editing the packaged conffile, which would prompt on upgrade. 1800s is
+    # smartd's own default interval.
+    mkdir -p /etc/systemd/system/smartmontools.service.d
+    cat > /etc/systemd/system/smartmontools.service.d/nnix.conf <<'SMARTD'
+# Managed by dotfiles provision.sh.
+[Service]
+Environment=smartd_opts=--interval=1800
+SMARTD
+    chmod 0644 /etc/systemd/system/smartmontools.service.d/nnix.conf
+    systemctl daemon-reload 2>/dev/null || true
     systemctl enable --now smartmontools.service 2>/dev/null \
         || systemctl enable --now smartd.service 2>/dev/null || true
+
+    # fwupd metadata refresh: Debian's timer is OnCalendar=hourly. Firmware
+    # metadata does not change hourly, and every run wakes the daemon, which
+    # enumerates DRM devices -- on an NVIDIA box that trips a driver WARN and a
+    # ~55-line stack trace into the log each time. On an idle machine that is
+    # essentially the entire hourly log volume. Daily is plenty; nothing here
+    # ever auto-flashes firmware anyway.
+    if [ -f /usr/lib/systemd/system/fwupd-refresh.timer ]; then
+        mkdir -p /etc/systemd/system/fwupd-refresh.timer.d
+        cat > /etc/systemd/system/fwupd-refresh.timer.d/nnix.conf <<'FWTIM'
+# Managed by dotfiles provision.sh.
+[Timer]
+# Empty assignment first: OnCalendar= is a list, and without this the daily
+# entry would be *added* to the packaged hourly one rather than replacing it.
+OnCalendar=
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+FWTIM
+        chmod 0644 /etc/systemd/system/fwupd-refresh.timer.d/nnix.conf
+        systemctl daemon-reload 2>/dev/null || true
+    fi
 
     # Daily health check -> journal (journalctl -t healthcheck) plus a state
     # file at /var/lib/nnix/healthcheck.state. Daily rather than weekly because
@@ -2097,6 +2290,10 @@ deploy_dotfiles() {
             done
             # Remove the kept OS's marker lines (but keep content between them)
             sed_expr="${sed_expr} -e '/# @@IF_${KEEP}@@/d' -e '/# @@END_IF@@/d'"
+            # $sed_expr is a built-up list of -e arguments and MUST word-split
+            # here; that is the whole point of the eval. Quoting it would pass
+            # the entire string to sed as one argument.
+            # shellcheck disable=SC2086
             if [ "$has_home_marker" = "true" ]; then
                 eval sed $sed_expr '"$src"' | sed "s|@@HOME@@|${home_dir}|g" > "$dst"
             else
@@ -2195,13 +2392,17 @@ configure_gpu() {
     # enables only "main non-free-firmware", so the driver is not merely
     # missing, it is uninstallable. Add the components idempotently, to
     # whichever source format this machine uses (one-line .list or deb822).
-    local changed=0
+    # No `local` here: this script is #!/bin/sh, and `local` is a shell
+    # extension rather than POSIX. dash and OpenBSD ksh both happen to accept
+    # it, but nothing else in this file relies on that, so use a prefixed
+    # global like everywhere else.
+    _nv_changed=0
     if [ -f /etc/apt/sources.list ]; then
         if grep -qE '^deb(-src)? .* main non-free-firmware$' /etc/apt/sources.list; then
             cp -n /etc/apt/sources.list /etc/apt/sources.list.nnix-bak 2>/dev/null || true
             sed -i -E '/^deb(-src)? /s/ main non-free-firmware$/ main contrib non-free non-free-firmware/' \
                 /etc/apt/sources.list
-            changed=1
+            _nv_changed=1
         fi
     fi
     if [ -f /etc/apt/sources.list.d/debian.sources ]; then
@@ -2210,10 +2411,10 @@ configure_gpu() {
                   /etc/apt/sources.list.d/debian.sources.nnix-bak 2>/dev/null || true
             sed -i 's/^Components: main non-free-firmware$/Components: main contrib non-free non-free-firmware/' \
                 /etc/apt/sources.list.d/debian.sources
-            changed=1
+            _nv_changed=1
         fi
     fi
-    [ "$changed" = "1" ] && apt-get update -qq
+    [ "$_nv_changed" = "1" ] && apt-get update -qq
 
     # The driver builds via DKMS, which needs kernel headers. A stock install
     # has neither, and without them the module silently never gets built.
@@ -2299,6 +2500,7 @@ main() {
     install_fastmail
     install_joplin
     get_username
+    fetch_private_assets
     install_claude
     install_tresorit
     configure_hostname

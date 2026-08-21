@@ -43,6 +43,54 @@ sh provision.sh    # as your normal user
 
 On Linux/OpenBSD the script prompts for the username to provision (creating it if needed, adding it to sudo/wheel, and setting bash as the login shell) and for a hostname. Reboot when it finishes.
 
+## The font is not in this repo
+
+Everything here renders in **Berkeley Mono Variable NNIX**, and that font is
+**deliberately absent** from the repository. It is a commercial face from
+U.S. Graphics under an LT-02 licence of "Personal" classification, and the
+`.otf` binary carries the licensee's own licence ID in its `name` table.
+Committing it would republish a paid personal licence to everyone who clones,
+so it is fetched at provision time instead.
+
+Two files are affected:
+
+| Path | What it is |
+|---|---|
+| `dotfiles/.fonts/bmv.otf` | the vector face — st, dmenu, foot, waybar, sway, Sublime, issy |
+| `scripts/BerkeleyMonoNNIX.psf.gz` | the 8x16 console bitmap rasterized from it |
+
+`provision.sh` resolves each one in order, first hit wins:
+
+1. **already in the tree** — a previous run, or dropped in by hand;
+2. **`$NNIX_ASSET_DIR/<file>`** — a checkout, a mounted volume, a USB stick.
+   This is the unattended path: it needs no 1Password session, so it is what
+   to use for headless or scripted provisioning;
+3. **1Password**, via `op document get`, run as the *invoking* user rather
+   than root — `op` talks to the desktop app or to a human's service account,
+   and root has neither. Document titles default to `Berkeley Mono Variable
+   NNIX` and `Berkeley Mono NNIX console PSF`, overridable with
+   `NNIX_FONT_OP_ITEM` and `NNIX_CONSOLE_FONT_OP_ITEM`.
+
+**None of this is fatal.** If no source resolves, provisioning says so and
+carries on: fontconfig falls back to whatever monospace the system has, and
+console-setup is left entirely alone rather than pointed at a font file that
+does not exist.
+
+To populate 1Password the first time, from a machine that already has the
+font and a signed-in `op`:
+
+```
+op document create ~/.fonts/bmv.otf \
+    --title "Berkeley Mono Variable NNIX"
+op document create scripts/BerkeleyMonoNNIX.psf.gz \
+    --title "Berkeley Mono NNIX console PSF"
+```
+
+If you have no Berkeley Mono licence, either buy one at
+<https://usgraphics.com> or change the font name in
+`dotfiles/.config/fontconfig/fonts.conf` and the handful of configs listed
+under Repository Structure.
+
 ## What Gets Installed
 
 Everything in the desktop rows below is skipped on a **headless** Linux host —
@@ -128,7 +176,7 @@ paths; `workstation <label>` forces one.
 - **NTP (Linux)**: systemd-timesyncd pinned to pool servers with a cloudflare fallback.
 - **NTP (OpenBSD)**: `/etc/ntpd.conf` with pool + cloudflare + the vmt0 host-time sensor + HTTPS constraints, and `ntpd -s` to step at boot. A clock-guard cron job (every 10 minutes) restarts ntpd with an `rdate` step if the vmt0 sensor shows more than 10 seconds of drift, since a running OpenNTPD only slews.
 - **OpenBSD extras**: doas for wheel (`permit persist :wheel`), noatime on all FFS partitions, xenodm enabled (Xorg needs root aperture access on VMware, no DRM), xconsole disabled, solid black greeter background, Spleen 8x16 console font where supported, and a VMware Xorg snippet with a 4K default mode.
-- **Linux extras**: Berkeley Mono console font (rasterized from `bmv.otf`; see `scripts/build-console-font.sh`), gdm masked in favor of a **greetd + tuigreet** greeter (minimal TUI on vt7; sway starts via the `sway-session` login-shell wrapper), Sublime Text from the official apt repo, open-vm-tools-desktop when VMware is detected. Google Chrome is set as the default browser (update-alternatives for `x-www-browser`/`gnome-www-browser`, plus the per-user xdg default). **rasdaemon** is enabled to log ECC/MCE hardware error events (effective wherever the kernel EDAC layer exposes memory controllers; a no-op without ECC). **fwupd** is installed but firmware is never auto-flashed from the script — that is a deliberate, out-of-band action (`fwupdmgr refresh && fwupdmgr update`). **BlueZ** is installed and `bluetooth.service` enabled, so BT peripherals can actually pair. Audio is **PipeWire** (PulseAudio masked), which also backs the **xdg-desktop-portal-wlr** ScreenCast portal used for screen sharing. When an **NVIDIA** GPU is detected, `contrib`/`non-free` are enabled and the proprietary driver replaces nouveau with `nvidia-drm modeset=1` (Wayland needs KMS) — that one needs a reboot. `/usr/sbin` is put back on the PATH for members of `sudo`.
+- **Linux extras**: Berkeley Mono console font (rasterized from `bmv.otf`; see `scripts/build-console-font.sh`), gdm masked in favor of a **greetd + tuigreet** greeter (minimal TUI on vt7; sway starts via the `sway-session` login-shell wrapper), Sublime Text from the official apt repo, open-vm-tools-desktop when VMware is detected. Google Chrome is set as the default browser (update-alternatives for `x-www-browser`/`gnome-www-browser`, plus the per-user xdg default). **rasdaemon** is enabled to log ECC/MCE hardware error events (effective wherever the kernel EDAC layer exposes memory controllers; a no-op without ECC). **fwupd** is installed but firmware is never auto-flashed from the script — that is a deliberate, out-of-band action (`fwupdmgr refresh && fwupdmgr update`). **BlueZ** is installed and `bluetooth.service` enabled, so BT peripherals can actually pair; `/etc/bluetooth` is chmod'd to `0555` to match the unit's `ConfigurationDirectoryMode`, which the package otherwise contradicts with a `0755` directory and a warning on every start. Audio is **PipeWire** (PulseAudio masked), which also backs the **xdg-desktop-portal-wlr** ScreenCast portal used for screen sharing. Only the *sockets* are enabled, never `pipewire.service`/`pipewire-pulse.service`: an enabled service lands in `default.target`, which **every** login reaches — including a bare `ssh host true`, which then starts and tears down the whole audio stack for a session that will never play a sound (~23 log lines a connection, forwarded to the collector). Socket activation starts it on the first audio client instead, and `wireplumber` follows on its own (`BindsTo=`/`WantedBy=pipewire.service`). `filter-chain` and `mpris-proxy` ship `WantedBy=default.target` from Debian and are moved to `sway-session.target` for the same reason. When an **NVIDIA** GPU is detected, `contrib`/`non-free` are enabled and the proprietary driver replaces nouveau with `nvidia-drm modeset=1` (Wayland needs KMS) — that one needs a reboot. `/usr/sbin` is put back on the PATH for members of `sudo`.
 
 ### ssh-agent
 
@@ -152,8 +200,10 @@ Beyond Debian's stock `fstrim`/`logrotate`/`fwupd-refresh` timers, `provision.sh
 - **Automatic updates** — `unattended-upgrades` installs all Debian updates (main + updates + security), removes unused deps and old kernels, and **never auto-reboots** — a needed reboot is only flagged, never forced.
 - **needrestart** — after upgrades, reports which services need restarting and whether a kernel reboot is required (report-only; never auto-restarts a service).
 - **Bounded logs** — the persistent journal is capped at `SystemMaxUse=1G`.
-- **SMART monitoring** — `smartmontools` (`smartd`) watches drive health.
-- **Weekly health check** — `/usr/local/bin/healthcheck` (from `scripts/healthcheck`) runs via `healthcheck.timer` and logs a summary to the journal: reboot-required, disk usage, failed units, SMART/NVMe wear, ECC error counts, temperatures, pending updates. View with `journalctl -t healthcheck` (the target user is added to the `systemd-journal` group so no sudo is needed). Every probe is guarded, so it's a harmless no-op where a subsystem is absent (e.g. a VM).
+- **SMART monitoring** — `smartmontools` (`smartd`) watches drive health. The packaged unit runs `smartd -n $smartd_opts` against an `EnvironmentFile` that ships the variable commented out, so systemd logs *"Referenced but unset environment variable"* on every start; a drop-in sets it to smartd's own default (`--interval=1800`) rather than editing the conffile, which would prompt on upgrade.
+- **fwupd metadata refresh, daily instead of hourly** — Debian's `fwupd-refresh.timer` is `OnCalendar=*-*-* *:00:00`. Firmware metadata does not change hourly, and each run wakes the daemon, which enumerates DRM devices — on an NVIDIA box that trips a driver `WARN` and a ~55-line stack trace into the log *every hour*. On an otherwise idle machine that is essentially the entire hourly log volume, forwarded verbatim to whatever collects syslog. A drop-in makes it daily. (Note the empty `OnCalendar=` first: it is a list, so without that the daily entry would be *added* to the hourly one, not replace it.) Nothing here ever auto-flashes firmware regardless — that stays a deliberate, out-of-band `fwupdmgr refresh && fwupdmgr update`.
+- **No SysV shim for IPMI** — on a board with a BMC the kernel finds it by ACPI/DMI and loads `ipmi_si`/`ipmi_devintf`/`ipmi_msghandler` itself in early boot; `/dev/ipmi0` exists seconds before any init script could run. Debian's `openipmi` package nevertheless ships a SysV script that re-modprobes the same modules, logs `lsmod` errors of its own, and makes `systemd-sysv-generator` print a deprecation warning ("expect removal soon") three times per boot. `provision.sh` writes `/etc/modules-load.d/ipmi.conf` and disables the script. Gated on `/dev/ipmi0`, so a machine with no BMC is left alone.
+- **Daily health check** — `/usr/local/bin/healthcheck` (from `scripts/healthcheck`) runs daily via `healthcheck.timer` (daily, not weekly: the state file is what monitoring reads, and a weekly result is stale six days out of seven) and logs a summary to the journal: reboot-required, disk usage, failed units, SMART/NVMe wear, ECC error counts, temperatures, pending updates. View with `journalctl -t healthcheck` (the target user is added to the `systemd-journal` group so no sudo is needed). Every probe is guarded, so it's a harmless no-op where a subsystem is absent (e.g. a VM).
 
 ### Headless hosts (Linux)
 
@@ -224,6 +274,7 @@ Package installs, from-source builds, and file deploys are idempotent.
 1. Place the SSH key at `~/.ssh/id_d_nnix.pem` (plus matching `.pub`). Both `.ssh/config` and `.gitconfig` reference that path for auth and commit signing — copy the key from another machine, or generate a new one and register it on GitHub as both an authentication key and a signing key. If you use a different key, edit `dotfiles/.gitconfig`, `dotfiles/.ssh/config`, and `dotfiles/.config/git/allowed_signers` to match before running `provision.sh`. If the private key has no sibling `.pub`, generate one (`ssh-keygen -y -f <key> > <key>.pub`) so `workstation` can tell when it's already loaded.
 2. Fill in `~/.config/workstation.conf` if you want the `workstation` command.
 3. Sign in to 1Password, then enable its browser integration in Chrome (Chrome is allow-listed by default).
+4. If `provision.sh` warned that the font was unavailable, store it in 1Password (see "The font is not in this repo") and re-run — or set `NNIX_ASSET_DIR` to wherever you keep it and re-run. Everything works without it; it just won't look right.
 
 ## Keybindings (Sway / i3)
 
@@ -286,7 +337,7 @@ dotfiles/
 ├── .tmux.conf            # tmux behavior + palette
 ├── .wezterm.lua          # WezTerm config (macOS)
 ├── .issyrc               # issy editor settings
-├── .fonts/bmv.otf        # Berkeley Mono Variable NNIX
+├── .fonts/bmv.otf        # Berkeley Mono Variable NNIX (NOT tracked — fetched, see above)
 ├── .icons/plan9/         # plan9 cursor theme
 ├── .local/bin/           # workstation, lock, shot, volnotify, sysinfo
 └── .config/

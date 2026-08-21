@@ -13,8 +13,14 @@
 # byte per row, which is also why bdf2psf emits PSF1 rather than PSF2 at this
 # width), and it is a size every display from 1080p up renders sensibly.
 #
-# Run this by hand whenever dotfiles/.fonts/bmv.otf changes, then commit the
-# regenerated .psf.gz. provision.sh ships the prebuilt artifact -- it does NOT
+# Run this by hand whenever dotfiles/.fonts/bmv.otf changes, then re-upload the
+# regenerated .psf.gz to 1Password:
+#
+#   op document edit "Berkeley Mono NNIX console PSF" scripts/BerkeleyMonoNNIX.psf.gz
+#
+# It is NOT committed: it is a derivative of a licensed commercial font, so it
+# is a private asset like the .otf itself (see fetch_private_assets in
+# provision.sh). provision.sh consumes the prebuilt artifact -- it does NOT
 # build at provision time (otf2bdf/bdf2psf are not runtime dependencies).
 #
 # Requires: otf2bdf bdf2psf gzip   (apt install otf2bdf bdf2psf)

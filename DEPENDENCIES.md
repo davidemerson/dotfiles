@@ -80,7 +80,19 @@
 - **Apps** (casks): 1Password + CLI, Todoist, Joplin, Fastmail, VLC, Audacity, Zoom, GitHub Desktop (official on macOS)
 - **Package Manager**: Homebrew (installed automatically)
 
-### Theming (palette-wide rice)
+### Private assets (not in this repo)
+
+- **Berkeley Mono Variable NNIX** (`dotfiles/.fonts/bmv.otf`) and the console
+  bitmap built from it (`scripts/BerkeleyMonoNNIX.psf.gz`) are commercial,
+  licensed per-person, and therefore **not tracked here**. `provision.sh`
+  fetches them from `$NNIX_ASSET_DIR` or from 1Password (`op document get`) at
+  provision time, and degrades to system fallbacks when neither is available.
+  See "The font is not in this repo" in the README.
+- `otf2bdf` and `bdf2psf` are needed only to *rebuild* the console bitmap
+  (`scripts/build-console-font.sh`); they are not runtime dependencies and
+  `provision.sh` never invokes them.
+
+## Theming (palette-wide rice)
 - **Colored man/less**: `LESS_TERMCAP` in the shell rc (light-blue headings, navy/white standout) — all platforms
 - **GTK** (Linux/OpenBSD): `~/.config/gtk-{3,4}.0/settings.ini` — dark theme preference + plan9 cursor; on Linux `color-scheme='prefer-dark'` is also set as a system dconf default so libadwaita, the xdg portal, and Chrome honor dark
 - **btop**: `~/.config/btop/themes/nnix.theme` (grayscale + navy/blue), selected in `btop.conf`

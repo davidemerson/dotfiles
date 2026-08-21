@@ -7,6 +7,13 @@ backups/
 *.swp
 *~
 
+# Private assets — licensed, fetched at provision time (see provision.sh,
+# fetch_private_assets). Berkeley Mono is a commercial face whose binary is
+# watermarked with the licensee's own license ID; it must never be committed
+# to this public repo.
+dotfiles/.fonts/bmv.otf
+scripts/BerkeleyMonoNNIX.psf.gz
+
 # SSH keys (never commit these!)
 dotfiles/.ssh/id_*
 dotfiles/.ssh/*.pem
