@@ -845,6 +845,140 @@ JOPDESK
 NNIX_FONT_OP_ITEM="${NNIX_FONT_OP_ITEM:-Berkeley Mono Variable NNIX}"
 NNIX_CONSOLE_FONT_OP_ITEM="${NNIX_CONSOLE_FONT_OP_ITEM:-Berkeley Mono NNIX console PSF}"
 
+NNIX_SECRETS_URL="${NNIX_SECRETS_URL:-https://nnix.com/provisioning/nnix-secrets.tar.gpg}"
+NNIX_SECRETS_STATE=/var/lib/nnix/secrets.sha256
+
+# Fetch and unpack the encrypted bundle described in scripts/secrets.manifest.
+#
+# This is the answer to the bootstrap problem, and it is worth being precise
+# about what it does and does not solve. A bare machine holds no credential, so
+# it cannot authenticate to a secret store -- which is why 1Password could
+# never serve a first build. What CAN work is: publish the ciphertext where
+# anyone may fetch it, and let the one human-supplied thing be a passphrase
+# short enough to type over an IPMI KVM. The URL is in this public file on
+# purpose; it is not a secret and nothing rests on it being obscure. The
+# passphrase is the whole of the security, so give it real entropy.
+#
+# gpg rather than age: age refuses to read a passphrase from anything but
+# /dev/tty, so it cannot decrypt unattended. gpg --batch --passphrase-fd 0
+# can, is already installed everywhere this repo runs, and still prompts a
+# human when one is present.
+#
+# Idempotent by bundle digest: a host that has already unpacked this exact
+# bundle skips silently and never prompts. Re-running provision.sh is
+# therefore never blocked on a passphrase.
+unseal_secrets() {
+    [ "${NNIX_SKIP_SECRETS:-0}" = "1" ] && return 1
+    command -v gpg >/dev/null 2>&1 || return 1
+    [ -f "$SCRIPT_DIR/scripts/secrets.manifest" ] || return 1
+
+    _fetch=""
+    for _c in curl wget; do command -v "$_c" >/dev/null 2>&1 && { _fetch="$_c"; break; }; done
+    [ -n "$_fetch" ] || return 1
+
+    for _d in /dev/shm "/run/user/$(id -u)" /tmp; do
+        [ -d "$_d" ] && [ -w "$_d" ] && { _sp="$_d"; break; }
+    done
+    _stage="$(mktemp -d "${_sp:-/tmp}/nnix-unseal.XXXXXX")" || return 1
+    chmod 0700 "$_stage"
+
+    if [ "$_fetch" = curl ]; then
+        curl -fsS --max-time 60 -o "$_stage/bundle.gpg" "$NNIX_SECRETS_URL" 2>/dev/null || :
+    else
+        wget -q --timeout=60 -O "$_stage/bundle.gpg" "$NNIX_SECRETS_URL" 2>/dev/null || :
+    fi
+    if [ ! -s "$_stage/bundle.gpg" ]; then
+        rm -rf "$_stage"
+        log_warn "Could not fetch the secrets bundle from $NNIX_SECRETS_URL."
+        return 1
+    fi
+
+    # Already unpacked this exact bundle? Then there is nothing to do, and in
+    # particular nothing to prompt for.
+    _sum="$(sha256sum "$_stage/bundle.gpg" | cut -d" " -f1)"
+    if [ -f "$NNIX_SECRETS_STATE" ] && [ "$(cat "$NNIX_SECRETS_STATE")" = "$_sum" ]; then
+        rm -rf "$_stage"
+        return 0
+    fi
+
+    # Passphrase, in order of least to most interactive.
+    _pass=""
+    if [ -n "${NNIX_SECRETS_PASSPHRASE:-}" ]; then
+        _pass="$NNIX_SECRETS_PASSPHRASE"
+    elif [ -r /etc/nnix/secrets-pass ]; then
+        if [ "$(stat -c %a /etc/nnix/secrets-pass 2>/dev/null || echo 600)" = "600" ]; then
+            _pass="$(cat /etc/nnix/secrets-pass)"
+        else
+            log_warn "/etc/nnix/secrets-pass is not mode 0600 -- ignoring it."
+        fi
+    fi
+    if [ -z "$_pass" ]; then
+        # Only prompt when a human is actually there. A bare `read` against a
+        # closed stdin would abort the whole run under `set -e`.
+        if [ -t 0 ] && [ -r /dev/tty ]; then
+            printf "Passphrase for the provisioning secrets bundle (empty to skip): " > /dev/tty
+            # Every one of these must act on /dev/tty, not on stdin. stty
+            # defaults to stdin, and when stdin is a pipe (a piped installer,
+            # say) the -echo silently fails while the read still comes from the
+            # terminal -- so the passphrase would be typed in the clear on a
+            # console someone can see. Redirect explicitly and restore on the
+            # way out whatever happens.
+            stty -echo < /dev/tty 2>/dev/null || true
+            read -r _pass < /dev/tty || _pass=""
+            stty echo < /dev/tty 2>/dev/null || true
+            printf "\n" > /dev/tty
+        fi
+    fi
+    if [ -z "$_pass" ]; then
+        rm -rf "$_stage"
+        return 1
+    fi
+
+    if ! printf "%s" "$_pass" | gpg --batch --quiet --passphrase-fd 0 \
+            -d -o "$_stage/bundle.tar" "$_stage/bundle.gpg" 2>/dev/null; then
+        _pass=""
+        rm -rf "$_stage"
+        log_warn "Secrets bundle would not decrypt -- wrong passphrase, or a damaged download."
+        return 1
+    fi
+    _pass=""
+
+    tar -C "$_stage" -xf "$_stage/bundle.tar" 2>/dev/null || {
+        rm -rf "$_stage"; log_warn "Secrets bundle did not unpack."; return 1; }
+
+    # Resolve @@HOME@@ ourselves. deploy_dotfiles sets $home_dir, but it runs
+    # after this function, so reading it here would silently give /root -- a
+    # trap for the first manifest entry that targets the user's home.
+    if [ "$OS_TYPE" = "macos" ]; then
+        _home="$HOME"
+    else
+        _home="$(getent passwd "${username:-}" 2>/dev/null | cut -d: -f6)"
+        [ -n "$_home" ] || _home="/home/${username:-root}"
+    fi
+
+    _n=0
+    while read -r _name _dest _mode _rest; do
+        case "${_name:-}" in ""|\#*) continue ;; esac
+        [ -n "${_dest:-}" ] && [ -n "${_mode:-}" ] || continue
+        [ -f "$_stage/payload/$_name" ] || { log_warn "  $_name listed but not in the bundle."; continue; }
+        _target="$(printf "%s" "$_dest" \
+            | sed -e "s|@@TREE@@|$SCRIPT_DIR|g" -e "s|@@HOME@@|$_home|g")"
+        mkdir -p "$(dirname "$_target")"
+        install -m "$_mode" "$_stage/payload/$_name" "$_target"
+        _n=$((_n + 1))
+    done < "$_stage/manifest"
+
+    find "$_stage" -type f -exec shred -u {} + 2>/dev/null || true
+    rm -rf "$_stage"
+
+    mkdir -p /var/lib/nnix
+    printf "%s\n" "$_sum" > "$NNIX_SECRETS_STATE"
+    chmod 0644 "$NNIX_SECRETS_STATE"
+    log_info "Unsealed $_n file(s) from the provisioning secrets bundle."
+    unset _n _sum _stage _target _name _dest _mode _rest _fetch _c _d _sp _home
+    return 0
+}
+
 fetch_private_asset() {
     # $1 = destination path in the tree, $2 = 1Password document title
     _dest="$1"
@@ -927,6 +1061,9 @@ fetch_private_asset() {
 
 fetch_private_assets() {
     log_info "Resolving private assets..."
+    # Best effort, and deliberately first: on success every asset is already in
+    # the tree, so the per-file resolution below short-circuits on its own.
+    unseal_secrets || true
     fetch_private_asset "$SCRIPT_DIR/dotfiles/.fonts/bmv.otf" \
         "$NNIX_FONT_OP_ITEM" || true
     # Desktop-only: a headless host has no VT console worth restyling.

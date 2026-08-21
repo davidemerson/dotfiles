@@ -85,9 +85,14 @@
 - **Berkeley Mono Variable NNIX** (`dotfiles/.fonts/bmv.otf`) and the console
   bitmap built from it (`scripts/BerkeleyMonoNNIX.psf.gz`) are commercial,
   licensed per-person, and therefore **not tracked here**. `provision.sh`
-  fetches them from `$NNIX_ASSET_DIR` or from 1Password (`op document get`) at
-  provision time, and degrades to system fallbacks when neither is available.
-  See "The font is not in this repo" in the README.
+  unseals them at provision time from an encrypted bundle published at
+  `https://nnix.com/provisioning/nnix-secrets.tar.gpg`, falling back to
+  `$NNIX_ASSET_DIR` and then 1Password, and degrading to system fallbacks when
+  none is available. See "Secrets, and how a bare machine gets them" in the
+  README.
+- `gpg` is a **runtime** dependency of that path (already present on every
+  supported platform); `age` is deliberately not used, as it cannot read a
+  passphrase without a tty and so cannot decrypt unattended.
 - `otf2bdf` and `bdf2psf` are needed only to *rebuild* the console bitmap
   (`scripts/build-console-font.sh`); they are not runtime dependencies and
   `provision.sh` never invokes them.

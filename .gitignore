@@ -13,6 +13,8 @@ backups/
 # to this public repo.
 dotfiles/.fonts/bmv.otf
 scripts/BerkeleyMonoNNIX.psf.gz
+# ...and the sealed bundle scripts/seal-secrets.sh builds from them.
+nnix-secrets.tar.gpg
 
 # SSH keys (never commit these!)
 dotfiles/.ssh/id_*

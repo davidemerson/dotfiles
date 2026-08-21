@@ -43,80 +43,115 @@ sh provision.sh    # as your normal user
 
 On Linux/OpenBSD the script prompts for the username to provision (creating it if needed, adding it to sudo/wheel, and setting bash as the login shell) and for a hostname. Reboot when it finishes.
 
-## The font is not in this repo
+## Secrets, and how a bare machine gets them
 
-Everything here renders in **Berkeley Mono Variable NNIX**, and that font is
-**deliberately absent** from the repository. It is a commercial face from
-U.S. Graphics under an LT-02 licence of "Personal" classification, and the
-`.otf` binary carries the licensee's own licence ID in its `name` table.
-Committing it would republish a paid personal licence to everyone who clones,
-so it is fetched at provision time instead.
+Some things a machine needs at provision time cannot live in this repository,
+because this repository is public. Right now that means the **Berkeley Mono**
+font: a commercial face from U.S. Graphics under an LT-02 licence of "Personal"
+classification, whose `.otf` carries the licensee's own licence ID in its `name`
+table. Committing it republished a paid personal licence to everyone who cloned.
+Anything else that needs the same treatment goes the same way from here.
 
-Two files are affected:
+### The constraint
 
-| Path | What it is |
+A bare machine holds no credential, so it cannot authenticate to a secret
+store. That is not an implementation detail to route around — it is the shape
+of the problem, and it is why a hosted secret manager cannot serve a *first*
+build. Every workable scheme reduces to the same thing: **one** secret supplied
+by a human, from which everything else follows.
+
+So the design goal is to make that one secret small enough for a person to
+type — including through an IPMI virtual KVM, which on some of these machines
+is the only console there is.
+
+### How it works
+
+One symmetrically-encrypted bundle, published at a fixed URL:
+
+```
+https://nnix.com/provisioning/nnix-secrets.tar.gpg
+```
+
+`provision.sh` fetches it, asks once for a passphrase, and unpacks each file to
+the destination named in `scripts/secrets.manifest`. **The URL is not a
+secret** — it is in this public file by necessity, and nothing rests on it
+being obscure. The passphrase is the entire security boundary, so it should
+have real entropy behind it (the current one is six words, ~91 bits).
+
+Passphrase sources, least interactive first:
+
+| Source | For |
 |---|---|
-| `dotfiles/.fonts/bmv.otf` | the vector face — st, dmenu, foot, waybar, sway, Sublime, issy |
-| `scripts/BerkeleyMonoNNIX.psf.gz` | the 8x16 console bitmap rasterized from it |
+| `$NNIX_SECRETS_PASSPHRASE` | scripted / CI provisioning |
+| `/etc/nnix/secrets-pass` (mode `0600`) | an established host that re-provisions unattended |
+| prompt on `/dev/tty` | a human at a console, including over the KVM |
 
-`provision.sh` resolves each one in order, first hit wins:
+**Re-runs never prompt.** The digest of the last successfully-unpacked bundle
+is recorded in `/var/lib/nnix/secrets.sha256`; if the fetched bundle matches,
+the whole step is skipped in silence. A passphrase is only ever needed when the
+bundle is genuinely new to the host. And nothing here is fatal — if the bundle
+cannot be fetched or decrypted, provisioning says so plainly and carries on
+with the fallbacks below.
 
-1. **already in the tree** — a previous run, or dropped in by hand;
-2. **`$NNIX_ASSET_DIR/<file>`** — a checkout, a mounted volume, a USB stick.
-   This is the unattended path: it needs no 1Password session, so it is what
-   to use for headless or scripted provisioning;
-3. **1Password**, via `op document get` — but only if this host has a
-   credential, and *where that credential comes from is the whole trick*:
-   - a **service-account token**, read from `$OP_SERVICE_ACCOUNT_TOKEN` or,
-     failing that, from **`/etc/nnix/op-token`** or `/etc/openclaw/op-token`
-     (root-only, mode `0600`; a looser mode is ignored with a warning). `op`
-     then runs directly, because a service account has no user session to
-     attach to. **The file is not a nicety.** The documented way to run this
-     script is `su -` (or `sudo`), and *both reset the environment* — an
-     exported `OP_SERVICE_ACCOUNT_TOKEN` does **not** survive into the script.
-     Either put it in the file, or pass it explicitly:
-     `sudo -E sh provision.sh`, or `sudo OP_SERVICE_ACCOUNT_TOKEN=… sh provision.sh`;
-   - with **no token at all**, it falls back to the invoking human's own
-     1Password session via `$SUDO_USER`, since `op` then has to reach the
-     desktop app and root cannot.
+### Adding a secret
 
-   Document titles default to `Berkeley Mono Variable NNIX` and `Berkeley Mono
-   NNIX console PSF`, overridable with `NNIX_FONT_OP_ITEM` and
-   `NNIX_CONSOLE_FONT_OP_ITEM`. No `--vault` is passed, so the documents
-   resolve from whichever vaults the caller can see.
-
-**Mind the bootstrap order.** A brand-new machine has no token file *and* no
-signed-in `op`, so 1Password cannot help with the very first build of a host —
-that one is an `NNIX_ASSET_DIR` (or hand-placement) job, and it always will be.
-What 1Password buys you is that every *later* rebuild of an established host is
-self-service. Do not read step 3 as "provisioning fetches the font from
-nowhere"; read it as "a host that has been given a credential can re-fetch its
-own assets".
-
-**None of this is fatal.** If no source resolves, provisioning says so and
-carries on: fontconfig falls back to whatever monospace the system has, and
-console-setup is left entirely alone rather than pointed at a font file that
-does not exist.
-
-To populate 1Password the first time, from a machine that already has the
-font and a signed-in `op` (add `--vault <name>` to place them somewhere
-specific):
+Add a line to `scripts/secrets.manifest` and re-seal. No code changes:
 
 ```
-op document create ~/.fonts/bmv.otf \
-    --title "Berkeley Mono Variable NNIX"
-op document create scripts/BerkeleyMonoNNIX.psf.gz \
-    --title "Berkeley Mono NNIX console PSF"
+# name                     destination                                 mode
+bmv.otf                    @@TREE@@/dotfiles/.fonts/bmv.otf            0644
+BerkeleyMonoNNIX.psf.gz    @@TREE@@/scripts/BerkeleyMonoNNIX.psf.gz    0644
 ```
 
-To re-upload after `scripts/build-console-font.sh` regenerates the bitmap, use
-`op document edit "<title>" <file>` rather than `create`, so the item keeps its
-identity.
+`@@TREE@@` is the repository root as `provision.sh` sees it; `@@HOME@@` is the
+target user's home. Then, from a machine where every listed file is already in
+place:
 
-If you have no Berkeley Mono licence, either buy one at
-<https://usgraphics.com> or change the font name in
-`dotfiles/.config/fontconfig/fonts.conf` and the handful of configs listed
-under Repository Structure.
+```
+sh scripts/seal-secrets.sh
+aws --profile <p> s3 cp nnix-secrets.tar.gpg \
+    s3://nnix.com/provisioning/nnix-secrets.tar.gpg \
+    --content-type application/octet-stream \
+    --cache-control "max-age=300, must-revalidate"
+```
+
+Hosts pick the new bundle up on their next run, because its digest no longer
+matches their recorded one. The site's own deploy cannot disturb it: the
+`--delete` sync in `nnix.com`'s publish workflow is filtered to
+`*.html`/`*.xml`/`*.json`, so nothing under `provisioning/` is a deletion
+candidate — verified with a dry run against the live bucket.
+
+### Why gpg and not age
+
+`age` is the nicer tool and was the first choice. It is unusable here: it
+**refuses** to read a passphrase from anything but `/dev/tty`, failing with
+*"standard input is not a terminal"*, so it cannot decrypt during an unattended
+provision. `gpg --batch --passphrase-fd 0` can, is already installed on every
+platform this repo targets — no new dependency — and still prompts a human when
+one is present. The bundle uses AES-256 with an iterated, salted SHA-512 S2K at
+the maximum count, since a published ciphertext is one an attacker can grind
+offline forever.
+
+### If the bundle is unavailable
+
+Resolution is first-hit-wins per file, so the bundle is an accelerator rather
+than a hard dependency:
+
+1. **already in the tree** — a previous run, or placed by hand;
+2. **`$NNIX_ASSET_DIR/<file>`** — a checkout, a mounted volume, a USB stick,
+   the BMC's virtual media;
+3. **1Password**, via `op document get`, if this host has a service-account
+   token (`$OP_SERVICE_ACCOUNT_TOKEN`, `/etc/nnix/op-token` or
+   `/etc/openclaw/op-token`, mode `0600`) or an interactive `op` session.
+   Retained as a last resort because it works where a token already exists; it
+   cannot serve a first build, for the reason at the top of this section.
+
+If nothing resolves, provisioning warns and continues. `fontconfig` falls back
+to whatever monospace the system has, and console-setup is left alone rather
+than pointed at a `FONT=` that does not exist. If you have no Berkeley Mono
+licence, buy one at <https://usgraphics.com> or change the font name in
+`dotfiles/.config/fontconfig/fonts.conf` and the configs listed under
+Repository Structure.
 
 ## What Gets Installed
 
@@ -301,7 +336,7 @@ Package installs, from-source builds, and file deploys are idempotent.
 1. Place the SSH key at `~/.ssh/id_d_nnix.pem` (plus matching `.pub`). Both `.ssh/config` and `.gitconfig` reference that path for auth and commit signing — copy the key from another machine, or generate a new one and register it on GitHub as both an authentication key and a signing key. If you use a different key, edit `dotfiles/.gitconfig`, `dotfiles/.ssh/config`, and `dotfiles/.config/git/allowed_signers` to match before running `provision.sh`. If the private key has no sibling `.pub`, generate one (`ssh-keygen -y -f <key> > <key>.pub`) so `workstation` can tell when it's already loaded.
 2. Fill in `~/.config/workstation.conf` if you want the `workstation` command.
 3. Sign in to 1Password, then enable its browser integration in Chrome (Chrome is allow-listed by default).
-4. If `provision.sh` warned that the font was unavailable, store it in 1Password (see "The font is not in this repo") and re-run — or set `NNIX_ASSET_DIR` to wherever you keep it and re-run. Everything works without it; it just won't look right.
+4. If `provision.sh` warned that the secrets bundle could not be unsealed, re-run it with the passphrase to hand (see "Secrets, and how a bare machine gets them"), or set `NNIX_ASSET_DIR` to a directory holding the files. Everything works without them; it just won't look right.
 
 ## Keybindings (Sway / i3)
 
@@ -364,7 +399,7 @@ dotfiles/
 ├── .tmux.conf            # tmux behavior + palette
 ├── .wezterm.lua          # WezTerm config (macOS)
 ├── .issyrc               # issy editor settings
-├── .fonts/bmv.otf        # Berkeley Mono Variable NNIX (NOT tracked — fetched, see above)
+├── .fonts/bmv.otf        # Berkeley Mono Variable NNIX (NOT tracked — sealed, see above)
 ├── .icons/plan9/         # plan9 cursor theme
 ├── .local/bin/           # workstation, lock, shot, volnotify, sysinfo
 └── .config/
