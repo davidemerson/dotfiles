@@ -69,7 +69,7 @@ is the only console there is.
 One symmetrically-encrypted bundle, published at a fixed URL:
 
 ```
-https://nnix.com/provisioning/nnix-secrets.tar.gpg
+https://assets.nnix.com/provisioning/nnix-secrets.tar.gpg
 ```
 
 `provision.sh` fetches it, asks once for a passphrase, and unpacks each file to
@@ -135,16 +135,24 @@ place:
 ```
 sh scripts/seal-secrets.sh
 aws --profile <p> s3 cp nnix-secrets.tar.gpg \
-    s3://nnix.com/provisioning/nnix-secrets.tar.gpg \
+    s3://assets.nnix.com/provisioning/nnix-secrets.tar.gpg \
     --content-type application/octet-stream \
     --cache-control "max-age=300, must-revalidate"
+aws --profile <p> cloudfront create-invalidation \
+    --distribution-id E2HQGXXWKWBIQN --paths "/provisioning/*"
 ```
 
 Hosts pick the new bundle up on their next run, because its digest no longer
-matches their recorded one. The site's own deploy cannot disturb it: the
-`--delete` sync in `nnix.com`'s publish workflow is filtered to
-`*.html`/`*.xml`/`*.json`, so nothing under `provisioning/` is a deletion
-candidate — verified with a dry run against the live bucket.
+matches their recorded one.
+
+`assets.nnix.com` is a **separate bucket** from the website, with its own
+CloudFront distribution, certificate and access logging. That is deliberate:
+the site's deploy cannot disturb the bundle *even in principle*, rather than
+merely being filtered away from it. The bucket is private and readable only
+through CloudFront via an Origin Access Control, so the object is reachable at
+the URL and nowhere else. Downloads are logged to `nnix.com-cdn-logs` under the
+`assets_nnix_com_` prefix — worth actually looking at occasionally, given what
+the bundle contains.
 
 ### Why gpg and not age
 

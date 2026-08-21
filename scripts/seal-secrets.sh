@@ -21,9 +21,15 @@
 #
 #   sh scripts/seal-secrets.sh
 #   aws --profile <p> s3 cp nnix-secrets.tar.gpg \
-#       s3://nnix.com/provisioning/nnix-secrets.tar.gpg \
+#       s3://assets.nnix.com/provisioning/nnix-secrets.tar.gpg \
 #       --content-type application/octet-stream \
 #       --cache-control "max-age=300, must-revalidate"
+#   aws --profile <p> cloudfront create-invalidation \
+#       --distribution-id E2HQGXXWKWBIQN --paths "/provisioning/*"
+#
+# assets.nnix.com is a bucket of its own, separate from the website: the site's
+# deploy cannot reach it even in principle, rather than merely being filtered
+# away from it. Private bucket, read only through CloudFront via OAC.
 #
 # Requires: gpg tar
 

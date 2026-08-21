@@ -86,7 +86,7 @@
   bitmap built from it (`scripts/BerkeleyMonoNNIX.psf.gz`) are commercial,
   licensed per-person, and therefore **not tracked here**. `provision.sh`
   unseals them at provision time from an encrypted bundle published at
-  `https://nnix.com/provisioning/nnix-secrets.tar.gpg`, falling back to
+  `https://assets.nnix.com/provisioning/nnix-secrets.tar.gpg`, falling back to
   `$NNIX_ASSET_DIR` and then 1Password, and degrading to system fallbacks when
   none is available. See "Secrets, and how a bare machine gets them" in the
   README.

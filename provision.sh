@@ -845,7 +845,7 @@ JOPDESK
 NNIX_FONT_OP_ITEM="${NNIX_FONT_OP_ITEM:-Berkeley Mono Variable NNIX}"
 NNIX_CONSOLE_FONT_OP_ITEM="${NNIX_CONSOLE_FONT_OP_ITEM:-Berkeley Mono NNIX console PSF}"
 
-NNIX_SECRETS_URL="${NNIX_SECRETS_URL:-https://nnix.com/provisioning/nnix-secrets.tar.gpg}"
+NNIX_SECRETS_URL="${NNIX_SECRETS_URL:-https://assets.nnix.com/provisioning/nnix-secrets.tar.gpg}"
 NNIX_SECRETS_STATE=/var/lib/nnix/secrets.sha256
 
 # Fetch and unpack the encrypted bundle described in scripts/secrets.manifest.
