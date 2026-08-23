@@ -1707,12 +1707,49 @@ APT::Periodic::Download-Upgradeable-Packages "1";
 APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::AutocleanInterval "7";
 AUTOUP
+    # apt-daily.timer ships OnCalendar=6,18:00 with RandomizedDelaySec=12h. That
+    # spread is sized for a fleet hammering a mirror, and it is actively harmful
+    # on a workstation that is only powered on for a few hours a day: the delay
+    # almost never elapses before shutdown, so package lists simply stop being
+    # refreshed. Persistent=true does not save it, because the timer *did* fire —
+    # it is still sitting in its randomised delay when the machine powers off.
+    #
+    # The failure is silent and worse than it looks: apt-daily-upgrade.timer has
+    # only a 1h delay, so it DOES run, and unattended-upgrades then reports
+    # "No packages found that can be upgraded" against a frozen list. Found on
+    # rex 2026-08-23 with lists 76 days stale and 56 pending security updates,
+    # while the logs read as a clean bill of health every single day.
+    mkdir -p /etc/systemd/system/apt-daily.timer.d
+    cat > /etc/systemd/system/apt-daily.timer.d/nnix.conf <<'APTTIM'
+# Managed by dotfiles provision.sh.
+[Timer]
+RandomizedDelaySec=20m
+Persistent=true
+APTTIM
+    chmod 0644 /etc/systemd/system/apt-daily.timer.d/nnix.conf
+    systemctl daemon-reload 2>/dev/null || true
+
     cat > /etc/apt/apt.conf.d/52unattended-upgrades-nnix <<'UUP'
 // Managed by dotfiles provision.sh.
 Unattended-Upgrade::Origins-Pattern {
     "origin=Debian,codename=${distro_codename},label=Debian";
     "origin=Debian,codename=${distro_codename}-updates";
     "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+    // Third-party desktop repos. Without these, unattended-upgrades silently
+    // covers only Debian: Chrome in particular ships security fixes constantly
+    // and would never be picked up. Origin strings are what the repos actually
+    // publish (read off `apt-cache policy`), not what their docs claim.
+    "origin=Google LLC,label=Google";
+    "origin=Sublime Text,label=Sublime Text APT Repository";
+    "origin=apt.packages.shiftkey.dev";
+    // DELIBERATELY EXCLUDED, do not "fix":
+    //   1Password  (publishes origin ". stable")
+    //   ZeroTier   (publishes origin "trixie trixie")
+    // Both are load-bearing for reaching and provisioning these machines -- the
+    // ZeroTier overlay is the remote-access path and 1Password delivers the
+    // provisioning secrets. An unattended upgrade that breaks either locks you
+    // out of the box it just broke. Upgrade those two deliberately. Their origin
+    // strings are also generic enough to risk matching something else.
 };
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
@@ -1779,6 +1816,42 @@ Persistent=true
 FWTIM
         chmod 0644 /etc/systemd/system/fwupd-refresh.timer.d/nnix.conf
         systemctl daemon-reload 2>/dev/null || true
+    fi
+
+    # Flatpaks update through neither apt nor unattended-upgrades, so without
+    # this they drift from Flathub forever. Found on rex 2026-08-23: the
+    # PrismLauncher install and its KDE runtime had never been updated once.
+    # Guarded on the binary so this is a no-op on hosts without flatpak.
+    if command -v flatpak >/dev/null 2>&1; then
+        cat > /etc/systemd/system/flatpak-update.service <<'FPS'
+# Managed by dotfiles provision.sh.
+[Unit]
+Description=Update all flatpaks
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flatpak update -y --noninteractive
+FPS
+        cat > /etc/systemd/system/flatpak-update.timer <<'FPT'
+# Managed by dotfiles provision.sh.
+[Unit]
+Description=Weekly flatpak update
+
+[Timer]
+OnCalendar=weekly
+# Short delay, not the 12h apt-daily used to use: these machines are not always on.
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+FPT
+        chmod 0644 /etc/systemd/system/flatpak-update.service \
+                   /etc/systemd/system/flatpak-update.timer
+        systemctl daemon-reload 2>/dev/null || true
+        systemctl enable flatpak-update.timer 2>/dev/null || true
     fi
 
     # Daily health check -> journal (journalctl -t healthcheck) plus a state
