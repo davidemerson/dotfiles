@@ -56,7 +56,11 @@ check "dotfiles/.ssh/config"
 check "dotfiles/.config/git/allowed_signers"
 check "dotfiles/.tmux.conf"
 check "dotfiles/.config/fontconfig/fonts.conf"
-check "dotfiles/.fonts/bmv.otf"
+# bmv.otf is deliberately NOT in this repo -- it is a licensed font, removed in
+# 3ccf3a1 and delivered by the encrypted secrets bundle instead (see
+# scripts/secrets.manifest). Checking for it here failed on every clean checkout,
+# which is how a validator teaches people to ignore it.
+check "scripts/secrets.manifest"
 check "dotfiles/.icons/plan9/cursors/left_ptr"
 check "dotfiles/.icons/plan9/index.theme"
 check "dotfiles/.icons/default/index.theme"
