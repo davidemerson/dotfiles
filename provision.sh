@@ -125,7 +125,7 @@ install_packages() {
             apt-get install -y \
                 curl wget git sudo build-essential unzip \
                 nano micro htop btop nmap screen lsd tmux mosh \
-                fzf fd-find git-delta \
+                fzf fd-find git-delta nnn \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
                 ipmitool \
                 unattended-upgrades needrestart \
@@ -1538,6 +1538,40 @@ DCONF
             update-alternatives --set x-www-browser /usr/bin/google-chrome-stable 2>/dev/null || true
             update-alternatives --set gnome-www-browser /usr/bin/google-chrome-stable 2>/dev/null || true
             su - "$username" -c 'xdg-settings set default-web-browser google-chrome.desktop' 2>/dev/null || true
+        fi
+
+        # Make nnn the handler for folders. Before this, nothing on a desktop
+        # built from this repo opened a directory at all: no GUI file manager
+        # is installed, no desktop entry carried the FileManager category, and
+        # `xdg-mime query default inode/directory` came back empty -- so a
+        # folder link in Chrome, or a portal's "open containing folder", did
+        # nothing at all rather than failing visibly.
+        #
+        # nnn is a terminal program, but this entry does NOT use Terminal=true.
+        # That would hand the choice of terminal to whatever implements the
+        # x-terminal-emulator alternative, which is unreliable for a process
+        # spawned by a portal and absent entirely on a machine that installs no
+        # X terminal. Spawning foot explicitly makes the entry behave the same
+        # from wofi, from Chrome and from a portal dialog. Gated on foot, so
+        # headless hosts (which still get the nnn binary) skip it.
+        if command -v nnn >/dev/null 2>&1 && command -v foot >/dev/null 2>&1; then
+            cat > /usr/share/applications/nnn.desktop <<'NNNDESK'
+[Desktop Entry]
+Type=Application
+Name=nnn
+GenericName=File Manager
+Comment=Browse the filesystem in a terminal
+Exec=foot -a nnn nnn %f
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileTools;FileManager;ConsoleOnly;
+MimeType=inode/directory;
+StartupWMClass=nnn
+NNNDESK
+            update-desktop-database /usr/share/applications 2>/dev/null || true
+            # x-directory/normal is the pre-shared-mime-info spelling for the
+            # same thing; some older GTK callers still ask by that name.
+            su - "$username" -c 'xdg-mime default nnn.desktop inode/directory x-directory/normal' 2>/dev/null || true
         fi
 
         # rasdaemon: log ECC/MCE hardware error events. Effective wherever the

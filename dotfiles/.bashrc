@@ -160,6 +160,28 @@ elif command -v fd >/dev/null 2>&1; then
   export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
 fi
 
+# ---------- nnn (terminal file manager) ----------
+# d: detail view, H: show hidden -- together these match the `ls`/`la` aliases
+# above, which are `lsd -laF`. e: open text files in $EDITOR (issy) instead of
+# nnn's own pager.
+export NNN_OPTS='dHe'
+
+# nnn cannot change its parent shell's directory, and no child process can.
+# Quitting with ^G instead of `q` makes it write a `cd` line to $NNN_TMPFILE,
+# which this wrapper sources on the way out -- that is the entire cd-on-quit
+# mechanism, and it only works when nnn is started through `n`. Plain `nnn`
+# and plain `q` both leave the shell where it was.
+n() {
+  # nnn spawns shells (!), and starting a second nnn inside one strands the
+  # outer instance; NNNLVL is how nnn reports that it is already an ancestor.
+  [ "${NNNLVL:-0}" -eq 0 ] || { echo "nnn is already running"; return 1; }
+  NNN_TMPFILE="${XDG_CONFIG_HOME:-$HOME/.config}/nnn/.lastd"
+  mkdir -p -- "${NNN_TMPFILE%/*}"
+  export NNN_TMPFILE
+  command nnn "$@"
+  [ ! -f "$NNN_TMPFILE" ] || { . "$NNN_TMPFILE"; rm -f -- "$NNN_TMPFILE"; }
+}
+
 # ---------- colored man/less (palette: light blue / navy / white) ----------
 export LESS=-R
 export LESS_TERMCAP_md=$'\e[1;38;5;110m'        # bold      -> light blue (headings)

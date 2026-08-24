@@ -53,6 +53,7 @@
 - **Reliability**: zram compressed swap (zstd, 50% of RAM, via `zram-tools`) + systemd-oomd for graceful low-memory handling
 - **Notifications**: mako (Wayland; `~/.config/mako/config`, palette-themed)
 - **Screenshots**: grim + slurp via `~/.local/bin/shot` (Wayland-aware; `Print` / `Shift+Print`) → saved to `~/pictures/screenshots` and copied to the clipboard
+- **File manager**: [nnn](https://github.com/jarun/nnn) — registered as the `inode/directory` handler via a generated `nnn.desktop` that spawns `foot` explicitly, so folders open from Chrome, wofi and portal dialogs; `n` in bash/zsh gives cd-on-quit (`^G`)
 - **Shell tools**: fzf (Ctrl-R history, Ctrl-T files), fd (`fdfind`), git-delta (diff pager); Qt apps follow dark via `adwaita-qt`/`adwaita-qt6` + `QT_STYLE_OVERRIDE`, and GTK4/libadwaita + the xdg portal + Chrome via a `prefer-dark` dconf default
 - **Smart card**: pcscd + libccid + opensc + pcsc-tools (pcscd.socket enabled; the stock CCID driver covers readers like the ACR1552)
 - **VM Tools**: open-vm-tools-desktop (auto-detected)

@@ -287,6 +287,7 @@ see [Headless hosts](#headless-hosts-linux).
 | Volume | pamixer + wob | sndioctl via `volnotify` | |
 | Privilege | sudo | doas | sudo (built-in) |
 | Browser | Google Chrome | Chromium | |
+| File manager | nnn | | |
 | Editor | issy (default), micro, nano, Sublime Text | issy (default), nano | issy (default), micro, nano |
 | Shell | bash | bash (pkg_add) | zsh (default) |
 | Multiplexers | tmux, herdr | tmux (base) | tmux, herdr |
@@ -327,6 +328,33 @@ fi
 ```
 
 At deploy time, `provision.sh` strips blocks for other OSes via `sed`, keeping only the current OS's blocks. A `@@HOME@@` marker is replaced with the target user's home directory. No template engine required.
+
+### nnn (file manager)
+
+Debian's `nnn` (~90 KB of C), installed with the base CLI tools rather than the
+desktop set, so headless hosts get the binary too. Two pieces of integration go
+with it:
+
+**Folders open.** Nothing on a desktop built from this repo previously handled
+`inode/directory` — no GUI file manager is installed, no desktop entry carried
+the `FileManager` category, and `xdg-mime query default inode/directory` came
+back empty, so a folder link in Chrome or a portal's "open containing folder"
+did nothing at all rather than failing visibly. `provision.sh` writes
+`/usr/share/applications/nnn.desktop` and sets it as the default for
+`inode/directory` (and the legacy `x-directory/normal`). The entry deliberately
+does **not** use `Terminal=true`: that hands the choice of terminal to whatever
+implements the `x-terminal-emulator` alternative, which is unreliable for a
+portal-spawned process and absent entirely on a machine that installs no X
+terminal. It spawns `foot` explicitly instead, under app-id `nnn`, so it behaves
+identically from wofi, from Chrome and from a portal dialog. The whole block is
+gated on `foot`, so headless hosts skip it.
+
+**`n`, not `nnn`.** No child process can change its parent shell's directory, so
+`.bashrc`/`.zshrc` define an `n` wrapper: quitting with `^G` makes nnn write a
+`cd` line to `$NNN_TMPFILE`, which the wrapper sources on the way out. Start it
+as `nnn`, or quit with `q`, and the shell stays where it was. `NNN_OPTS='dHe'`
+sets detail view and hidden files — matching the `lsd -laF` behind the `ls`/`la`
+aliases — and opens text files in `$EDITOR` (issy).
 
 ### issy (default editor)
 
@@ -439,7 +467,7 @@ NNIX_HEADLESS=1 ./provision.sh   # force server mode
 - **zram** — compressed (zstd) swap sized to 50% of RAM, so memory spikes stay in RAM instead of hitting the (wear-limited) NVMe.
 - **systemd-oomd** — graceful low-memory handling before the machine locks up.
 
-Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 1 h, display power-off at 2 h, and lock before sleep), **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, Qt apps forced dark via `adwaita-qt`/`adwaita-qt6`, and GTK4/libadwaita + the xdg portal + Chrome forced dark via a `prefer-dark` dconf default. A **waybar volume module** (right of memory) shows the level — scroll to change, left-click opens `pavucontrol` to choose the output device, right-click mutes.
+Also in the desktop layer: **grim/slurp screenshots** (`Print` / `Shift+Print` via the Wayland-aware `shot`), **mako** notifications (palette-themed), **swayidle idle-lock** (swaylock at 1 h, display power-off at 2 h, and lock before sleep), **nnn** as the file manager, **fzf + fd** shell integration, git **sane defaults** + **delta** diff pager, Qt apps forced dark via `adwaita-qt`/`adwaita-qt6`, and GTK4/libadwaita + the xdg portal + Chrome forced dark via a `prefer-dark` dconf default. A **waybar volume module** (right of memory) shows the level — scroll to change, left-click opens `pavucontrol` to choose the output device, right-click mutes.
 
 ### File Routing
 
