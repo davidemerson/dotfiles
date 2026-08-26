@@ -173,7 +173,13 @@ if [ "$issues" -eq 0 ]; then
     note "$ok_msg"
     summary="$ok_msg"
 else
-    warn "finished with $issues issue(s) — see entries above"
+    # Deliberately `say warning` and not warn(): the wrap-up line is a restatement
+    # of the issues already counted, not a new one. Calling warn() here incremented
+    # $issues to N+1 and appended this sentence to $summary, both of which are then
+    # written to $STATE -- so monitoring read one more issue than actually occurred
+    # and rendered a self-contradictory string ("2 issue(s): reboot required ...;
+    # finished with 1 issue(s)"). The journal still gets the line either way.
+    say warning "finished with $issues issue(s) — see entries above"
 fi
 
 # Machine-readable result for monitoring. Written last so a crash mid-run
