@@ -2742,11 +2742,66 @@ configure_gpu() {
     apt-get install -y linux-headers-"$(dpkg --print-architecture)" dkms \
         || { log_warn "Kernel headers/DKMS unavailable; skipping NVIDIA driver."; return 0; }
 
+    # Prefer the backports revision of the driver when one exists.
+    #
+    # Why: on compton (RTX 3060, sway) the trixie revision 550.163.01-2 wedged
+    # the graphical-session teardown. Stopping the compositor left
+    # nvidia-modeset/kthread_q, Xwayland AND systemd-logind in uninterruptible
+    # D state, and because shutdown blocks on logind the whole machine hung on
+    # reboot -- intermittently, since the D state sometimes drained on its own
+    # after ~10s. Diagnosed 2026-08-26; David had to power the box off by hand.
+    #
+    # Backports carries the SAME upstream version (550.163.01) at a newer Debian
+    # revision (-4~bpo13+1). It does NOT silence the driver's WARN at
+    # nvidia-drm-drv.c:1220 in nv_drm_revoke_modeset_permission -- that still
+    # fires on every DRM release -- but in an A/B test under identical
+    # conditions (live sway session, Xwayland up, nvidia_drm refcount 23 vs 26)
+    # the D-state wedge did not reproduce: refcount dropped straight to 0 with
+    # no blocked task at +2s, +15s or +30s. The WARN is noise; the D state is
+    # what hung shutdown.
+    #
+    # Backports is NotAutomatic (pin priority 100), so adding it changes nothing
+    # else on the machine: packages come from it only when asked for explicitly
+    # with -t, which is exactly what the install below does.
+    _nv_bp_suite=""
+    if [ -r /etc/os-release ]; then
+        _nv_codename=$(. /etc/os-release 2>/dev/null; printf '%s' "${VERSION_CODENAME:-}")
+        if [ -n "$_nv_codename" ]; then
+            _nv_bp_suite="${_nv_codename}-backports"
+            if [ ! -f /etc/apt/sources.list.d/backports.list ]; then
+                cat > /etc/apt/sources.list.d/backports.list <<BACKPORTS
+# Debian backports. Added by provision.sh for the NVIDIA driver: the trixie
+# revision hangs shutdown on sway machines (see configure_gpu in provision.sh).
+# NotAutomatic (priority 100) -- nothing installs from here without -t.
+deb http://deb.debian.org/debian/ ${_nv_bp_suite} main contrib non-free non-free-firmware
+BACKPORTS
+                apt-get update -qq || true
+            fi
+        fi
+    fi
+
     # nvidia-legacy-check aborts this install if the card is too old for the
     # current driver series, which is the correct outcome — do not force it.
-    if ! apt-get install -y nvidia-driver; then
-        log_warn "nvidia-driver install failed (card may need a legacy series); staying on nouveau."
-        return 0
+    #
+    # Try backports first, then fall back to the release version. The fallback
+    # matters: -t on a suite with no candidate is a hard failure, and not every
+    # machine these dotfiles build has backports reachable.
+    _nv_installed=0
+    if [ -n "$_nv_bp_suite" ] \
+        && apt-cache policy -t "$_nv_bp_suite" nvidia-driver 2>/dev/null \
+           | grep -q 'Candidate: .*bpo'; then
+        if apt-get install -y -t "$_nv_bp_suite" nvidia-driver nvidia-kernel-dkms; then
+            _nv_installed=1
+            log_info "Installed nvidia-driver from ${_nv_bp_suite}."
+        else
+            log_warn "Backports nvidia-driver install failed; trying the release version."
+        fi
+    fi
+    if [ "$_nv_installed" = "0" ]; then
+        if ! apt-get install -y nvidia-driver; then
+            log_warn "nvidia-driver install failed (card may need a legacy series); staying on nouveau."
+            return 0
+        fi
     fi
 
     # Wayland requires DRM kernel modesetting, and nvidia-drm ships with
