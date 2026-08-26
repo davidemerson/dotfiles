@@ -52,13 +52,23 @@ failed=$(systemctl --failed --no-legend 2>/dev/null | awk '{print $1}' | tr '\n'
 [ -n "$failed" ] && warn "failed units: $failed"
 
 # --- SMART overall health per drive ---
+# smartctl's autodetect gives up on some USB bridges ("Unknown USB bridge ...
+# Please specify device type") and prints no health line at all. Scoring that
+# empty result as a pass is how fogarty's /mnt/backup drive sat unmonitored:
+# no data is not health. Try the bridge passthrough types before giving up, and
+# say so plainly when every one of them comes back silent.
 if command -v smartctl >/dev/null 2>&1; then
     for d in /dev/nvme?n1 /dev/sd?; do
         [ -e "$d" ] || continue
-        h=$(smartctl -H "$d" 2>/dev/null | grep -iE 'overall-health|SMART Health Status' | sed 's/.*: *//')
+        h=""
+        for dt in auto sat sntasmedia sntjmicron sntrealtek nvme scsi; do
+            h=$(smartctl -d "$dt" -H "$d" 2>/dev/null | grep -iE 'overall-health|SMART Health Status' | sed 's/.*: *//')
+            [ -n "$h" ] && break
+        done
         case "$h" in
-            ""|*PASSED*|*OK*) : ;;
-            *) crit "SMART $d: $h" ;;
+            "")            warn "SMART unreadable on $d — no device type answered; health is unknown, not OK" ;;
+            *PASSED*|*OK*) : ;;
+            *)             crit "SMART $d: $h" ;;
         esac
     done
 fi
