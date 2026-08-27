@@ -2689,11 +2689,149 @@ deploy_dotfiles() {
 # -------------------------------------------------------------------
 # Debian installs nouveau for NVIDIA cards. On anything Turing or newer that
 # means the GPU is stuck at boot clocks (nouveau cannot reclock Ampere), with
-# no CUDA and no NVENC. Swap in the proprietary driver when an NVIDIA GPU is
-# actually present.
+# no CUDA and no NVENC. Swap in a real driver when an NVIDIA GPU is actually
+# present.
+#
+# Driver source, in order of preference:
+#
+#   1. NVIDIA's own Debian repo, via the nvidia-open packages. This is the only
+#      packaged route to a driver newer than 550 on Debian 13, which matters a
+#      lot on Wayland -- see nvidia_install_from_upstream below.
+#   2. Debian backports, then the Debian release. Used when NVIDIA publishes no
+#      repo for this release/architecture, when the card is too old for the
+#      open kernel modules, or when the network is unreachable.
 #
 # Everything here is conditional on detecting NVIDIA hardware, so the function
 # is a no-op on AMD/Intel/VM machines and on headless hosts.
+
+# PCI device ID of the first NVIDIA display device, lowercase hex, empty if
+# there is none.
+nvidia_devid() {
+    lspci -nn 2>/dev/null \
+        | grep -iE 'VGA compatible controller|3D controller' \
+        | grep -oiE '10de:[0-9a-f]{4}' \
+        | head -1 | cut -d: -f2 | tr 'A-F' 'a-f'
+}
+
+# True when the card can run NVIDIA's *open* kernel modules, i.e. Turing or
+# newer. NVIDIA gates the open modules on the GPU having a GSP; pre-Turing
+# silicon has none and the modules simply refuse to bind, so Debian's closed
+# driver stays the right answer on those cards.
+#
+# Nothing exposes this as a queryable flag before the driver is loaded, so go
+# by PCI device ID. NVIDIA has allocated display device IDs in ascending order
+# by architecture and Turing is the first family at or above 0x1e00: Pascal and
+# Volta occupy 0x1b00-0x1dff, Turing 0x1e00-0x21ff, Ampere 0x2200-0x25ff, Ada
+# 0x2600-0x28ff, with later families continuing upward. A card newer than this
+# script therefore still reads as supported, which is the direction we want to
+# fail in.
+nvidia_supports_open_modules() {
+    _nv_devid=$(nvidia_devid)
+    [ -n "$_nv_devid" ] || return 1
+    [ "$((0x$_nv_devid))" -ge "$((0x1e00))" ]
+}
+
+# Add NVIDIA's own Debian repo and install the open-module driver from it.
+# Returns 0 only if the driver actually installed.
+#
+# Why bother when Debian ships a driver: Debian's newest is 550 nearly
+# everywhere -- trixie, trixie-backports, sid and forky all carry 550.163.01,
+# and only experimental has anything newer. nvidia-drm did not gain DRM
+# timeline syncobj support until 555, so on 550 the kernel reports
+# DRM_CAP_SYNCOBJ_TIMELINE = 0, wlroots cannot advertise linux-drm-syncobj-v1,
+# and Wayland clients fall back to implicit sync. NVIDIA's GBM path does not
+# honour implicit sync reliably: the compositor scans out buffers before the
+# client has finished drawing into them, so any client that recomposites
+# continuously flickers badly. On compton (RTX 3060, sway 1.10.1) Chrome and
+# the Fastmail Electron app were both unusable until 610. Diagnosed
+# 2026-08-27 by reading DRM_CAP_SYNCOBJ_TIMELINE off /dev/dri/card* directly
+# with a DRM_IOCTL_GET_CAP ioctl -- it flipped 0 -> 1 with the new driver.
+nvidia_install_from_upstream() {
+    command -v curl >/dev/null 2>&1 || return 1
+
+    _nv_osid=$(. /etc/os-release 2>/dev/null; printf '%s' "${ID:-}")
+    _nv_relid=$(. /etc/os-release 2>/dev/null; printf '%s' "${VERSION_ID:-}")
+    [ "$_nv_osid" = "debian" ] || return 1
+    [ -n "$_nv_relid" ] || return 1
+    _nv_repodir="debian${_nv_relid%%.*}"
+
+    # NVIDIA names the ARM directory after the server spec, not the Debian
+    # architecture. Anything else has no repo at all.
+    case "$(dpkg --print-architecture)" in
+        amd64) _nv_repoarch="x86_64" ;;
+        arm64) _nv_repoarch="sbsa" ;;
+        *)     return 1 ;;
+    esac
+    _nv_repourl="https://developer.download.nvidia.com/compute/cuda/repos/${_nv_repodir}/${_nv_repoarch}"
+
+    # The keyring package carries both the signing key and the sources entry,
+    # so installing it *is* "add the repo". Its version is part of the
+    # filename, so read the name out of the directory index rather than
+    # hardcoding one that will rot.
+    if [ ! -f /usr/share/keyrings/cuda-archive-keyring.gpg ]; then
+        _nv_keyring=$(curl -fsSL --max-time 30 "${_nv_repourl}/" 2>/dev/null \
+            | grep -oE 'cuda-keyring_[0-9.-]+_all\.deb' | sort -uV | tail -1)
+        if [ -z "$_nv_keyring" ]; then
+            log_warn "No NVIDIA repo for ${_nv_repodir}/${_nv_repoarch}."
+            return 1
+        fi
+        _nv_tmp=$(mktemp -d)
+        if curl -fsSL --max-time 180 -o "${_nv_tmp}/keyring.deb" "${_nv_repourl}/${_nv_keyring}" \
+            && dpkg -i "${_nv_tmp}/keyring.deb" >/dev/null 2>&1; then
+            log_info "Added the NVIDIA repo (${_nv_keyring})."
+        else
+            rm -rf "$_nv_tmp"
+            log_warn "Could not install the NVIDIA repo keyring."
+            return 1
+        fi
+        rm -rf "$_nv_tmp"
+    fi
+
+    # NVIDIA's repo reuses Debian's package names -- nvidia-driver,
+    # nvidia-settings, nvidia-xconfig and ~60 others collide -- so without a
+    # pin apt has two same-named candidates and the transaction is unsolvable.
+    # Default-deny the origin, then let the driver packages specifically win.
+    #
+    # dkms is the exception that has to be spelled out: NVIDIA ships its own
+    # build of it, but dkms is general infrastructure for every out-of-tree
+    # module on the box, so it stays Debian's.
+    cat > /etc/apt/preferences.d/cuda-nvidia.pref <<'NVPIN'
+# NVIDIA CUDA repo (developer.download.nvidia.com), added by provision.sh for
+# the GPU driver. Debian caps out at nvidia 550, which predates DRM timeline
+# syncobj and so breaks explicit sync on Wayland -- see configure_gpu.
+#
+# Default deny: nothing installs or upgrades from this repo implicitly.
+Package: *
+Pin: origin developer.download.nvidia.com
+Pin-Priority: 100
+
+# The driver stack itself does come from NVIDIA. These names collide with
+# Debian's own non-free packages, so they need an explicit win.
+Package: nvidia-* libnvidia-* libcuda* libcudadebugger* libnvcuvid* libnvoptix* libxnvctrl* libegl-nvidia* libgles-nvidia* libglx-nvidia* xserver-xorg-video-nvidia firmware-nvidia-gsp
+Pin: origin developer.download.nvidia.com
+Pin-Priority: 600
+
+# ...but DKMS is general infrastructure, not part of the driver. Keep Debian's
+# so unrelated out-of-tree modules are unaffected by this repo.
+Package: dkms dh-dkms eglexternalplatform-dev
+Pin: origin developer.download.nvidia.com
+Pin-Priority: 100
+NVPIN
+
+    apt-get update -qq || true
+    apt-cache policy nvidia-open 2>/dev/null | grep -q 'Candidate: [0-9]' || {
+        log_warn "NVIDIA repo added but nvidia-open has no candidate."
+        return 1
+    }
+
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        -o Dpkg::Options::=--force-confold -o Dpkg::Options::=--force-confdef \
+        nvidia-open || return 1
+
+    log_info "Installed nvidia-open from NVIDIA's repo."
+    return 0
+}
+
 configure_gpu() {
     [ "$OS_TYPE" = "linux" ] || return 0
     if headless; then
@@ -2707,7 +2845,7 @@ configure_gpu() {
         return 0
     fi
 
-    log_info "NVIDIA GPU detected — installing the proprietary driver."
+    log_info "NVIDIA GPU detected — installing a driver."
 
     # nvidia-driver lives in contrib + non-free. A stock Debian 13 install
     # enables only "main non-free-firmware", so the driver is not merely
@@ -2742,6 +2880,20 @@ configure_gpu() {
     apt-get install -y linux-headers-"$(dpkg --print-architecture)" dkms \
         || { log_warn "Kernel headers/DKMS unavailable; skipping NVIDIA driver."; return 0; }
 
+    # --- Preferred: NVIDIA's own repo -------------------------------------
+    _nv_installed=0
+    if nvidia_supports_open_modules; then
+        if nvidia_install_from_upstream; then
+            _nv_installed=1
+        else
+            log_warn "NVIDIA repo unavailable; falling back to Debian's driver."
+        fi
+    else
+        log_info "GPU predates Turing — using Debian's closed driver."
+    fi
+
+    # --- Fallback: Debian backports, then the release ---------------------
+    #
     # Prefer the backports revision of the driver when one exists.
     #
     # Why: on compton (RTX 3060, sway) the trixie revision 550.163.01-2 wedged
@@ -2764,7 +2916,7 @@ configure_gpu() {
     # else on the machine: packages come from it only when asked for explicitly
     # with -t, which is exactly what the install below does.
     _nv_bp_suite=""
-    if [ -r /etc/os-release ]; then
+    if [ "$_nv_installed" = "0" ] && [ -r /etc/os-release ]; then
         _nv_codename=$(. /etc/os-release 2>/dev/null; printf '%s' "${VERSION_CODENAME:-}")
         if [ -n "$_nv_codename" ]; then
             _nv_bp_suite="${_nv_codename}-backports"
@@ -2786,8 +2938,7 @@ BACKPORTS
     # Try backports first, then fall back to the release version. The fallback
     # matters: -t on a suite with no candidate is a hard failure, and not every
     # machine these dotfiles build has backports reachable.
-    _nv_installed=0
-    if [ -n "$_nv_bp_suite" ] \
+    if [ "$_nv_installed" = "0" ] && [ -n "$_nv_bp_suite" ] \
         && apt-cache policy -t "$_nv_bp_suite" nvidia-driver 2>/dev/null \
            | grep -q 'Candidate: .*bpo'; then
         if apt-get install -y -t "$_nv_bp_suite" nvidia-driver nvidia-kernel-dkms; then
@@ -2809,13 +2960,42 @@ BACKPORTS
     # keeps a usable framebuffer console on the NVIDIA output, so a text VT is
     # still reachable if the graphical session breaks.
     #
-    # Debian renames the module to nvidia-current-drm; set both names so this
-    # survives a switch of the nvidia alternative.
+    # Debian renames the module to nvidia-current-drm while NVIDIA's own
+    # packages keep it as nvidia-drm; set both names so this survives either
+    # packaging and a switch of the Debian nvidia alternative.
     cat > /etc/modprobe.d/nvidia-modeset.conf <<'NVMODESET'
 # Wayland compositors (sway/wlroots) require DRM kernel modesetting on NVIDIA.
 options nvidia-current-drm modeset=1 fbdev=1
 options nvidia-drm modeset=1 fbdev=1
 NVMODESET
+
+    # dpkg defers a conffile it cannot place, and it cannot place
+    # /etc/modprobe.d/nvidia.conf while Debian's nvidia-alternative still owns
+    # that path as a symlink -- which is exactly the state a Debian-driver ->
+    # NVIDIA-repo migration passes through. The file lands as
+    # nvidia.conf.dpkg-new, the alternative is then removed along with the old
+    # packages, and the machine is left with NO nouveau blacklist at all. Next
+    # boot nouveau claims the card, the NVIDIA driver never binds, and the
+    # session dies with nothing on screen.
+    #
+    # Hit for real on compton during the 550 -> 610 migration, 2026-08-27.
+    for _nv_pending in /etc/modprobe.d/*.dpkg-new; do
+        [ -e "$_nv_pending" ] || continue
+        mv "$_nv_pending" "${_nv_pending%.dpkg-new}"
+        log_warn "Installed deferred conffile $(basename "${_nv_pending%.dpkg-new}")."
+    done
+
+    # Belt and braces: whatever the packaging did or failed to do above, do not
+    # build an initramfs that lets nouveau race for the card.
+    if ! grep -rqs '^[[:space:]]*blacklist[[:space:]]\{1,\}nouveau' /etc/modprobe.d/; then
+        cat > /etc/modprobe.d/nnix-blacklist-nouveau.conf <<'NVBL'
+# nouveau must lose the race for a card the NVIDIA driver is going to bind.
+# Written by provision.sh because no packaged blacklist was present.
+blacklist nouveau
+blacklist nova-core
+NVBL
+        log_warn "No packaged nouveau blacklist found — wrote our own."
+    fi
 
     # The nouveau blacklist and the modeset options both have to be in the
     # initramfs, or nouveau wins the race for the card on the next boot.
