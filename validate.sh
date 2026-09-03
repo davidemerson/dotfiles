@@ -79,6 +79,9 @@ check "dotfiles/.config/gtk-4.0/settings.ini"
 check "dotfiles/.config/btop/btop.conf"
 check "dotfiles/.config/btop/themes/nnix.theme"
 
+printf "\nMultiplexer:\n"
+check "dotfiles/.config/herdr/config.toml"
+
 printf "\nLinux (sway):\n"
 check "dotfiles/.config/sway/config"
 check "dotfiles/.config/waybar/config"

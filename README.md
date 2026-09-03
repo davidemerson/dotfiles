@@ -481,7 +481,7 @@ Not every file deploys on every OS:
 | `.xinitrc` | — | yes | — |
 | `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*`, `mako/*` | yes | — | — |
 | `.config/i3/*`, `i3status/*`, `dunst/*`, `.local/bin/{lock,volnotify}` | — | yes | — |
-| Everything else (git, ssh, tmux, issy, fonts, cursors, theming, `.Xresources`, `.local/bin/{workstation,shot,sysinfo}`) | yes | yes | yes |
+| Everything else (git, ssh, tmux, herdr, issy, fonts, cursors, theming, `.Xresources`, `.local/bin/{workstation,shot,sysinfo}`) | yes | yes | yes |
 
 `.config/workstation.conf` is seeded once and never overwritten, so per-machine values survive re-provisioning.
 
@@ -579,6 +579,7 @@ dotfiles/
     ├── fontconfig/fonts.conf                     # monospace = Berkeley Mono
     ├── gtk-3.0/, gtk-4.0/                        # Dark theme + cursor
     ├── btop/                                     # nnix theme
+    ├── herdr/config.toml                          # herdr keybindings (alt+up/down space switching)
     ├── micro/, sublime-text-3/                   # Other editor settings
     ├── git/allowed_signers                       # SSH signature verification
     └── workstation.conf                          # Per-machine, seeded once

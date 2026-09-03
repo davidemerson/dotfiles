@@ -1,0 +1,16 @@
+# herdr — terminal workspace manager for AI coding agents (https://herdr.dev).
+# Deployed to ~/.config/herdr/config.toml by provision.sh.
+#
+# Only the settings that differ from herdr's defaults live here. Run
+# `herdr --default-config` to see the full annotated default, and
+# `herdr config check` after editing to validate.
+
+# First-run notification setup has been done; don't ask again.
+onboarding = false
+
+[keys]
+# Direct (prefix-free) space switching. The sidebar is vertical, so up/down —
+# the same orientation herdr's own navigate mode uses. The prefix+arrow entries
+# are a fallback that works even if the outer terminal swallows alt+arrow.
+previous_workspace = ["alt+up", "prefix+up"]
+next_workspace     = ["alt+down", "prefix+down"]
