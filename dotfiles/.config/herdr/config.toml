@@ -1,9 +1,10 @@
 # herdr — terminal workspace manager for AI coding agents (https://herdr.dev).
 # Deployed to ~/.config/herdr/config.toml by provision.sh.
 #
-# Only the settings that differ from herdr's defaults live here. Run
-# `herdr --default-config` to see the full annotated default, and
-# `herdr config check` after editing to validate.
+# Only settings that differ from herdr's defaults live here. See the full
+# annotated default with `herdr --default-config`; validate edits with
+# `herdr config check`, then apply to a running server with
+# `herdr server reload-config`.
 
 # First-run notification setup has been done; don't ask again.
 onboarding = false
@@ -14,3 +15,33 @@ onboarding = false
 # are a fallback that works even if the outer terminal swallows alt+arrow.
 previous_workspace = ["alt+up", "prefix+up"]
 next_workspace     = ["alt+down", "prefix+down"]
+
+[ui]
+# Order the agent panel as an attention queue, so whichever pane is waiting on
+# input surfaces first rather than staying buried in its space.
+agent_panel_sort = "priority"
+
+[ui.sidebar.agents.rows_by_agent]
+# Claude Code sets the terminal title to what it's currently doing, so giving
+# claude panes an extra row for it turns the sidebar into a list of what each
+# session is actually working on. Same rows as the default otherwise.
+claude = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+
+[ui.toast]
+# "terminal" asks the OUTER terminal to raise the desktop notification, which
+# puts it wherever David is actually sitting. "system" would hand it to the
+# notification service on the host running herdr — right on a workstation, but
+# on a machine reached over SSH (fogarty) it fires where nobody can see it.
+delivery = "terminal"
+
+[ui.sound]
+# Same reasoning as the toast delivery: audio plays on the host running herdr,
+# which is the wrong end of an SSH session.
+enabled = false
+
+[session]
+# Resume agent panes into their native conversations after a server restart.
+# This is herdr's default; it is pinned here because it only works while the
+# Claude Code integration hook is installed (`herdr integration install claude`),
+# and stating it keeps the dependency visible.
+resume_agents_on_restore = true
