@@ -152,7 +152,7 @@ install_packages() {
                     bluez rfkill \
                     pipewire pipewire-pulse wireplumber libspa-0.2-bluetooth \
                     xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk \
-                    alsa-utils
+                    alsa-utils fbset
             fi
 
             # Non-free firmware for peripherals (e.g. the Realtek RTL8761BU
@@ -1491,6 +1491,52 @@ WantedBy=multi-user.target
 CFONT
         systemctl daemon-reload 2>/dev/null || true
         systemctl enable console-font.service 2>/dev/null || true
+
+        # Server boards with a BMC (Supermicro, ...) mark the onboard ASPEED/
+        # Matrox video as the boot VGA, so its framebuffer registers as fb0
+        # and fbcon puts every VT there -- including the greeter on vt7. The
+        # monitor on the real GPU then shows nothing until sway starts (which
+        # already prefers the GPU, see sway-session). Remap the VTs onto the
+        # first non-BMC framebuffer, chosen by driver name rather than number
+        # since probe order is not stable. A remap resets the VT's font, so
+        # this runs before console-font.service and greetd re-apply it.
+        # No-op on machines without BMC video. Hit on bella-cohen (X11SPM-F +
+        # Radeon WX 3200), 2026-10-20.
+        cat > /usr/local/sbin/fbcon-prefer-gpu <<'FBCON'
+#!/bin/sh
+# Move VTs 1-12 off BMC video onto the first real GPU framebuffer.
+bmc='^(ast|mgag200|hyperv_drm)'
+# Nothing to do unless a BMC framebuffer is present.
+awk -v re="$bmc" '$2 ~ re {f=1} END {exit !f}' /proc/fb 2>/dev/null || exit 0
+# The GPU driver is a module and may still be probing; give it 30s.
+i=0
+while :; do
+    fb=$(awk -v re="$bmc" '$2 !~ re {print $1; exit}' /proc/fb 2>/dev/null)
+    [ -n "$fb" ] && break
+    i=$((i + 1)); [ "$i" -ge 30 ] && exit 0
+    sleep 1
+done
+for vt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+    con2fbmap "$vt" "$fb" 2>/dev/null || true
+done
+FBCON
+        chmod 0755 /usr/local/sbin/fbcon-prefer-gpu
+        cat > /etc/systemd/system/fbcon-prefer-gpu.service <<'FBCONSVC'
+[Unit]
+Description=Move the text console off BMC video onto the real GPU
+After=systemd-modules-load.service systemd-udevd.service
+Before=console-font.service greetd.service getty@tty1.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=-/usr/local/sbin/fbcon-prefer-gpu
+
+[Install]
+WantedBy=multi-user.target
+FBCONSVC
+        systemctl daemon-reload 2>/dev/null || true
+        systemctl enable fbcon-prefer-gpu.service 2>/dev/null || true
 
         # Boot-console resolution. The firmware hands the kernel whatever EFI
         # framebuffer it feels like -- on this Supermicro board that is
