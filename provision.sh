@@ -122,8 +122,12 @@ install_packages() {
             # EDAC driver -- and to notice when the BMC's fixed-size event log
             # has filled up, which silently costs you that visibility. It is a
             # no-op on hardware with no /dev/ipmi0.
+            #
+            # gnupg is listed explicitly: every third-party repo key below is
+            # piped through `gpg --dearmor`, and unseal_secrets needs gpg to
+            # decrypt the bundle. A minimal Debian install does not ship it.
             apt-get install -y \
-                curl wget git sudo build-essential unzip \
+                curl wget git sudo build-essential unzip gnupg \
                 nano micro htop btop nmap screen lsd tmux mosh \
                 fzf fd-find git-delta nnn \
                 fwupd rasdaemon ethtool nvme-cli smartmontools lm-sensors \
@@ -186,6 +190,14 @@ install_packages() {
                 ZT_SUITE="trixie"
                 if [ -r /etc/os-release ]; then
                     ZT_SUITE="$(. /etc/os-release; printf '%s' "${VERSION_CODENAME:-trixie}")"
+                fi
+                # ZeroTier only publishes released suites, so testing/sid
+                # (forky) 404s. Writing that list anyway breaks every later
+                # `apt-get update`, so fall back to trixie when it is missing.
+                if ! curl -fsI --max-time 30 \
+                    "https://download.zerotier.com/debian/$ZT_SUITE/dists/$ZT_SUITE/Release" >/dev/null 2>&1; then
+                    log_warn "ZeroTier has no '$ZT_SUITE' repo; using trixie."
+                    ZT_SUITE="trixie"
                 fi
                 wget -qO - https://download.zerotier.com/contact%40zerotier.com.gpg \
                     | gpg --dearmor > /usr/share/keyrings/zerotier.gpg
