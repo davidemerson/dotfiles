@@ -18,8 +18,9 @@ include /etc/sway/config.d/*
 exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP && \
      systemctl --user start --no-block sway-session.target
 
-# set a background
-exec swaybg --output "*" --color "#000000"
+# set a background (sway runs its own swaybg for this; a separate
+# `exec swaybg` would just stack a second one on top of it)
+output * bg #000000 solid_color
 
 # plan9 cursor theme (installed to ~/.icons/plan9 by provision)
 seat * xcursor_theme plan9 16
