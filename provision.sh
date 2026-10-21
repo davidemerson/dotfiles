@@ -1347,6 +1347,16 @@ fi
 export XDG_CURRENT_DESKTOP=sway
 export XDG_SESSION_TYPE=wayland
 
+# Debian's /etc/pam.d/greetd, unlike login's, never runs pam_env, so a greeter
+# session gets no LANG from /etc/default/locale and everything in it runs in
+# the C locale (foot warns "C is not a UTF-8 locale" on every launch). Load
+# the system locale here, as login would have, unless one is already set.
+if [ -z "${LANG:-}" ] && [ -r /etc/default/locale ]; then
+    set -a
+    . /etc/default/locale
+    set +a
+fi
+
 sway "${sway_args[@]}"
 rc=$?
 
