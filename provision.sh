@@ -152,7 +152,8 @@ install_packages() {
                     bluez rfkill \
                     pipewire pipewire-pulse wireplumber libspa-0.2-bluetooth \
                     xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk \
-                    alsa-utils fbset
+                    alsa-utils fbset \
+                    zathura zathura-pdf-poppler imv
             fi
 
             # Non-free firmware for peripherals (e.g. the Realtek RTL8761BU
@@ -1632,6 +1633,24 @@ NNNDESK
             su - "$username" -c 'xdg-mime default nnn.desktop inode/directory x-directory/normal' 2>/dev/null || true
         fi
 
+        # PDFs open in zathura and images in imv. Without these, both fell
+        # through to Chrome, the only installed app claiming the types. The
+        # image list is read from imv's own desktop entry so it tracks
+        # whatever formats Debian's build actually supports.
+        if [ -f /usr/share/applications/org.pwmt.zathura.desktop ]; then
+            su - "$username" -c 'xdg-mime default org.pwmt.zathura.desktop application/pdf' 2>/dev/null || true
+        fi
+        if [ -f /usr/share/applications/imv.desktop ]; then
+            # Debian ships the Wayland/X11 dispatcher at /usr/libexec/imv/imv
+            # and puts no plain `imv` on PATH, so typing it in a shell fails
+            # even though the desktop entry works. Expose it.
+            [ -x /usr/libexec/imv/imv ] && ! command -v imv >/dev/null 2>&1 && \
+                ln -sf /usr/libexec/imv/imv /usr/local/bin/imv
+            imv_types=$(sed -n 's/^MimeType=//p' /usr/share/applications/imv.desktop | tr ';' ' ')
+            # shellcheck disable=SC2086
+            [ -n "$imv_types" ] && su - "$username" -c "xdg-mime default imv.desktop $imv_types" 2>/dev/null || true
+        fi
+
         # rasdaemon: log ECC/MCE hardware error events. Effective wherever the
         # kernel EDAC layer exposes memory controllers (ECC workstations and
         # servers); a harmless no-op on machines/VMs without ECC. fwupd is left
@@ -2600,16 +2619,16 @@ deploy_dotfiles() {
 
     # Directories to skip per OS
     case "$OS_TYPE" in
-        openbsd) SKIP_DIRS="sway swaylock waybar wofi foot mako" ;;
+        openbsd) SKIP_DIRS="sway swaylock waybar wofi foot mako zathura imv" ;;
         linux)   SKIP_DIRS="i3 i3status dunst" ;;
-        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status mako dunst" ;;
+        macos)   SKIP_DIRS="sway swaylock waybar wofi foot i3 i3status mako dunst zathura imv" ;;
     esac
 
     # A headless host gets no desktop configuration at all. What it does keep is
     # the part that is useful over SSH: shell, prompt, git, ssh, tmux, editors,
     # btop, and ~/.local/bin. Fonts stay too — issy renders PDFs with bmv.otf.
     if headless; then
-        SKIP_DIRS="$SKIP_DIRS sway swaylock waybar wofi foot mako gtk-3.0 gtk-4.0 fontconfig sublime-text-3"
+        SKIP_DIRS="$SKIP_DIRS sway swaylock waybar wofi foot mako gtk-3.0 gtk-4.0 fontconfig sublime-text-3 zathura imv"
     fi
 
     cd "$SCRIPT_DIR/dotfiles"

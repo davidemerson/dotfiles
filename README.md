@@ -288,6 +288,7 @@ see [Headless hosts](#headless-hosts-linux).
 | Privilege | sudo | doas | sudo (built-in) |
 | Browser | Google Chrome | Chromium | |
 | File manager | nnn | | |
+| PDF / images | zathura, imv | | |
 | Editor | issy (default), micro, nano, Sublime Text | issy (default), nano | issy (default), micro, nano |
 | Shell | bash | bash (pkg_add) | zsh (default) |
 | Multiplexers | tmux, herdr | tmux (base) | tmux, herdr |
@@ -479,7 +480,7 @@ Not every file deploys on every OS:
 | `.zshrc` | — | — | yes |
 | `.wezterm.lua` | — | — | yes |
 | `.xinitrc` | — | yes | — |
-| `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*`, `mako/*` | yes | — | — |
+| `.config/sway/*`, `foot/*`, `waybar/*`, `wofi/*`, `swaylock/*`, `mako/*`, `zathura/*`, `imv/*` | yes | — | — |
 | `.config/i3/*`, `i3status/*`, `dunst/*`, `.local/bin/{lock,volnotify}` | — | yes | — |
 | Everything else (git, ssh, tmux, herdr, issy, fonts, cursors, theming, `.Xresources`, `.local/bin/{workstation,shot,sysinfo}`) | yes | yes | yes |
 
@@ -581,6 +582,7 @@ dotfiles/
     ├── btop/                                     # nnix theme
     ├── herdr/config.toml                          # herdr keybindings (alt+up/down space switching)
     ├── micro/, sublime-text-3/                   # Other editor settings
+    ├── zathura/, imv/                            # PDF + image viewers (Linux; default handlers)
     ├── git/allowed_signers                       # SSH signature verification
     └── workstation.conf                          # Per-machine, seeded once
 ```

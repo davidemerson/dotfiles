@@ -93,6 +93,8 @@ check "dotfiles/.config/foot/foot.ini"
 check "dotfiles/.config/swaylock/config"
 check "dotfiles/.config/wofi/style.css"
 check "dotfiles/.config/mako/config"
+check "dotfiles/.config/zathura/zathurarc"
+check "dotfiles/.config/imv/config"
 
 printf "\nOpenBSD (i3):\n"
 check "dotfiles/.config/i3/config"

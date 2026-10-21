@@ -1,0 +1,40 @@
+# zathura (PDF viewer) — nnix palette (black / grayscale + navy/blue
+# accents), Berkeley Mono, matching foot/mako/waybar.
+
+set font                        "Berkeley Mono Variable NNIX 11"
+set window-title-basename       true
+set selection-clipboard         clipboard
+set adjust-open                 "best-fit"
+set scroll-page-aware           true
+set statusbar-h-padding         8
+set statusbar-v-padding         4
+
+set default-bg                  "#000000"
+set default-fg                  "#cccccc"
+set statusbar-bg                "#000000"
+set statusbar-fg                "#999999"
+set inputbar-bg                 "#000000"
+set inputbar-fg                 "#f2f2f2"
+set notification-bg             "#000000"
+set notification-fg             "#cccccc"
+set notification-warning-bg     "#1f2d4d"
+set notification-warning-fg     "#ffffff"
+set notification-error-bg       "#1f2d4d"
+set notification-error-fg       "#ffffff"
+set completion-bg               "#1a1a1a"
+set completion-fg               "#cccccc"
+set completion-group-bg         "#000000"
+set completion-group-fg         "#8fb6e0"
+set completion-highlight-bg     "#1f2d4d"
+set completion-highlight-fg     "#ffffff"
+set index-bg                    "#000000"
+set index-fg                    "#cccccc"
+set index-active-bg             "#1f2d4d"
+set index-active-fg             "#ffffff"
+set highlight-color             "rgba(143,182,224,0.4)"
+set highlight-active-color      "rgba(188,214,242,0.6)"
+
+# Pages stay as printed; Ctrl+r toggles a dark recolor using these.
+set recolor-lightcolor          "#000000"
+set recolor-darkcolor           "#cccccc"
+set recolor-keephue             true

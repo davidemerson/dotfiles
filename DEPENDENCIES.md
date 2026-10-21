@@ -54,6 +54,7 @@
 - **Notifications**: mako (Wayland; `~/.config/mako/config`, palette-themed)
 - **Screenshots**: grim + slurp via `~/.local/bin/shot` (Wayland-aware; `Print` / `Shift+Print`) → saved to `~/pictures/screenshots` and copied to the clipboard
 - **File manager**: [nnn](https://github.com/jarun/nnn) — registered as the `inode/directory` handler via a generated `nnn.desktop` that spawns `foot` explicitly, so folders open from Chrome, wofi and portal dialogs; `n` in bash/zsh gives cd-on-quit (`^G`)
+- **Viewers**: zathura (+ poppler) for PDF and imv for images — set as the per-user `application/pdf` and `image/*` handlers (imv's types read from its own desktop entry); palette-themed `~/.config/zathura/zathurarc` and `~/.config/imv/config`. Before this, both types fell through to Chrome
 - **Shell tools**: fzf (Ctrl-R history, Ctrl-T files), fd (`fdfind`), git-delta (diff pager); Qt apps follow dark via `adwaita-qt`/`adwaita-qt6` + `QT_STYLE_OVERRIDE`, and GTK4/libadwaita + the xdg portal + Chrome via a `prefer-dark` dconf default
 - **Smart card**: pcscd + libccid + opensc + pcsc-tools (pcscd.socket enabled; the stock CCID driver covers readers like the ACR1552)
 - **VM Tools**: open-vm-tools-desktop (auto-detected)

@@ -1,0 +1,10 @@
+# imv (image viewer) — nnix palette, Berkeley Mono overlay.
+# Keys: n/p next/prev, +/- zoom, f fullscreen, d toggle overlay, q quit.
+
+[options]
+background = 000000
+overlay_font = Berkeley Mono Variable NNIX:11
+overlay_text_color = cccccc
+overlay_background_color = 000000
+overlay_background_alpha = cc
+title_text = imv — ${imv_current_file} [${imv_current_index}/${imv_file_count}]
