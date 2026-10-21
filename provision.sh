@@ -2758,6 +2758,17 @@ deploy_dotfiles() {
         chown "${username}:${username}" "$home_dir/.xsession"
     fi
 
+    # foot renamed [colors] to [colors-dark] in 1.25 and dropped [colors]
+    # entirely by 1.28, which then rejects the whole palette. trixie still
+    # ships 1.21, which knows only [colors], so the repo keeps that spelling
+    # and the installed foot decides: rename only if it rejects [colors].
+    foot_ini="$home_dir/.config/foot/foot.ini"
+    if [ -f "$foot_ini" ] && command -v foot >/dev/null 2>&1 && \
+       foot -c "$foot_ini" --check-config 2>&1 | grep -q 'invalid section name: colors$'; then
+        sed -i 's/^\[colors\]$/[colors-dark]/' "$foot_ini"
+        log_info "foot: renamed [colors] to [colors-dark] for this foot version."
+    fi
+
     log_info "Dotfiles deployed."
 }
 
