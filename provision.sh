@@ -1877,6 +1877,23 @@ Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 Unattended-Upgrade::Automatic-Reboot "false";
 Unattended-Upgrade::MinimalSteps "true";
 UUP
+    # Debian unstable: ${distro_codename} comes from /etc/os-release, which on
+    # sid names the *next release* (forky), but the unstable archive publishes
+    # n=sid. None of the Debian patterns above match it, so unattended-upgrades
+    # logged "No packages found" daily while every Debian update, security
+    # included, sat pending. Found on bella-cohen 2026-10-22 with 31 pending.
+    # testing is unaffected: its archive really is n=<codename>. Origins-Pattern
+    # lists from separate files are merged, so this only adds to the above.
+    if apt-cache policy 2>/dev/null | grep -q 'o=Debian,a=unstable,n=sid,l=Debian,'; then
+        cat > /etc/apt/apt.conf.d/53unattended-upgrades-nnix-sid <<'UUPSID'
+// Managed by dotfiles provision.sh. Only written on hosts tracking unstable.
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Debian,codename=sid,label=Debian";
+};
+UUPSID
+    else
+        rm -f /etc/apt/apt.conf.d/53unattended-upgrades-nnix-sid
+    fi
     systemctl enable unattended-upgrades 2>/dev/null || true
 
     # needrestart: report only — never auto-restart services (esp. during an
