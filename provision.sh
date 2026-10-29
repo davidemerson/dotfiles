@@ -515,6 +515,41 @@ install_pfetch() {
 }
 
 # -------------------------------------------------------------------
+# Hack Nerd Font Mono — glyph fallback for foot. Berkeley Mono stays the
+# primary face; foot only reaches for this one for codepoints Berkeley Mono
+# lacks (Nerd Font icons drawn by TUIs, including ones run over SSH, since
+# the local terminal renders every glyph). Installed system-wide so the
+# update_fonts fc-cache run, which is root's, picks it up. Linux desktop
+# only, matching where foot is deployed. Idempotent: skips if fontconfig
+# already knows the family.
+# -------------------------------------------------------------------
+install_nerd_font() {
+    [ "$OS_TYPE" = "linux" ] || return 0
+    headless && return 0
+    if fc-list 2>/dev/null | grep -q "Hack Nerd Font Mono"; then
+        log_info "Hack Nerd Font Mono already installed."
+        return
+    fi
+
+    log_info "Installing Hack Nerd Font Mono..."
+    url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.tar.xz"
+    dir=/usr/local/share/fonts/HackNerdFont
+    if curl -fsSL -o /tmp/hack-nf.$$.tar.xz "$url"; then
+        mkdir -p "$dir"
+        if tar -xJf /tmp/hack-nf.$$.tar.xz -C "$dir" --wildcards 'HackNerdFontMono-*.ttf'; then
+            chmod 0644 "$dir"/*.ttf
+            log_info "Hack Nerd Font Mono installed at $dir."
+        else
+            log_warn "Could not unpack Hack Nerd Font. Skipping."
+        fi
+        rm -f /tmp/hack-nf.$$.tar.xz
+    else
+        log_warn "Could not download Hack Nerd Font. Skipping."
+        rm -f /tmp/hack-nf.$$.tar.xz
+    fi
+}
+
+# -------------------------------------------------------------------
 # herdr — agent multiplexer (https://herdr.dev). Upstream ships prebuilt
 # binaries only (Linux x86_64/aarch64, macOS via homebrew-core); it's a
 # Rust project with no documented source build and no OpenBSD assets, so
@@ -3164,6 +3199,7 @@ main() {
     install_packages
     install_issy
     install_pfetch
+    install_nerd_font
     install_herdr
     install_st
     install_dmenu
